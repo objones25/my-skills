@@ -48,7 +48,7 @@ The review suggested that eval ids must be integers, as skill-creator's schema s
 
 ## Not verified
 
-- Trigger rates. `evals/trigger_evals.json` has not been run, and the description has not been tuned.
+- Trigger rates beyond one pilot on one machine, in `CHANGELOG.md`. The description has not been tuned, and it has known misses.
 - Whether skills built with this one work better in use. The with-and-without comparison measured conformance, which is what the skill teaches, and it used one run per task.
 - `evals/evals.json` has not been graded across runs.
 - Linux and Windows. Everything ran on macOS arm64.

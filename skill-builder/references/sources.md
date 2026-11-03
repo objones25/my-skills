@@ -8,6 +8,7 @@ Checked means how much was read.
 | https://code.claude.com/docs/en/plugin-evals.md | 2026-11-03 | Fetched by a research agent; summary used | `claude plugin eval` layout and its plugin requirement |
 | skill-creator plugin, `references/schemas.md` and `scripts/quick_validate.py` | 2026-11-03 | Read locally | `evals.json` and trigger formats, 64-character name and 1024-character description limits, angle-bracket rule |
 | superpowers `writing-skills` skill, version 7.0.0 | 2026-11-03 | Read locally | Advice to leave the workflow out of descriptions, and to get a baseline first. Its testing is that skill's own report, not reproduced here |
+| skill-creator `scripts/run_eval.py`, and `claude plugin eval` | 2026-11-03 | Read, and run in pilots | Runner settings in `evals.md` |
 | `docs/SKILL_AUDIT.md` in the `my-skills` repository | 2026-11-03 | Written and reviewed for this work | Tiers, patterns, pitfalls |
 
 ## Observed, not documented

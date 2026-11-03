@@ -2,7 +2,7 @@
 
 Claude Code skills I develop and maintain. Each folder is a self-contained skill with a `SKILL.md` at its root, plus whatever references, scripts, tests, assets, examples and evals it needs.
 
-The patterns these skills share, a proposed standard, and what each skill still needs are in [docs/SKILL_AUDIT.md](docs/SKILL_AUDIT.md).
+The patterns these skills share, a proposed standard, and what each skill still needs are in [docs/SKILL_AUDIT.md](docs/SKILL_AUDIT.md). A plan for measuring them is in [docs/EVAL_FRAMEWORK.md](docs/EVAL_FRAMEWORK.md).
 
 ## Skills
 

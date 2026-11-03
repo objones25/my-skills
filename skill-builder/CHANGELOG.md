@@ -13,7 +13,9 @@ First version, built from the audit in `docs/SKILL_AUDIT.md` of the `my-skills` 
 
 ### Evals
 
-`evals/evals.json` and `evals/trigger_evals.json` have not been run through a grader or skill-creator's runner, so trigger rates are unknown.
+Trigger cases, run with skill-creator's `run_eval.py`, which tests the description in a stub command and not the skill's body, on 2026-11-03 on macOS arm64 (Claude Code 2.1.317, model `claude-sonnet-5-5`, 1 worker, 150-second timeout, 3 runs per query, with the owner's other skills installed): 24 of 27 should-trigger runs fired, and 0 of 27 should-not-trigger runs fired. The miss is "turn the process we just went through into a reusable skill" (0 of 3), which may be a bad case, because a single run has no earlier conversation. A question-style case added afterwards has not been through this runner; a similar prompt that also said to answer briefly and create no files called no skill in 3 runs under `claude plugin eval`.
+
+`evals/evals.json` has not been graded.
 
 ### With and without the skill
 

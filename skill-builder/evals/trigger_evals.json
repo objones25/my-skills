@@ -8,6 +8,7 @@
   {"query": "my skill never activates when people ask about migrations, and the frontmatter might be broken, can you look at the skill", "should_trigger": true},
   {"query": "add tests and evals to the hook-writer skill so it meets our standard", "should_trigger": true},
   {"query": "turn the process we just went through into a reusable skill", "should_trigger": true},
+  {"query": "I want to make a Claude Code skill for reviewing Terraform plans. What should I do first, and what files will it need?", "should_trigger": true},
   {"query": "run a benchmark comparing version 1 and version 2 of my skill's description across 20 trigger queries and tune it", "should_trigger": false},
   {"query": "write a hook that runs ruff every time claude edits a python file", "should_trigger": false},
   {"query": "create a plugin marketplace entry and plugin.json for my tools", "should_trigger": false},
