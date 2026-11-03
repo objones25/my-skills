@@ -10,6 +10,7 @@ import pytest
 
 SKILL_ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = SKILL_ROOT / "scripts"
+sys.path.insert(0, str(SCRIPTS))
 
 GOOD_DESCRIPTION = ("Check widgets for damage. Use when the user asks to inspect a widget or says "
                     "'is this widget broken'. Not for gadgets; use gadget-expert.")

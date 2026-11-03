@@ -30,10 +30,10 @@ A skill is finished when its claims have been checked, not when it reads well. A
    ```bash
    python3 <this-skill>/scripts/new_skill.py NAME --dest DIR [--tier tooling] [--tier knowledge]
    ```
-   *Done when:* the folder exists and `check_skill.py` reports no errors.
+   *Done when:* the folder exists and `check_skill.py` reports no errors. It warns (SB014) until each `TODO` is gone, and packaging refuses while any remain.
 
 3. **Write the evals first.** Fill in `evals/trigger_evals.json` with at least 8 cases that should trigger and 8 near misses that should not. Fill in `evals/evals.json` with cases whose expectations are specific facts, including one control where the right answer is to change nothing. Read `references/evals.md`.
-   *Done when:* both files have no TODO left.
+   *Done when:* neither file has a `TODO` left.
 
 4. **Collect the ground truth.** Install what the skill is about and run it. Record each source and how much of it you read in `references/sources.md`. Read `references/provenance.md`.
    *Done when:* every fact you plan to state has a command or source behind it.
@@ -58,7 +58,7 @@ A skill is finished when its claims have been checked, not when it reads well. A
     python3 <this-skill>/scripts/check_skill.py SKILL_DIR --strict
     python3 <this-skill>/scripts/package_skill.py SKILL_DIR --out DIR
     ```
-    *Done when:* both exit 0, which means the checker is clean and the tests passed in a clean unpacked copy. Do not report the skill as finished before this.
+    *Done when:* both exit 0, and the packager says the tests passed in the unpacked copy. If it says "tests not run", the skill has no `metadata.test-command`, so say that in your report. Do not report the skill as finished before this.
 
 ## Update mode
 
@@ -108,6 +108,13 @@ A skill is finished when its claims have been checked, not when it reads well. A
 | `scripts/new_skill.py` | Scaffold a skill from `assets/templates/` |
 | `scripts/package_skill.py` | Zip without junk, then test the unpacked copy |
 | `scripts/machine_stamp.py` | Print the date, machine and versions for a result |
+
+## Extend this skill
+
+1. A new checker rule: add a failing test in `tests/test_check_skill.py`, add the rule to `RULES`, add its fix to `references/standard.md` (a test requires this), and run it on real skills to look for false positives.
+2. A new pattern: add it to `references/patterns.md` with a path to copy from.
+3. A new fact about Claude Code or skill-creator: add it to `references/sources.md` with the date checked.
+4. After any change: run the final gate from Create mode, and add the result to the CHANGELOG.
 
 ## Reporting
 

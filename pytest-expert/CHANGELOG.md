@@ -41,7 +41,7 @@ how each source was checked, and what was left undone are in `AUDIT.md`.
 - Solver search on the wallet demo now about 0.4 s (was 1.7 s on CrossHair 0.0.111).
 - Scripts are executable (`chmod +x`) and pass ruff 0.17's expanded default rule set; `ci-cd.md` explains that default change.
 
-### Verification at release
+### Verification at release (machine not recorded)
 
 | Check | Result |
 |---|---|
@@ -114,7 +114,7 @@ reproduced before it was made and re-checked after.
   step 5; new escalation step and testing ladder. Rules 28 to 31 added.
 - Shell snippets in docs contain no `#` comment lines, so they paste cleanly into zsh.
 
-### Verification at release
+### Verification at release (machine not recorded)
 
 | Check | Result |
 |---|---|

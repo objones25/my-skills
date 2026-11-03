@@ -18,9 +18,10 @@ def test_paths_in_skill_md_exist():
 
 
 def test_description_is_within_the_limit():
-    match = re.search(r"^description: (.*)$", SKILL, re.M)
-    assert match is not None
-    assert len(match.group(1)) <= 1024 and "<" not in match.group(1) and ">" not in match.group(1)
+    block = re.search(r"^description:(.*?)^(?=[A-Za-z_-]+:|---)", SKILL, re.M | re.S)
+    assert block is not None
+    text = re.sub(r"^\s*[>|][+-]?\s*$", "", block.group(1).strip(), count=1, flags=re.M).strip()
+    assert text and len(text) <= 1024 and "<" not in text and ">" not in text
 
 
 def test_skill_md_is_short():

@@ -348,3 +348,194 @@ def test_sb020_accepts_any_python_file_in_a_tests_folder(skill, codes):
     (skill / "tests").mkdir()
     (skill / "tests" / "run_tests.py").write_text("print('ok')\n", encoding="utf-8")
     assert "SB020" not in codes(skill)
+
+
+# ------------------------------------------------------------------ second review
+
+
+def test_sb014_todo_left_in_skill_or_evals(skill, codes):
+    (skill / "SKILL.md").write_text((skill / "SKILL.md").read_text() + "\nTODO write this.\n", encoding="utf-8")
+    assert "SB014" in codes(skill)
+
+
+def test_sb014_ignores_todo_in_code_and_quotes(skill, codes):
+    (skill / "SKILL.md").write_text((skill / "SKILL.md").read_text() + '\nFlag `TODO` comments and "TODO" notes.\n', encoding="utf-8")
+    assert "SB014" not in codes(skill)
+
+
+def test_sb014_finds_todo_in_trigger_evals(skill, codes):
+    (skill / "evals" / "trigger_evals.json").write_text(json.dumps([
+        {"query": "TODO a request", "should_trigger": True}, {"query": "x", "should_trigger": False}]), encoding="utf-8")
+    assert "SB014" in codes(skill)
+
+
+def test_sb015_unreadable_markdown_is_reported_not_a_crash(skill, run_script):
+    (skill / "references").mkdir()
+    (skill / "references" / "bad.md").write_bytes(b"\xff\xfe not utf-8")
+    result = run_script("check_skill.py", skill, "--json")
+    assert "Traceback" not in result.stderr
+    assert result.returncode == 1
+    assert "SB015" in {f["code"] for f in json.loads(result.stdout)["findings"]}
+
+
+@pytest.mark.parametrize("name", ["evals.json", "trigger_evals.json"])
+def test_sb015_unreadable_evals_are_reported_not_a_crash(skill, run_script, name):
+    (skill / "evals" / name).write_bytes(b"\xff\xfe")
+    result = run_script("check_skill.py", skill, "--json")
+    assert "Traceback" not in result.stderr
+    assert "SB015" in {f["code"] for f in json.loads(result.stdout)["findings"]}
+
+
+def test_binary_files_are_fine(skill, codes):
+    (skill / "assets").mkdir()
+    (skill / "assets" / "image.png").write_bytes(b"\x89PNG\xff\xfe")
+    assert codes(skill) == set()
+
+
+def test_unreadable_skill_md_could_not_be_checked(tmp_path, run_script):
+    made = tmp_path / "demo-skill"
+    made.mkdir()
+    (made / "SKILL.md").write_bytes(b"\xff\xfe")
+    result = run_script("check_skill.py", made)
+    assert result.returncode == 2
+    assert "Traceback" not in result.stderr
+
+
+def test_unknown_ignore_code_is_a_usage_error(skill, run_script):
+    assert run_script("check_skill.py", skill, "--ignore", "BOGUS").returncode == 2
+
+
+def test_name_with_a_trailing_newline_is_invalid(tmp_path, codes):
+    assert "SB003" in codes(write_skill(tmp_path, name="foo\n"))
+
+
+@pytest.mark.parametrize("name", ["synced", "anthropic-skills"])
+def test_sb003_reserved_names(tmp_path, codes, name):
+    assert "SB003" in codes(write_skill(tmp_path, name=name))
+
+
+@pytest.mark.parametrize("cases", [
+    [{"prompt": "p", "expectations": ["e"]}],
+    [{"id": [1], "prompt": "p", "expectations": ["e"]}],
+    [{"id": True, "prompt": "p", "expectations": ["e"]}],
+    [{"id": "", "prompt": "p", "expectations": ["e"]}],
+])
+def test_sb011_id_must_be_an_integer_or_a_name(skill, codes, cases):
+    (skill / "evals" / "evals.json").write_text(json.dumps({"skill_name": "demo-skill", "evals": cases}), encoding="utf-8")
+    assert "SB011" in codes(skill)
+
+
+def test_sb011_accepts_named_ids(skill, codes):
+    cases = [{"id": "retry-on-429", "prompt": "p", "expectations": ["e"]}]
+    (skill / "evals" / "evals.json").write_text(json.dumps({"skill_name": "demo-skill", "evals": cases}), encoding="utf-8")
+    assert "SB011" not in codes(skill)
+
+
+def test_sb041_applies_to_several_references_even_if_short(skill, codes):
+    refs = skill / "references"
+    refs.mkdir()
+    for name in ("one.md", "two.md"):
+        (refs / name).write_text("Hi\n", encoding="utf-8")
+    assert "SB041" in codes(skill)
+
+
+def test_sb043_large_skill_without_an_extend_recipe(skill, codes):
+    (skill / "SKILL.md").write_text((skill / "SKILL.md").read_text() + "line\n" * 160, encoding="utf-8")
+    assert "SB043" in codes(skill)
+
+
+def test_sb043_satisfied_by_a_recipe(skill, codes):
+    (skill / "SKILL.md").write_text((skill / "SKILL.md").read_text() + "line\n" * 160 + "\n## Extend this skill\n", encoding="utf-8")
+    assert "SB043" not in codes(skill)
+
+
+def test_sb050_date_may_come_from_a_parent_heading(skill, codes):
+    text = "# Changelog\n\n## 1.0.0, 2026-11-03\n\n### Verification\n\n| Check | Result |\n|---|---|\n| one | ok |\n| two | ok |\n| three | ok |\n| tests, machine not recorded | 40 passed |\n"
+    (skill / "CHANGELOG.md").write_text(text, encoding="utf-8")
+    assert "SB050" not in codes(skill)
+
+
+def test_sb050_not_recorded_is_enough_without_a_date(skill, codes):
+    (skill / "CHANGELOG.md").write_text("# Changelog\n\n40 passed, date and machine not recorded.\n", encoding="utf-8")
+    assert "SB050" not in codes(skill)
+
+
+def test_sb050_still_needs_the_machine(skill, codes):
+    (skill / "CHANGELOG.md").write_text("# Changelog\n\n## 1.0.0, 2026-11-03\n\n40 passed.\n", encoding="utf-8")
+    assert "SB050" in codes(skill)
+
+
+def test_sb050_skips_paper_digests(skill, codes):
+    papers = skill / "references" / "papers"
+    papers.mkdir(parents=True)
+    (papers / "x.md").write_text("The method was tested on a robot arm.\n", encoding="utf-8")
+    assert "SB050" not in codes(skill)
+
+
+def test_json_reports_the_counts(skill, run_script):
+    (skill / "CHANGELOG.md").unlink()
+    data = json.loads(run_script("check_skill.py", skill, "--json").stdout)
+    assert data["errors"] == 0 and data["warnings"] == 1
+
+
+# ------------------------------------------------------------------ the parser without PyYAML
+
+
+@pytest.fixture
+def fallback(monkeypatch):
+    import check_skill
+    monkeypatch.setattr(check_skill, "yaml", None)
+    return check_skill.parse_frontmatter
+
+
+def _block(*lines):
+    return "---\n" + "\n".join(lines) + "\n---\n\nBody\n"
+
+
+@pytest.mark.parametrize("lines, key, expected", [
+    (["name: demo # note"], "name", "demo"),
+    (['description: "use: this" # note'], "description", "use: this"),
+    (["description: foo # note: bar"], "description", "foo"),
+    (["description: first", "  second"], "description", "first second"),
+    (["description: >-", "  one", "  two"], "description", "one two"),
+])
+def test_fallback_reads_top_level_values(fallback, lines, key, expected):
+    fields, problem = fallback(_block(*lines))
+    assert problem is None
+    assert fields[key] == expected
+
+
+@pytest.mark.parametrize("lines, expected", [
+    (['metadata:', '  test-command: "true" # note'], "true"),
+    (["metadata:", "  test-command: >-", "    false"], "false"),
+    (["metadata:", "  test-command: a b", "  version: 1"], "a b"),
+])
+def test_fallback_reads_nested_metadata(fallback, lines, expected):
+    fields, problem = fallback(_block(*lines))
+    assert problem is None
+    assert fields["metadata"]["test-command"] == expected
+
+
+@pytest.mark.parametrize("lines", [
+    ['metadata: {test-command: "true"}'],
+    ['description: "starts', '  and continues"'],
+    ["metadata:", "  deep:", "    test-command: x"],
+])
+def test_fallback_refuses_what_it_cannot_read(fallback, lines):
+    import check_skill
+    with pytest.raises(check_skill.NeedsPyYAML):
+        fallback(_block(*lines))
+
+
+def test_fallback_flags_an_unterminated_quote(fallback):
+    _, problem = fallback(_block('name: "demo'))
+    assert problem is not None
+
+
+def test_cli_exits_two_when_frontmatter_needs_pyyaml(tmp_path, run_script):
+    import importlib.util
+    if importlib.util.find_spec("yaml"):
+        pytest.skip("PyYAML is installed, so the fallback parser is not used")
+    made = write_skill(tmp_path)
+    (made / "SKILL.md").write_text('---\nname: demo-skill\nmetadata: {a: b}\n---\n\nBody\n', encoding="utf-8")
+    assert run_script("check_skill.py", made).returncode == 2

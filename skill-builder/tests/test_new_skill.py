@@ -24,9 +24,12 @@ def test_leaves_no_placeholder_markers_outside_todos(tmp_path, run_script):
     assert "{{" not in (tmp_path / "widget-expert" / "SKILL.md").read_text()
 
 
-def test_scaffold_has_no_checker_errors(tmp_path, run_script):
+def test_scaffold_has_no_errors_but_fails_strict_until_todos_are_filled(tmp_path, run_script):
     run_script("new_skill.py", "widget-expert", "--dest", tmp_path)
-    assert run_script("check_skill.py", tmp_path / "widget-expert").returncode == 0
+    made = tmp_path / "widget-expert"
+    assert run_script("check_skill.py", made).returncode == 0
+    assert run_script("check_skill.py", made, "--strict").returncode == 1
+    assert run_script("package_skill.py", made, "--out", tmp_path / "out").returncode == 1
 
 
 def test_tooling_tier_adds_a_tested_script_layout(tmp_path, run_script):
@@ -74,3 +77,32 @@ def test_tooling_scaffold_has_version_and_test_command_in_one_metadata_block(tmp
     text = (tmp_path / "widget-expert" / "SKILL.md").read_text()
     assert text.count("metadata:") == 1
     assert "version: 0.1.0" in text and "test-command:" in text
+
+
+def test_destination_that_is_a_file_is_an_error_not_a_crash(tmp_path, run_script):
+    target = tmp_path / "file"
+    target.write_text("x", encoding="utf-8")
+    result = run_script("new_skill.py", "widget-expert", "--dest", target)
+    assert result.returncode == 2
+    assert "Traceback" not in result.stderr
+
+
+def test_reserved_names_are_rejected(tmp_path, run_script):
+    assert run_script("new_skill.py", "synced", "--dest", tmp_path).returncode == 2
+
+
+def test_name_with_a_trailing_newline_is_rejected(tmp_path, run_script):
+    assert run_script("new_skill.py", "foo\n", "--dest", tmp_path).returncode == 2
+
+
+def test_generated_structure_test_reads_a_block_scalar_description(tmp_path, run_script):
+    import subprocess
+    import sys
+    run_script("new_skill.py", "widget-expert", "--dest", tmp_path, "--tier", "tooling")
+    made = tmp_path / "widget-expert"
+    text = (made / "SKILL.md").read_text()
+    text = text.replace(text.split("\n")[2], "description: >-\n  Use when widgets. Not for gadgets.")
+    (made / "SKILL.md").write_text(text, encoding="utf-8")
+    result = subprocess.run([sys.executable, "-m", "pytest", "-q", "-p", "no:cacheprovider", "tests"],
+                            cwd=made, capture_output=True, text=True, timeout=120)
+    assert result.returncode == 0, result.stdout

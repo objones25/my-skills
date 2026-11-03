@@ -14,7 +14,7 @@
 
 | Date | Machine | torch | Result |
 |---|---|---|---|
-| 2026-11-03, after these fixes | macOS arm64 (Apple Silicon), MPS | 2.15.0 | 375 passed, 4 skipped (`safetensors` and `torchao` not installed, one test needs a machine with no accelerator, one is for torch 2.13 and 2.14) |
+| 2026-11-03, after these fixes | macOS arm64 (Apple Silicon), MPS | 2.15.0 | 380 passed, 4 skipped (`safetensors` and `torchao` not installed, one test needs a machine with no accelerator, one is for torch 2.13 and 2.14) |
 | 2026-11-03, before these fixes | macOS arm64 (Apple Silicon), MPS | 2.15.0 | 369 passed, 3 failed, 4 skipped |
 | 2026-11-02, release 1.2.0 | Not recorded | 2.15.0 | 375 passed, 1 skipped |
 

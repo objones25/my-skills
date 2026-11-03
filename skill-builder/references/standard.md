@@ -15,7 +15,7 @@ Requirements depend on what a skill does, so a small skill stays small.
 | Core | Always | `SKILL.md` with valid YAML and `name` matching the folder; a description covering what, when and negative scope; a way to verify the work; `CHANGELOG.md`; `evals/evals.json`; `evals/trigger_evals.json` |
 | Tooling | It ships scripts | Tests, with failing and clean fixtures; exit codes 0, 1, 2; `metadata.test-command` |
 | Knowledge | It states facts that can age or be wrong | `references/sources.md` recording check depth; dates and versions beside claims; `AUDIT.md` with a "Not verified" section |
-| Large | More than one reference, or about 150 lines or more | A routing table; a structure test; an "Extend this skill" recipe |
+| Large | More than one reference (not counting `sources.md`), or over 150 lines | A routing table; a structure test; an "Extend this skill" recipe |
 
 These are optional, and earn their place when:
 
@@ -54,11 +54,14 @@ A one-file skill that wraps an external tool can be correct at Core tier with no
 | SB010 | Add trigger cases of both kinds; see `evals.md` |
 | SB012 | Delete the cache or junk. `package_skill.py` also leaves it out of the zip |
 | SB013 | Replace the em dash |
+| SB014 | Finish the `TODO`. `package_skill.py` refuses to package while any remain |
+| SB015 | Save the file as UTF-8, or remove it |
 | SB020 | Write tests for the scripts |
 | SB022 | Add `metadata.test-command` |
 | SB030, SB031 | Add `references/sources.md` and `AUDIT.md`; see `provenance.md` |
 | SB040 | Name the reference in `SKILL.md`, or remove it. Nested files may route through their folder's `README.md` |
 | SB041 | Add a test named `test_skill_*.py`; `assets/templates/test_skill_structure.py` is a starting point |
 | SB042 | Move material into `references/` |
-| SB050 | State the date and machine, or "machine not recorded"; see `provenance.md` |
+| SB043 | Add an "Extend this skill" section saying which test or table each new fact must update |
+| SB050 | State the date and machine, or say they were not recorded; see `provenance.md`. A heading above the result can give the date |
 | SB051 | Fix the filename |
