@@ -60,6 +60,14 @@ def test_no_em_dashes(md):
     assert "—" not in md.read_text()
 
 
+def test_install_states_the_same_gate_count_as_the_rules():
+    rules = (ROOT / "references" / "rules.md").read_text()
+    actual = len(re.findall(r"^### Rule ", rules, re.M))
+    stated = re.search(r"(\d+) hard gates", (ROOT / "INSTALL.md").read_text())
+    assert stated is not None
+    assert int(stated.group(1)) == actual
+
+
 def test_every_script_has_a_selftest():
     scripts = {p.stem for p in (ROOT / "scripts").glob("*.py")}
     tests = {p.stem.removeprefix("test_") for p in (ROOT / "selftest").glob("test_*.py")}

@@ -44,3 +44,9 @@ if __name__ == "__main__":
         except AssertionError as e:
             print(f"FAIL {t.__name__}\n{e}")
             sys.exit(1)
+
+
+def test_verify_image_header_matches_what_the_script_accepts() -> None:
+    with open(os.path.join(os.path.dirname(HERE), "verify_image.sh"), encoding="utf-8") as fh:
+        source = fh.read()
+    assert "# Usage: verify_image.sh IMAGE [--stop-test]\n" in source

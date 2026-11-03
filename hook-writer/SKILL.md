@@ -69,9 +69,11 @@ python3 <skill-dir>/scripts/dry_run.py --event PreToolUse --tool Bash --command 
 python3 <skill-dir>/scripts/dry_run.py --event PreToolUse --tool Bash --command "ls"
 ```
 
+To run this skill's own tests: `uv run --no-project --with pytest python -m pytest tests` from the skill folder.
+
 `check_hooks.py` lints the project's settings files (add `--user` for `~/.claude/settings.json`, or pass paths) and catches the static mistakes: `if` on a non-tool event, matchers that can never match, unsupported handler types, missing or non-executable scripts, guards that fail open, Stop hooks with no loop guard. Fix every ERROR; read every WARN.
 
-`dry_run.py` builds a realistic event input, runs the configured command handlers whose matcher and `if` match, and reports what Claude Code would do with each result. Always run at least one case that should trigger the hook and one that should not, and confirm both outcomes.
+`dry_run.py` builds a realistic event input, runs the configured command handlers whose matcher and `if` match, and reports what Claude Code would do with each result. Always run at least one case that should trigger the hook and one that should not, and confirm both outcomes. It exits 0 whatever the hooks decide; add `--expect deny` (or `allow`, `ask`, `defer`, `block`, `none`, `no-handler`) to exit 1 on a different outcome. It runs your real hook scripts, so their side effects happen.
 
 ### 6. Hand off
 

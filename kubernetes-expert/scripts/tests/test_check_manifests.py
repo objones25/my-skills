@@ -37,7 +37,6 @@ def test_templates_clean() -> None:
 def test_every_rule_is_exercised() -> None:
     with open(os.path.join(HERE, "expected.json"), encoding="utf-8") as fh:
         covered = {r for per in json.load(fh).values() for rules in per.values() for r in rules}
-    covered |= {"K022"}
     untested = set(C.RULES) - covered
     assert not untested, f"rules with no fixture: {sorted(untested)}"
 

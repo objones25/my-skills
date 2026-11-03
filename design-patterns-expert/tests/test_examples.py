@@ -74,7 +74,8 @@ def test_inventory_adapters_honour_the_same_contract(make) -> None:
 @pytest.mark.skipif(shutil.which("lint-imports") is None, reason="import-linter not installed")
 def test_import_linter_contract_is_kept() -> None:
     root = EXAMPLES / "ports_adapters"
-    out = subprocess.run(["lint-imports", "--no-cache"], cwd=root, capture_output=True, text=True,
+    # An absolute path, because the environment below deliberately restricts PATH.
+    out = subprocess.run([str(shutil.which("lint-imports")), "--no-cache"], cwd=root, capture_output=True, text=True,
                          env={"PYTHONPATH": str(root), "PATH": "/usr/bin:/usr/local/bin:/bin"})
     assert "1 kept, 0 broken" in out.stdout, out.stdout + out.stderr
 

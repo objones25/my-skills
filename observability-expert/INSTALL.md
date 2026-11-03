@@ -23,8 +23,8 @@ ls ~/.claude/skills/observability-expert/SKILL.md   # confirm it registered
 
 ## Claude Cowork / claude.ai
 
-Use the `observability-expert.skill` file: its card in the conversation has a **Save
-skill** button when your organization allows it.
+Upload the skill folder as a zip file. This repo does not include a packaged `.skill`
+file.
 
 ## Using the tooling directly, without Claude
 

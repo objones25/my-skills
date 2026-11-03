@@ -20,6 +20,7 @@ Offline smoke test (no API key): python scripts/inspect_eval_template.py --smoke
 For code-writing agents add sandbox="docker" to Task and use the bash()/python()
 tools, which run inside the sandbox rather than on the host.
 """
+import tempfile
 from __future__ import annotations
 
 import sys
@@ -139,7 +140,7 @@ def _smoke() -> None:
 
     model = get_model("mockllm/model", custom_outputs=scripted)
     t = order_status(epochs=2)
-    logs = inspect_eval(t, model=model, display="none", log_dir="/tmp/inspect-smoke")
+    logs = inspect_eval(t, model=model, display="none", log_dir=tempfile.mkdtemp(prefix="inspect-smoke-"))
     log = logs[0]
     print("status:", log.status)
     for s in log.results.scores:

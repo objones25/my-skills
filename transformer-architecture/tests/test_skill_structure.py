@@ -19,6 +19,13 @@ def _ids(p: Path) -> str:
     return str(p.relative_to(ROOT))
 
 
+def test_bare_filenames_in_the_digest_index_exist():
+    readme = ROOT / "references" / "papers" / "README.md"
+    names = re.findall(r"`([A-Za-z0-9_-]+\.md)`", readme.read_text())
+    missing = sorted(n for n in set(names) if not (readme.parent / n).exists())
+    assert not missing, f"references/papers/README.md mentions missing files: {missing}"
+
+
 @pytest.mark.parametrize("md", MD_FILES, ids=_ids)
 def test_backticked_paths_exist(md):
     missing = sorted({m.group(1).rstrip(".,") for m in PATH_RE.finditer(md.read_text())

@@ -17,6 +17,9 @@ CLAUDE_PROJECT_DIR set, then interprets exit code, stdout, and stderr using
 the rules in the hooks reference. http, mcp_tool, prompt, and agent handlers
 are listed but not run.
 
+Exits 0 whatever the hooks decide, unless --expect names the outcome to require
+(deny, defer, ask, allow, block, none, or no-handler); then a mismatch exits 1.
+
 This runs the real scripts, so side effects (formatting a file, running
 tests) happen for real. Matching `if` rules is approximate; when unsure it
 runs the handler, as Claude Code does.
@@ -34,6 +37,14 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import hookspec as hs  # noqa: E402
 
 CONTEXT_CAP = 10_000
+
+
+def check_expected(expected, outcome):
+    """Exit 0 without --expect or on a match, 1 on a mismatch, so dry runs can gate CI."""
+    if expected is None or expected == outcome:
+        return 0
+    print(f"expected {expected}, got {outcome}")
+    return 1
 
 
 # ---------- building the event input ----------
@@ -382,6 +393,7 @@ def main():
     ap.add_argument("--hook", help="test this shell-form command instead of reading settings")
     ap.add_argument("--project-dir", type=Path, default=Path.cwd())
     ap.add_argument("--show-input", action="store_true")
+    ap.add_argument("--expect", help="required outcome; exit 1 on a mismatch (deny, defer, ask, allow, block, none, no-handler)")
     args = ap.parse_args()
 
     project_dir = args.project_dir.resolve()
@@ -433,18 +445,20 @@ def main():
 
     if not any_handler:
         print(f"no handler matches this {args.event} input. Check the event name, matcher (case-sensitive), and `if`.")
-        return 0
+        return check_expected(args.expect, "no-handler")
     if args.event == "PreToolUse" and results:
-        for tag in ("deny", "defer", "ask", "allow"):
-            if tag in results:
-                print(f"combined PreToolUse outcome: {tag} (precedence deny > defer > ask > allow)")
-                break
-        else:
+        outcome = next((t for t in ("deny", "defer", "ask", "allow") if t in results), "none")
+        if outcome == "none":
             print("combined PreToolUse outcome: no decision; normal permission flow")
+        else:
+            print(f"combined PreToolUse outcome: {outcome} (precedence deny > defer > ask > allow)")
     elif results:
         blocking = [t for t in results if t in ("block", "deny", "stop")]
         print(f"combined outcome: {'blocked/continued by a hook' if blocking else 'nothing blocks'}")
-    return 0
+        outcome = "block" if blocking else "none"
+    else:
+        outcome = "none"
+    return check_expected(args.expect, outcome)
 
 
 if __name__ == "__main__":

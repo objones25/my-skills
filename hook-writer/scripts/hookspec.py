@@ -8,6 +8,8 @@ the sources.
 """
 import re
 
+TRANSCRIBED = "2026-10-25"
+
 EVENTS = [
     "SessionStart", "Setup", "UserPromptSubmit", "UserPromptExpansion", "PreToolUse",
     "PermissionRequest", "PermissionDenied", "PostToolUse", "PostToolUseFailure",
