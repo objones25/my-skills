@@ -1,0 +1,23 @@
+# Needs metrics-server (or another resource metrics API) and CPU requests on the pods.
+# When an HPA owns replicas, remove "replicas" from the Deployment you apply afterwards,
+# or every apply resets the scale.
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: myapp
+  labels:
+    app.kubernetes.io/name: myapp
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: myapp
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70

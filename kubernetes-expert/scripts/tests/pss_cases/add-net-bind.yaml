@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app.kubernetes.io/name: x
+  name: add-net-bind
+  namespace: myapp
+spec:
+  automountServiceAccountToken: false
+  containers:
+  - image: r/x:1
+    name: app
+    securityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        add:
+        - NET_BIND_SERVICE
+        drop:
+        - ALL
+      readOnlyRootFilesystem: true
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 10001
+    seccompProfile:
+      type: RuntimeDefault
+  serviceAccountName: myapp

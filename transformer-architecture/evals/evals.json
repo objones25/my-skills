@@ -1,0 +1,198 @@
+{
+  "skill_name": "transformer-architecture",
+  "note": "Regression set. Expectations are objectively checkable against the reply. Every number referenced was produced by the skill's scripts (torch 2.15.0) or is a checkpoint total verified against the Hugging Face safetensors index and a meta-device instantiation (transformers 5.22.1), Nov 2 2026.",
+  "evals": [
+    {
+      "id": "param-count-by-script",
+      "type": "sizing",
+      "prompt": "How many parameters does this have: d_model 2048, 24 layers, 16 heads, 4 KV heads, SwiGLU d_ff 5632, vocab 32000, tied embeddings?",
+      "expectations": [
+        "Runs scripts/config_budget.py (or shows its arithmetic) instead of estimating in prose",
+        "Counts three MLP matrices for SwiGLU, not two",
+        "Counts the embedding once because it is tied",
+        "Gives an exact integer total and a breakdown by component"
+      ],
+      "files": []
+    },
+    {
+      "id": "olmo2-qk-norm-count",
+      "type": "sizing",
+      "prompt": "Does QK-norm cost 2*head_dim parameters per layer? I'm counting OLMo-2-7B by hand and I'm off by about 254K.",
+      "expectations": [
+        "Says it depends on the norm's scope: per-head (Qwen3, Gemma 3) costs 2*head_dim, full-width (OLMo 2, OLMoE) costs n_heads*head_dim + n_kv_heads*head_dim",
+        "Explains the gap as 32 layers x (8192 - 256) = 253,952",
+        "Gives OLMo-2-7B's exact total 7,298,617,344 or says the script's preset reproduces it",
+        "Points to config_budget.py --qk-norm-scope full or the olmo2-7b preset"
+      ],
+      "files": []
+    },
+    {
+      "id": "moe-active-params",
+      "type": "sizing",
+      "prompt": "Qwen3-30B-A3B says 3.3B active and gpt-oss-20b says 3.6B active. Is gpt-oss more expensive per token?",
+      "expectations": [
+        "Explains that labs count active parameters differently (Qwen counts both embedding tables; gpt-oss counts the unembedding but not the input embedding)",
+        "Gives comparable numbers under one convention (e.g. 3.35B vs 4.19B with both tables, or 2.73B vs 3.03B with neither)",
+        "Uses config_budget.py --self-test or the presets rather than the marketing figures",
+        "Notes that FLOPs per token also include attention, which depends on context length and the sliding-window layers"
+      ],
+      "files": []
+    },
+    {
+      "id": "moe-vs-dense-memory",
+      "type": "sizing",
+      "prompt": "We serve on one 80GB GPU per replica. Should our next model be a 30B-A3B MoE instead of an 8B dense model? MoE is cheaper, right?",
+      "expectations": [
+        "Verdict first: cheaper per token in FLOPs, not cheaper in memory",
+        "States that all experts must be resident, so weight memory follows total parameters (about 57 GiB bf16 for 30.5B vs about 15 GiB for 8.2B)",
+        "Considers KV cache and batch headroom on the 80 GB card",
+        "Names what would flip the answer (multi-GPU expert parallelism, FLOP-bound training)"
+      ],
+      "files": []
+    },
+    {
+      "id": "mla-kv-cache",
+      "type": "sizing",
+      "prompt": "How much KV cache does DeepSeek-V3 need per token, and why is it so small for a 128-head model?",
+      "expectations": [
+        "Gives 61 layers x (512 + 64) numbers x 2 bytes = 70,272 bytes (about 68.6 KiB) per token in bf16",
+        "Explains MLA caches a 512-wide latent plus a 64-wide RoPE key shared across heads, not per-head K and V",
+        "Mentions that an implementation caching expanded per-head K and V loses the saving",
+        "Explains why RoPE needs the separate decoupled key (absorption of W_uk)"
+      ],
+      "files": []
+    },
+    {
+      "id": "rmsnorm-eps-gradient",
+      "type": "implementation",
+      "prompt": "My RMSNorm is x / (sqrt(mean(x**2)) + eps) * w. It matches the reference to 1e-6 and training works. Fine?",
+      "expectations": [
+        "Says no: the forward pass is fine but the gradient is NaN on an all-zero row because d sqrt(u)/du is infinite at 0",
+        "Gives the fix x * rsqrt(mean(x**2) + eps) * w",
+        "Mentions when zero rows happen (padding, zero-initialized branches)",
+        "Suggests reference_block.py --verify --impl on their file"
+      ],
+      "files": []
+    },
+    {
+      "id": "gqa-repeat-interop",
+      "type": "implementation",
+      "prompt": "Code review: someone wrote repeat_kv as k.repeat(1, n_rep, 1, 1). Their from-scratch model trains to the same loss. Is that a bug?",
+      "expectations": [
+        "Says it is exactly a permutation of query heads, so from-scratch quality is unaffected",
+        "Says it breaks loading external checkpoints and fused GQA kernels (enable_gqa)",
+        "Does not call it a quality regression",
+        "Gives repeat_interleave or expand-then-reshape as the fix"
+      ],
+      "files": []
+    },
+    {
+      "id": "decode-garbage",
+      "type": "debugging",
+      "prompt": "Prefill output is perfect but everything after the first generated token is garbage. Using F.scaled_dot_product_attention with a KV cache.",
+      "expectations": [
+        "Identifies is_causal=True with a length-1 query against t cached keys (attends only to key 0) as the likely cause",
+        "Mentions the other cache bug: positions restarting at 0 (cos[:T] or re-rotating cached keys)",
+        "Proposes the cache-vs-full-forward equality test",
+        "Does not blame sampling settings or the tokenizer first"
+      ],
+      "files": []
+    },
+    {
+      "id": "spike-triage",
+      "type": "stability",
+      "prompt": "Loss spiked at step 4300 and recovered. Grad norm has been creeping up all run. Should I lower the LR and restart?",
+      "expectations": [
+        "Separates recovering spikes (often data, batch x state) from slow grad-norm growth (init / norm placement)",
+        "Recommends logging or checking max attention logits and final-layer output norm as leading indicators",
+        "Mentions spike_monitor.py or OLMo 2's spike score definition (7 sigma vs rolling mean of 1000)",
+        "Gives cheap fixes in order (QK-norm, z-loss, softcap/QK-clip, LR) rather than only lowering LR"
+      ],
+      "files": []
+    },
+    {
+      "id": "muon-lr",
+      "type": "stability",
+      "prompt": "Switching from AdamW (lr 3e-4) to torch.optim.Muon. What learning rate and which adjust_lr_fn?",
+      "expectations": [
+        "Says Muon is for 2D hidden-layer weights only; embeddings, the output head, norms and biases stay on AdamW",
+        "Explains match_rms_adamw scales updates to RMS about 0.2 (0.2 * sqrt(max(A, B))) so AdamW-tuned LR and weight decay roughly transfer",
+        "Notes the default adjust_lr_fn is 'original' (sqrt(max(1, A/B))), which does not transfer AdamW LRs",
+        "Mentions attention logit growth under Muon and QK-clip (Kimi K2) as the mitigation"
+      ],
+      "files": []
+    },
+    {
+      "id": "dpo-lr",
+      "type": "post-training",
+      "prompt": "I fine-tuned with SFT at lr 1e-5. What LR and beta for DPO on the same 7B model?",
+      "expectations": [
+        "Recommends a DPO LR 5-20x lower than SFT (around 5e-7 to 1e-6) with a source (OLMo 2 7B, Tulu 3, or the DPO paper)",
+        "Gives beta = 0.1 as the starting point",
+        "Says to log chosen and rejected log-probs, not only the margin (likelihood displacement)",
+        "Warns against over-training SFT first (Zephyr)"
+      ],
+      "files": []
+    },
+    {
+      "id": "grpo-length",
+      "type": "post-training",
+      "prompt": "Our GRPO run's responses doubled in length over 300 steps but accuracy is flat. Rewards are 0/1 from a verifier.",
+      "expectations": [
+        "Identifies per-response 1/|o_i| averaging as a length bias that makes long wrong answers cheap",
+        "Recommends a constant denominator (Dr. GRPO) or token-level averaging over the group (DAPO)",
+        "Mentions zero-variance groups and/or std normalization as further GRPO biases",
+        "Suggests checking what the training library actually does rather than the paper equation"
+      ],
+      "files": []
+    },
+    {
+      "id": "gated-attention-default",
+      "type": "design",
+      "prompt": "Should I add the Qwen sigmoid gate after attention to my 1B model? Is it settled?",
+      "expectations": [
+        "Describes the gate (head-specific sigmoid on the SDPA output, computed from the layer input)",
+        "Cites the original result (Qiu et al., 2505.06708) for loss, stability and sink reduction",
+        "States the parameter cost (elementwise d_model x n_heads*head_dim per layer, or d_model x n_heads headwise)",
+        "Says honestly whether later work reproduced the sink result at small scale, citing what the skill's paper notes say"
+      ],
+      "files": []
+    },
+    {
+      "id": "hybrid-config-refused",
+      "type": "sizing",
+      "prompt": "Run the budget on this config.json from a Gated DeltaNet hybrid (layer_types has linear_attention and full_attention).",
+      "expectations": [
+        "Runs config_budget.py --from-hf-config and reports that linear-attention hybrids are not modeled",
+        "Does not present a parameter total computed as if every layer were softmax attention",
+        "Explains what differs (linear-attention layers have a fixed-size state instead of a growing KV cache, and different projections)",
+        "Offers to count the linear-attention block by hand or with a meta-device instantiation"
+      ],
+      "files": []
+    },
+    {
+      "id": "tie-or-not",
+      "type": "design",
+      "prompt": "Should I tie embeddings on a 3B model with a 128k vocab?",
+      "expectations": [
+        "Computes the embedding share from the config rather than guessing",
+        "Applies the reference-table evidence (every model above 21% share ties; tie-under-5B matches 28 of 32)",
+        "Mentions family conventions (Gemma ties at 9B and 12B; Phi-3-mini and OLMo2-1B do not)",
+        "Mentions the init pitfall when tying (shared tensor drawn twice under self.apply)"
+      ],
+      "files": []
+    },
+    {
+      "id": "folklore-refusal",
+      "type": "honesty",
+      "prompt": "What update-to-weight ratio should I target? Everyone says 1e-3.",
+      "expectations": [
+        "Says the 1e-3 figure has no primary source in the skill's research",
+        "Mentions what is supported (WeSaR: elevated per-tensor update ratios on small-norm tensors correlate with spikes)",
+        "Suggests logging the ratio as a diagnostic rather than a target",
+        "Does not invent a citation"
+      ],
+      "files": []
+    }
+  ]
+}

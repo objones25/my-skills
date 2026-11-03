@@ -1,0 +1,210 @@
+{
+ "skill_name": "pytorch",
+ "note": "Regression set. Expectations are checkable against the reply. Every API fact referenced was introspected or reproduced on torch 2.15.0 (CPU) unless the expectation says it comes from the 2.15 release notes, 2026-11-02.",
+ "evals": [
+  {
+   "id": "adamw-weight-decay-default",
+   "type": "api",
+   "prompt": "Do I need to pass weight_decay to torch.optim.AdamW to get decoupled weight decay? A tutorial says the default is 0.",
+   "expectations": [
+    "Says AdamW's weight_decay already defaults to 0.01 (and Adam's to 0)",
+    "Bases the value on inspect.signature, verify_api.py, or names the installed version, not memory",
+    "Notes the tutorial is describing Adam or an older belief",
+    "Says to set it explicitly only to change the value"
+   ],
+   "files": []
+  },
+  {
+   "id": "ce-target-shape",
+   "type": "debugging",
+   "prompt": "RuntimeError: expected scalar type Long but found Float when calling nn.CrossEntropyLoss(logits, y). y comes from my one-hot encoder. Fix?",
+   "expectations": [
+    "Explains CrossEntropyLoss expects (B, C) float logits and (B,) int64 class indices",
+    "Gives y.argmax(1) (or not one-hot encoding) as the fix rather than y.float() hacks",
+    "Mentions that a float target of shape (B, C) switches to the soft-target path instead of erroring",
+    "Warns against applying softmax before the loss"
+   ],
+   "files": []
+  },
+  {
+   "id": "wont-learn-protocol",
+   "type": "debugging",
+   "prompt": "My model trains without errors but validation accuracy stays at chance (10% on 10 classes). Where do I start?",
+   "expectations": [
+    "Starts with overfitting a single batch before touching hyperparameters or data",
+    "Offers scripts/diagnose.py overfit/grads (or the equivalent code) with the make_model/make_batch contract",
+    "Explains what a failure versus a pass of the one-batch test rules out",
+    "Lists concrete causes: missing zero_grad, plain list of layers, detach, softmax head, eval() left on, labels misaligned",
+    "Mentions ln(10) = 2.30 as the chance-level loss to compare against"
+   ],
+   "files": []
+  },
+  {
+   "id": "plain-list-layers",
+   "type": "implementation",
+   "prompt": "Why does my model only have 260 parameters? I build self.layers = [nn.Linear(64, 64) for _ in range(4)] in __init__.",
+   "expectations": [
+    "Identifies the plain Python list as the cause",
+    "Explains the consequences: not in parameters(), not trained, not moved by .to(), not in state_dict",
+    "Gives nn.ModuleList as the fix",
+    "Mentions lint_pytorch.py PLAIN_LIST_OF_MODULES or diagnose.py grads HIDDEN as a way to catch it"
+   ],
+   "files": []
+  },
+  {
+   "id": "nan-step-zero",
+   "type": "debugging",
+   "prompt": "Loss is nan from the very first iteration. I already lowered the LR to 1e-7 and it's still nan.",
+   "expectations": [
+    "Explains that an LR cannot cause NaN before the first optimizer step",
+    "Points to bad input data or a numerically unsafe op (log of 0 or negative, sqrt, manual softmax then log)",
+    "Uses forward hooks or scripts/diagnose.py nan to find the first module with non-finite output",
+    "Separates this from spikes-then-NaN later in training (LR, exploding gradients, fp16 overflow)"
+   ],
+   "files": []
+  },
+  {
+   "id": "fsdp2-reduce-dtype-2-15",
+   "type": "version",
+   "prompt": "After upgrading to torch 2.15 our FSDP2 job uses more network bandwidth and the loss curve is slightly different. We use MixedPrecisionPolicy(param_dtype=torch.bfloat16). Why?",
+   "expectations": [
+    "Explains that in 2.15 reduce_dtype=None means gradients reduce in the parameter's own dtype (fp32 for fp32 params), not param_dtype (bf16 in 2.14)",
+    "Says this doubles reduce-scatter bytes and changes numerics",
+    "Gives reduce_dtype=torch.bfloat16 to restore 2.14 behavior, or reduce_dtype=torch.float32 to keep the new one explicitly",
+    "Cites the 2.15 release notes rather than presenting it from memory"
+   ],
+   "files": []
+  },
+  {
+   "id": "ddp-or-fsdp-7b",
+   "type": "sizing",
+   "prompt": "Can I full fine-tune a 7B model with AdamW on 8 x 80GB GPUs using DDP?",
+   "expectations": [
+    "Computes 16 bytes/param for fp32 weights, grads and two Adam moments (about 104 GiB per rank) and says DDP does not fit",
+    "Shows FSDP2 across 8 ranks brings it to about 13 GiB per rank",
+    "Uses scripts/memory_budget.py or shows the arithmetic",
+    "States activations are not included and how to measure them"
+   ],
+   "files": []
+  },
+  {
+   "id": "muon-param-groups",
+   "type": "api",
+   "prompt": "How do I use torch.optim.Muon for a transformer? Can I just pass model.parameters()?",
+   "expectations": [
+    "Says Muon accepts only 2-D parameters and raises ValueError on 1-D ones (biases, norm weights)",
+    "Recommends a separate AdamW optimizer for embeddings, LM head and 1-D parameters",
+    "Mentions Muon's default weight_decay=0.1 and the adjust_lr_fn options ('match_rms_adamw' to reuse AdamW LR)",
+    "Notes the 2.15 bf16 momentum fix if bf16 gradients are involved"
+   ],
+   "files": []
+  },
+  {
+   "id": "todtype-scale",
+   "type": "debugging",
+   "prompt": "My image model won't converge. Pipeline: v2.Compose([v2.ToImage(), v2.ToDtype(torch.float32), v2.Normalize(mean, std)]).",
+   "expectations": [
+    "Identifies missing scale=True in ToDtype (scale defaults to False)",
+    "Shows or explains that pixels stay in [0, 255] and Normalize lands hundreds of standard deviations out",
+    "Gives the corrected pipeline",
+    "Notes no error is raised"
+   ],
+   "files": []
+  },
+  {
+   "id": "checkpoint-use-reentrant",
+   "type": "api",
+   "prompt": "Does torch.utils.checkpoint.checkpoint raise if I don't pass use_reentrant? The docs say it would from 2.9.",
+   "expectations": [
+    "Says on 2.15.0 it still only warns and falls back to the reentrant implementation",
+    "Notes the documentation and the code disagree and the skill follows the installed code",
+    "Recommends passing use_reentrant=False",
+    "Mentions the curried decorator form (2.14+) is available"
+   ],
+   "files": []
+  },
+  {
+   "id": "torch-load-weights-only",
+   "type": "api",
+   "prompt": "torch.load on my old checkpoint now fails with 'Weights only load failed'. What changed and is it safe to set weights_only=False?",
+   "expectations": [
+    "Explains weights_only defaults to True since 2.6 and restricts unpickling to tensors and primitives",
+    "Offers torch.serialization.safe_globals / add_safe_globals for the specific classes",
+    "Says weights_only=False only for files from trusted sources, because unpickling can run arbitrary code",
+    "Mentions 2.15 also removed nested tensors from the allowlist if relevant"
+   ],
+   "files": []
+  },
+  {
+   "id": "review-training-script",
+   "type": "review",
+   "prompt": "Review this before I run it overnight:\nfor xb, yb in loader:\n    xb.to(device)\n    loss = loss_fn(F.softmax(model(xb), -1), yb)\n    loss.backward()\n    opt.step()\n    losses.append(loss)",
+   "expectations": [
+    "Flags the discarded xb.to(device) result",
+    "Flags softmax before CrossEntropyLoss",
+    "Flags the missing zero_grad",
+    "Flags appending the loss tensor (memory growth) and recommends loss.item()",
+    "Suggests running scripts/lint_pytorch.py, or reports its findings"
+   ],
+   "files": []
+  },
+  {
+   "id": "int4-on-cpu",
+   "type": "api",
+   "prompt": "How do I quantize my model to int4 for CPU inference with torchao?",
+   "expectations": [
+    "Says Int4WeightOnlyConfig failed on CPU with torchao 0.18 (requires mslk) and int4 kernels target CUDA/XPU",
+    "Recommends Int8WeightOnlyConfig or Int8DynamicActivationInt8WeightConfig on CPU",
+    "Notes quantize_ mutates in place and returns None",
+    "Recommends measuring accuracy (SQNR as a proxy, task metric as the real check)"
+   ],
+   "files": []
+  },
+  {
+   "id": "custom-autograd-gradcheck",
+   "type": "implementation",
+   "prompt": "I wrote a torch.autograd.Function with a custom backward. How do I know the backward is right?",
+   "expectations": [
+    "Recommends torch.autograd.gradcheck",
+    "Says inputs must be float64 with requires_grad=True for gradcheck to be reliable",
+    "Mentions torch.library.custom_op plus opcheck if the op must work under torch.compile/export",
+    "Points to references/15-custom-ops-autograd.md"
+   ],
+   "files": []
+  },
+  {
+   "id": "compile-dynamic-shapes-rename",
+   "type": "version",
+   "prompt": "torch.compile(model, shapes_spec=...) raises TypeError: unexpected keyword argument after upgrading. Why?",
+   "expectations": [
+    "Says 2.14 renamed shapes_spec to dynamic_shapes",
+    "Notes dynamic_spec/ShapesSpec live in torch.fx.experimental.dynamic_spec, not torch.export",
+    "Suggests running scripts/verify_api.py to list other renamed parameters"
+   ],
+   "files": []
+  },
+  {
+   "id": "test-my-model",
+   "type": "testing",
+   "prompt": "What tests should I write for my PyTorch model?",
+   "expectations": [
+    "Covers output shape, every parameter gets a finite gradient, loss decreases on one batch, and state_dict round trip with weights_only=True",
+    "Uses torch.testing.assert_close rather than == for floats",
+    "Mentions train/eval determinism (dropout) and seeding",
+    "Points to assets/test_model_template.py or references/16-testing-pytorch-code.md"
+   ],
+   "files": []
+  },
+  {
+   "id": "version-not-verified",
+   "type": "meta",
+   "prompt": "Is nn.MultiheadAttention batch_first by default in torch 2.16?",
+   "expectations": [
+    "Says the skill was verified on 2.15.0 (and 2.14.1), where batch_first defaults to False",
+    "Does not claim knowledge of 2.16 behavior without checking",
+    "Tells the user to run scripts/verify_api.py or inspect.signature on their install"
+   ],
+   "files": []
+  }
+ ]
+}

@@ -1,0 +1,76 @@
+{
+ "skill_name": "observability-expert",
+ "note": "A/B regression set from the 2026-10-22 audit. Fixture paths in prompts were /home/claude/ab/fixtures/<skill>/<case>; the same files are under evals/files/<case>/.",
+ "evals": [
+  {
+   "id": "caught_crash",
+   "type": "targeted",
+   "prompt": "My W&B sweep agent loop calls train(), which does `run = wandb.init(project='p', config=cfg)` and never calls finish(). When a trial throws, my agent loop catches the exception and moves to the next trial. What state do those failed trials end up in on W&B, and do I need `with wandb.init(...)`?",
+   "expectations": [
+    "Says a run whose exception is caught by the caller is recorded as finished (exit code 0), not failed",
+    "Says an uncaught crash is still marked failed even without the context manager (wandb hooks sys.excepthook)",
+    "Recommends `with wandb.init(...) as run:` or run.finish(exit_code=1) in the except path",
+    "Does not claim the run stays 'running' forever"
+   ],
+   "verified_facts": "Executed offline on wandb 0.28.2 and 0.31.0, state read with `wandb leet inspect`: no `with` + uncaught raise -> failed (exit 1); no `with` + exception caught by caller -> finished (exit 0); `with` + caught -> failed (exit 1)."
+  },
+  {
+   "id": "redact_config",
+   "type": "targeted",
+   "prompt": "I log my training config to W&B through this skill's obslog package (copy it from the skill's assets) using redact_config, as in evals/files/redact_config/train.py. Which keys of CONFIG end up in W&B readable, and which get redacted? I need max_tokens, tokenizer, num_passes and author visible in the W&B UI.",
+   "expectations": [
+    "Reports which keys the obslog redact_config redacts based on actually reading or running the code (not guessing)",
+    "The setup the answer leaves the user with (as shipped, or after a fix the answer provides) sends lr, max_tokens, tokenizer, num_passes and author to W&B unredacted",
+    "hf_token is redacted (or kept out of the config) in the setup the answer leaves the user with"
+   ],
+   "verified_facts": "Executed: the original skill's redact_config (substring match on secret-like words) redacts max_tokens, tokenizer, num_passes and author as well as hf_token. The revised word-based matcher redacts only hf_token. An answer using the original asset passes assertion 2 only if it notices the over-redaction and gives a working fix."
+  },
+  {
+   "id": "thread_context",
+   "type": "targeted",
+   "prompt": "In evals/files/thread_context/service.py (Python 3.13, default build), do the 'resizing' log records carry the request_id bound with this skill's ContextVar filter? Explain why, and fix it minimally.",
+   "expectations": [
+    "Answers no: records logged inside the ThreadPoolExecutor worker do not carry the request_id",
+    "Explains that pool.submit runs the function in the worker thread's own context, not a copy of the caller's context",
+    "Fix uses contextvars.copy_context().run (or asyncio.to_thread, which copies context, or re-binding inside the worker)",
+    "Does not claim ContextVars automatically follow work into thread pools"
+   ],
+   "verified_facts": "Executed on 3.11-3.14 default builds: pool.submit(fn) -> request_id None; pool.submit(copy_context().run, fn) -> id present; asyncio.to_thread -> present; run_in_executor -> absent. Only free-threaded 3.14t or -X thread_inherit_context=1 inherit context in new threads."
+  },
+  {
+   "id": "wandb_down",
+   "type": "targeted",
+   "prompt": "I'm on wandb 0.31.0, I ran `wandb login`, and I start runs with this skill's obslog start_run(). (a) Will my runs go online? (b) If the W&B server is unreachable for an hour, does my training job die?",
+   "expectations": [
+    "(a) Correctly states whether runs go online after `wandb login` on wandb 0.31 given the start_run/resolve_mode code it read (see facts), and if that code would silently go offline, says so and gives a fix",
+    "(b) Correctly states whether the job dies when the server is unreachable given the code it read, and leaves the user with a setup that does not die (fallback to offline after CommError, either already present or added by the answer)",
+    "Mentions `wandb sync` to upload offline runs later",
+    "Does not recommend relying on grepping ~/.netrc for api.wandb.ai as the credential check on 0.31"
+   ],
+   "verified_facts": "Two versions of the skill's obslog/wandb_run.py exist and the answer may have read either. Version 1: resolve_mode greps ~/.netrc for 'api.wandb.ai'; wandb 0.31.0's default host is api.forge.coreweave.com and `wandb login` writes `machine api.forge.coreweave.com`, so version 1 returns offline (runs silently go offline); version 1's start_run has no CommError handling, so with the server unreachable wandb.init raises CommError after about 90 s and the job dies before training. Version 2: resolve_mode calls wandb.login(prompt=False, verify=False), so runs go online; start_run catches CommError and retries offline. Judge (a) and (b) against the version the answer describes. An answer about version 1 passes (a) and (b) only if it identifies the problem and gives a working fix. Once a run is up, a later outage does not kill training (logging is buffered by the local service)."
+  },
+  {
+   "id": "offline_resume",
+   "type": "targeted",
+   "prompt": "Write resume logic for a preemptible PyTorch training job that may run with WANDB_MODE=offline. It should keep a stable W&B run id across restarts and resume from the last checkpoint.",
+   "expectations": [
+    "Decides whether to resume by checking that the checkpoint file exists, not by checking run.resumed",
+    "Does not call wandb.util.generate_id()",
+    "Persists the run id to a file next to the checkpoint and reuses it on restart",
+    "Notes that in offline mode run.resumed is False (and run.step starts at 0) even when resuming"
+   ],
+   "verified_facts": "Executed on 0.28.2 and 0.31.0 offline: resume='allow'/'must' keeps the same id but run.resumed is False and step 0. wandb.util.generate_id does not exist (AttributeError)."
+  },
+  {
+   "id": "queuehandler_control",
+   "type": "control",
+   "prompt": "My JSON log lines from a single-process app have the traceback stuffed inside the `message` field instead of a structured `exc_info` field. I'm using a stock logging.handlers.QueueHandler in front of my JSON handler. Why, and how do I fix it?",
+   "expectations": [
+    "Says QueueHandler.prepare() formats the message (merging the traceback into msg) and clears exc_info/exc_text",
+    "Fix overrides prepare() to return the record unmodified (or otherwise preserves exc_info) for the single-process case",
+    "Notes the stock behavior exists for multiprocessing/pickling safety"
+   ],
+   "verified_facts": "CPython logging/handlers.py QueueHandler.prepare calls self.format(record), sets record.msg to the formatted message and record.exc_info/exc_text to None. Unchanged area in both versions."
+  }
+ ]
+}

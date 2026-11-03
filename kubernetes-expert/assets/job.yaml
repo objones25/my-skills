@@ -1,0 +1,71 @@
+# One-off or batch work (migrations, training, data processing). For schedules, wrap the
+# same spec in a CronJob (spec.jobTemplate) with concurrencyPolicy: Forbid.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: myjob
+  labels:
+    app.kubernetes.io/name: myjob
+spec:
+  backoffLimit: 3
+  activeDeadlineSeconds: 21600
+  ttlSecondsAfterFinished: 86400
+  # Exit code 42 = permanent failure (bad config): stop retrying. Evictions do not count.
+  podFailurePolicy:
+    rules:
+      - action: FailJob
+        onExitCodes:
+          containerName: main
+          operator: In
+          values: [42]
+      - action: Ignore
+        onPodConditions:
+          - type: DisruptionTarget
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: myjob
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: main
+          image: registry.example.com/myjob:1.0.0
+          args: ["--config", "/config/job.yaml"]
+          resources:
+            requests:
+              cpu: "2"
+              memory: 8Gi
+            limits:
+              memory: 8Gi
+              # GPU jobs: uncomment. Extended resources go in limits (requests default to it).
+              # nvidia.com/gpu: 1
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: config
+              mountPath: /config
+              readOnly: true
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: config
+          configMap:
+            name: myjob-config
+      # GPU node pools are often tainted; uncomment if yours is.
+      # tolerations:
+      #   - key: nvidia.com/gpu
+      #     operator: Exists
+      #     effect: NoSchedule

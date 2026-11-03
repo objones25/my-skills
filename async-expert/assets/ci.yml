@@ -1,0 +1,39 @@
+# .github/workflows/async-checks.yml
+#
+# audit -> lint -> tests. The audit runs first because a green test suite over
+# code that serializes everything is not a passing state.
+
+name: async checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Install
+        run: uv sync --all-extras --dev
+
+      - name: Audit async patterns
+        run: uv run python scripts/audit_async.py src/
+
+      - name: Lint (ASYNC ruleset)
+        run: uv run ruff check --config assets/ruff-async.toml src/
+
+      - name: Tests
+        # "coroutine was never awaited" is raised inside a finalizer, so plain
+        # -W error::RuntimeWarning only prints "Exception ignored". Promoting
+        # pytest's unraisable-exception warning as well makes it fail the test.
+        # Blocking-call detection (blockbuster) runs through the autouse fixture
+        # in conftest.py shown in references/debugging.md; blockbuster ships no
+        # pytest plugin, so `pytest -p blockbuster` would silently do nothing.
+        run: uv run pytest -q -W error::RuntimeWarning -W error::pytest.PytestUnraisableExceptionWarning

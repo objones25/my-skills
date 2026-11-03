@@ -1,0 +1,131 @@
+# Nightly deep testing: long Hypothesis runs, solver search, fuzzing, mutation
+# testing, and a flaky-test hunt. Too slow for every push, cheap enough nightly.
+# Save as .github/workflows/nightly.yml. See references/ci-cd.md.
+name: nightly
+
+on:
+  schedule:
+    - cron: "17 6 * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  PYTHONHASHSEED: "0"
+  MUTATION_MAX_SURVIVORS: "25"
+
+jobs:
+  hypothesis:
+    name: hypothesis (nightly profile)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.13"
+      - run: python -m pip install -e ".[test]"
+      - run: pytest -n auto --hypothesis-profile=nightly --no-cov
+
+  symbolic:
+    name: crosshair
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.13"
+      - run: python -m pip install -e ".[test,symbolic]"
+      - name: Solver-backed property tests
+        run: pytest -m symbolic --no-cov -p no:randomly
+      - name: Contract check (PEP 316 docstrings)
+        run: crosshair check --analysis_kind=PEP316 --per_condition_timeout=20 src/
+
+  fuzz:
+    name: atheris
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+      - run: python -m pip install -e ".[test,fuzz]"
+      - name: Fuzz every target for 5 minutes
+        run: |
+          mkdir -p fuzz/crashes
+          for target in fuzz/fuzz_*.py; do
+            name=$(basename "$target" .py)
+            corpus="fuzz/corpus/${name#fuzz_}"
+            mkdir -p "$corpus"
+            python "$target" "$corpus" -max_total_time=300 -artifact_prefix=fuzz/crashes/
+          done
+      - name: Upload crashing inputs
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: fuzz-crashes
+          path: fuzz/crashes/
+          retention-days: 30
+
+  mutation:
+    name: mutmut
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.13"
+      - run: python -m pip install -e ".[test,mutation]"
+      - run: mutmut run --max-children 4
+      - name: Gate on surviving mutants
+        run: |
+          mutmut results > mutation-report.txt
+          survivors=$(grep -c ": survived" mutation-report.txt || true)
+          echo "surviving mutants: $survivors (limit $MUTATION_MAX_SURVIVORS)"
+          test "$survivors" -le "$MUTATION_MAX_SURVIVORS"
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: mutation-report
+          path: mutation-report.txt
+          retention-days: 30
+
+  flake-hunt:
+    name: flake hunt
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.13"
+      - run: python -m pip install -e ".[test]"
+      - run: python scripts/flake_hunt.py --runs 30 --repeat-seed 2 -- tests/

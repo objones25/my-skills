@@ -1,0 +1,6 @@
+{"run_id": "r1", "claim": {"action": "create_ticket", "id": "T-1"}, "tool_calls": []}
+{"run_id": "r2", "claim": {"action": "create_ticket", "id": "T-2"}, "tool_calls": [{"name": "create_ticket", "args": {"title": "x"}, "status": 200, "response": {"data": null, "errors": [{"message": "permission denied"}]}}]}
+{"run_id": "r3", "claim": {"action": "create_ticket", "id": "T-3"}, "tool_calls": [{"name": "create_ticket", "args": {"title": "y"}, "status": 200, "response": {"id": "T-903"}}]}
+{"run_id": "r4", "claim": {"action": "create_ticket", "id": "T-4"}, "tool_calls": [{"name": "create_ticket", "args": {"title": "z"}, "status": 504, "response": {}}, {"name": "create_ticket", "args": {"title": "z"}, "status": 200, "response": {"id": "T-4"}}]}
+{"run_id": "r5", "claim": {"action": "get_order", "found": true}, "tool_calls": [{"name": "get_order", "args": {"order_id": "B7"}, "status": 200, "response": {"results": []}}]}
+{"run_id": "r6", "claim": {"action": "create_ticket", "id": "T-6"}, "tool_calls": [{"name": "create_ticket", "args": {"title": "w"}, "status": 200, "response": {"id": "T-6"}}]}

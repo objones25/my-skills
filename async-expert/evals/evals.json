@@ -1,0 +1,78 @@
+{
+ "skill_name": "async-expert",
+ "note": "A/B regression set from the 2026-10-22 audit. Fixture paths in prompts were /home/claude/ab/fixtures/<skill>/<case>; the same files are under evals/files/<case>/.",
+ "evals": [
+  {
+   "id": "threadpool",
+   "type": "targeted",
+   "prompt": "Our FastAPI service (see evals/files/threadpool/app.py) runs on 2-vCPU pods. The handler calls a sync DB driver through asyncio.to_thread. I raised the anyio thread limiter to 200 in lifespan, but under load it still only handles a handful of these at once. Why, and what should I change?",
+   "expectations": [
+    "Says asyncio.to_thread runs on the event loop's default ThreadPoolExecutor, not anyio's thread limiter",
+    "Gives the default executor size as min(32, cpu_count + 4) or says it is about 6 threads on a 2-vCPU box",
+    "Proposes a fix that actually raises concurrency for this call: loop.set_default_executor(ThreadPoolExecutor(N)), switching to anyio.to_thread.run_sync / starlette run_in_threadpool, or making the handler a plain def",
+    "Does not claim that raising the anyio limiter's total_tokens affects asyncio.to_thread"
+   ],
+   "verified_facts": "Executed on Python 3.14, anyio 4.15.1, Starlette 1.9.0: 60 blocked asyncio.to_thread calls leave anyio limiter borrowed_tokens=0; peak concurrency 6 on 2 CPUs; after loop.set_default_executor(ThreadPoolExecutor(40)) peak is 40. CPython's to_thread is loop.run_in_executor(None, ...)."
+  },
+  {
+   "id": "unawaited",
+   "type": "targeted",
+   "prompt": "Our CI runs `python -W error::RuntimeWarning -m pytest`. A teammate's test in evals/files/unawaited/test_notify.py forgets an await, yet CI is green. Why doesn't the warning flag fail it, and what should CI run instead?",
+   "expectations": [
+    "Explains that the 'never awaited' RuntimeWarning is raised during coroutine finalization (garbage collection), where exceptions are printed as unraisable/'Exception ignored' instead of propagating, so the flag cannot fail the run",
+    "Recommends adding -W error::pytest.PytestUnraisableExceptionWarning (or the equivalent filterwarnings ini setting) to make the test fail",
+    "Mentions a static check (mypy unused-coroutine, ruff, or the skill's audit script) or fixing the missing await",
+    "Does not claim the original command already fails on an un-awaited coroutine"
+   ],
+   "verified_facts": "Executed on 3.11-3.15b4: `python -W error::RuntimeWarning` prints 'Exception ignored while finalizing coroutine' and exits 0. pytest 9.1.1 with that flag: '1 passed, 1 warning'; adding -W error::pytest.PytestUnraisableExceptionWarning: '1 failed'. mypy reports [unused-coroutine]."
+  },
+  {
+   "id": "noguard",
+   "type": "targeted",
+   "prompt": "evals/files/noguard/hash_files.py hashes files with a ProcessPoolExecutor from asyncio. It worked on Python 3.13 on our Linux box. After upgrading to 3.14 it crashes with a RuntimeError mentioning the 'bootstrapping phase'. What happened and how do I fix it?",
+   "expectations": [
+    "Identifies the missing `if __name__ == \"__main__\":` guard as the cause",
+    "Explains that Python 3.14 changed the default multiprocessing start method on Linux from fork to forkserver (so workers re-import the main module)",
+    "Gives a fixed version with the guard (asyncio.run inside it)",
+    "Does not blame pickling of the worker function as the cause"
+   ],
+   "verified_facts": "Executed: 3.13 Linux default start method fork, script runs. 3.14 default forkserver, script fails with 'RuntimeError: An attempt has been made to start a new process before the current process has finished its bootstrapping phase'. What's New in 3.14 documents the forkserver default on Linux."
+  },
+  {
+   "id": "post_retry",
+   "type": "targeted",
+   "prompt": "In evals/files/post_retry/charge.py we POST card charges through a payment gateway using a retry helper copied from this skill's assets (aioutil/retry.py). Sometimes the gateway returns 502 after it has already forwarded the charge to the processor. Are we safe from double charges? If not, fix it.",
+   "expectations": [
+    "Says a POST must not be automatically replayed after a 5xx such as 502 because the origin may already have processed it",
+    "Fix uses a method-aware retry policy (POST retried only on statuses like 408/425/429 or connection-establishment failures) and/or an idempotency key",
+    "Correctly describes whether the helper it read replays a POST after a 502 (see facts: the answer may have read either of two helper versions), and does not conclude the user is safe from double charges overall without an idempotency key or equivalent",
+    "Keeps retrying safe cases (e.g. 429, connect errors, or idempotent methods) rather than disabling all retries without comment"
+   ],
+   "verified_facts": "Two versions of the skill's aioutil/retry.py exist and the answer may have read either. Version 1 retries statuses 408/425/429/500/502/503/504 for every method, so it sends a POST twice after a 502 (executed: sends=2). Version 2 has RetryPolicy.statuses_for(method) and retries POST/PATCH only on 408/425/429, so it sends a POST once after a 502 (sends=1). Judge assertion 3 against the helper the answer describes or quotes: 'the helper replays the 502' is correct for version 1, 'the helper does not replay the 502' is correct for version 2. Do not penalize either claim by itself. In both cases the user is not safe overall: without an idempotency key, any caller-level retry after an ambiguous 5xx can double-charge. RFC 9110: only 408 (and RFC 8470 425, RFC 6585 429) indicate the request may be repeated."
+  },
+  {
+   "id": "hang",
+   "type": "targeted",
+   "prompt": "Our asyncio service in evals/files/hang/service.py sometimes hangs. We added a SIGUSR1 handler to dump the current task's call graph, but when it hangs the dump is just a blank line. We're on Python 3.14. Why is it blank, and how do we see what every task is waiting on?",
+   "expectations": [
+    "Explains that the handler runs when no task is current (the loop is idle/waiting), so 'current task' introspection returns nothing",
+    "Proposes iterating asyncio.all_tasks() (e.g. via loop.add_signal_handler) and printing each task's stack/call graph",
+    "Mentions `python -m asyncio ps` / `pstree <PID>` as an external tool available on 3.14",
+    "Does not claim `python -m asyncio ps/pstree` is unavailable on 3.14"
+   ],
+   "verified_facts": "Executed: the fixture's handler prints 1 byte (blank line) when the loop is idle. A loop.add_signal_handler that loops over asyncio.all_tasks() prints every task. `python -m asyncio ps`/`pstree` work on uv's CPython 3.14.0 and 3.14.6 (may need ptrace permission)."
+  },
+  {
+   "id": "gather_control",
+   "type": "control",
+   "prompt": "I have `results = await asyncio.gather(*(fetch(u) for u in urls))` over 2,000 URLs with an httpx.AsyncClient. If one fetch raises, what happens to the others? Rewrite it so at most 20 run at once and I get partial results with per-URL failures.",
+   "expectations": [
+    "Says the other awaitables keep running (gather with return_exceptions=False does not cancel siblings) while the first exception propagates",
+    "Rewrite caps concurrency at 20 (Semaphore(20), bounded worker pool, or equivalent)",
+    "Rewrite collects per-URL failures instead of aborting the batch (return_exceptions=True or per-item try/except)",
+    "Does not catch and swallow asyncio.CancelledError (no bare except / except BaseException without re-raise)"
+   ],
+   "verified_facts": "Python docs, Coroutines and Tasks: if return_exceptions is False, the first raised exception is propagated and other awaitables in the sequence won't be cancelled and will continue to run. Unchanged area in both skill versions."
+  }
+ ]
+}

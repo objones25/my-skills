@@ -1,0 +1,40 @@
+{
+  "bad.yaml": {
+    "Deployment/web": [
+      "K001",
+      "K003",
+      "K004",
+      "K005",
+      "K008",
+      "K009",
+      "K010",
+      "K011",
+      "K012",
+      "K013",
+      "K016",
+      "K017",
+      "K019",
+      "K020",
+      "K021"
+    ],
+    "Service/web": [
+      "K018",
+      "K019"
+    ],
+    "PodDisruptionBudget/old": [
+      "K015"
+    ],
+    "CronJob/nightly": [
+      "K002",
+      "K009",
+      "K010",
+      "K011",
+      "K020"
+    ],
+    "Deployment/single": [
+      "K006",
+      "K007",
+      "K014"
+    ]
+  }
+}

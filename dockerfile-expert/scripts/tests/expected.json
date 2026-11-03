@@ -1,0 +1,45 @@
+{
+  "bad_everything.Dockerfile": [
+    "DF001",
+    "DF002",
+    "DF004",
+    "DF007",
+    "DF008",
+    "DF009",
+    "DF010",
+    "DF011",
+    "DF012",
+    "DF013",
+    "DF015",
+    "DF016",
+    "DF017",
+    "DF018",
+    "DF019",
+    "DF020",
+    "DF023",
+    "DF024",
+    "DF025",
+    "DF027",
+    "DF028",
+    "DF029",
+    "DF030",
+    "DF031",
+    "DF032",
+    "DF006",
+    "DF022"
+  ],
+  "good_edge_cases.Dockerfile": [],
+  "scratch_root.Dockerfile": [
+    "DF003",
+    "DF004",
+    "DF017"
+  ],
+  "single_stage_go.Dockerfile": [
+    "DF003",
+    "DF005",
+    "DF014",
+    "DF017",
+    "DF026",
+    "DF030"
+  ]
+}

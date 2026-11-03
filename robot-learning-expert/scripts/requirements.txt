@@ -1,0 +1,5 @@
+numpy>=2.0
+scipy>=1.11        # optional: lqr.dare uses it when present, falls back to Riccati iteration
+pytest>=8.0        # to run tests/
+gymnasium>=1.0     # optional: local_sim.GymLocalSim and examples/ppo_pendulum.py
+torch>=2.0         # optional: examples/ppo_pendulum.py (tests skip it when missing)

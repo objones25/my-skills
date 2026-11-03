@@ -1,0 +1,95 @@
+# Strict pytest + coverage configuration. Paste these tables into pyproject.toml.
+#
+# Verified against pytest 9.2.0, pytest-cov 7.1.0, coverage 7.17.0, pytest-asyncio 1.4.1
+# (November 2026).
+# references/rules.md explains each line. pytest 9 also accepts a standalone
+# pytest.toml with a bare [pytest] table.
+
+[tool.pytest.ini_options]
+minversion = "9.0"
+testpaths = ["tests"]
+
+# strict = true turns on strict_config, strict_markers, strict_xfail and
+# strict_parametrization_ids. It also adopts future strictness options
+# automatically, so pin pytest when you use it; otherwise list the four keys.
+strict = true
+
+addopts = [
+    "--import-mode=importlib",
+    "-ra",
+    "--showlocals",
+    "--tb=short",
+    "--cov",
+    "--cov-branch",
+    "--cov-report=term-missing:skip-covered",
+    "--cov-report=xml",
+    "--cov-fail-under=80",
+    "-m", "not slow and not integration and not e2e and not gpu and not symbolic",
+]
+
+markers = [
+    "slow: takes more than ~1s; deselected by default",
+    "integration: crosses a process, service, or network boundary; deselected by default",
+    "e2e: full end-to-end workflow; deselected by default",
+    "gpu: requires CUDA; deselected by default",
+    "security: security regression test (path traversal, injection, input limits)",
+    "symbolic: runs Hypothesis with the CrossHair solver backend; deselected by default",
+]
+
+# Warnings are errors. Add narrow ignore:: lines with a ticket, never a blanket ignore.
+filterwarnings = [
+    "error",
+    # pytest-asyncio 1.x warns at startup when its loop-scope key is unset; "error" would turn
+    # that into an INTERNALERROR before any test runs. This filter is harmless when the plugin
+    # is absent, so the config works whether or not pytest-asyncio happens to be installed.
+    'ignore:The configuration option "asyncio_default_fixture_loop_scope" is unset:pytest.PytestDeprecationWarning',
+]
+
+# Ratchet for warnings you have deliberately ignored above (pytest 9.1+): when every
+# test passes but more warnings than this were emitted, pytest exits with code 6
+# (MAX_WARNINGS_ERROR). Filtered warnings do not count. Lower it as you clean up.
+# max_warnings = 0
+
+# pytest-asyncio 1.x: uncomment ONLY if the project depends on pytest-asyncio. Setting the
+# keys explicitly is better than relying on the filter above. With the keys but without the
+# plugin, strict_config rejects them ("Unknown config option"). See references/async-testing.md.
+# asyncio_mode = "strict"
+# asyncio_default_fixture_loop_scope = "function"
+# asyncio_default_test_loop_scope = "function"
+
+# Dump every thread's traceback if a single test runs longer than this many seconds.
+# Built in, so it is safe under strict_config. With pytest-timeout installed you
+# can also add: timeout = 120
+faulthandler_timeout = 120
+
+# src layout: tests import the package from src/. Drop if not src-layout.
+pythonpath = ["src"]
+
+[tool.coverage.run]
+branch = true
+source = ["src"]
+omit = ["*/tests/*", "*/__main__.py", "*/_version.py"]
+parallel = true
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+fail_under = 80
+exclude_also = [
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+    "@(abc\\.)?abstractmethod",
+    "if __name__ == .__main__.:",
+    "class .*\\bProtocol\\):",
+    "\\.\\.\\.",
+]
+
+[tool.coverage.paths]
+source = ["src", "*/site-packages"]
+
+# Mutation testing (references/mutation-testing.md). mutmut 3 reads this table.
+[tool.mutmut]
+source_paths = ["src"]
+also_copy = []
+pytest_add_cli_args = ["-p", "no:randomly", "--no-cov", "-q"]
+pytest_add_cli_args_test_selection = ["tests"]

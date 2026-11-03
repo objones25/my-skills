@@ -1,0 +1,56 @@
+# Ruff config for async code. Point ruff at this to get the ASYNC ruleset,
+# which is ruff's port of flake8-async and catches blocking calls that the
+# type checker cannot see.
+#
+#   ruff check --config assets/ruff-async.toml src/
+#
+# ASYNC2xx are the ones that matter most: they find synchronous I/O sitting
+# inside an `async def`, which is the single most common way async code ends
+# up slower than the sync code it replaced.
+
+target-version = "py311"
+line-length = 100
+
+[lint]
+select = [
+    "ASYNC",  # flake8-async: blocking calls and cancel-scope misuse (ASYNC119 needs preview)
+    "E",      # pycodestyle errors
+    "F",      # pyflakes  (F811 catches the shadowed-name class of bug)
+    "B",      # flake8-bugbear
+    "RUF006", # asyncio-dangling-task: create_task result not stored
+    "UP",     # pyupgrade
+]
+
+# Preview-only as of ruff 0.17.1, so selecting them without `preview = true`
+# does nothing:
+#   ASYNC119  yield inside a context manager in an async generator
+#   RUF029    unused-async: an `async def` with no await in it, which pays
+#             coroutine overhead for nothing and misleads every caller into
+#             awaiting it
+
+ignore = [
+    "E501",  # line length is handled by the formatter
+]
+
+[lint.per-file-ignores]
+# The counterexample file exists to be wrong.
+"**/bad_example.py" = ["ASYNC", "RUF006", "F841", "B"]
+
+# ASYNC rules worth knowing by number:
+#   ASYNC100  timeout context with no await inside: the timeout can never fire
+#   ASYNC105  Trio async call without await
+#   ASYNC109  async function taking its own `timeout=` instead of using cancellation
+#   ASYNC110  `while flag: await sleep()` busy-wait instead of an Event
+#   ASYNC115  `sleep(0)` instead of an explicit checkpoint
+#   ASYNC116  `sleep(huge)` instead of sleep_forever
+#   ASYNC119  yield inside a CM in an async generator: cleanup can be skipped (preview)
+#   ASYNC210  blocking HTTP call (urllib/requests) inside async def
+#   ASYNC212  sync httpx client method inside async def (does not know httpx2:
+#             httpx2.get() and httpx2.Client().get() pass; audit_async.py catches them)
+#   ASYNC220  blocking subprocess creation inside async def
+#   ASYNC221  subprocess.run / os.system inside async def
+#   ASYNC222  blocking process .wait()/.communicate() inside async def
+#   ASYNC230  builtin open() inside async def
+#   ASYNC240  blocking os.path / pathlib methods inside async def
+#   ASYNC250  input() inside async def
+#   ASYNC251  time.sleep() inside async def

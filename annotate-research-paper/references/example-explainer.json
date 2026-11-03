@@ -1,0 +1,196 @@
+{
+ "title": "SimGolf, explained",
+ "pages": [
+  4,
+  7
+ ],
+ "proof_pages": [
+  27,
+  30
+ ],
+ "goal": "The reader can explain what SimGolf does each iteration, why resets get around the double-sampling bias, and the four steps of the proof, and can work through the two hardest steps.",
+ "idea": "SimGolf learns to act in a Markov decision process (MDP): over H steps a learner sees a state, picks an action, gets a reward, and moves to a random next state. It is a variant of GOLF, an earlier algorithm that keeps a set of candidate Q-functions (guesses of the reward still to come after each state and action), acts on the most optimistic one, and throws out candidates that new data contradicts. A candidate is contradicted when its squared Bellman error is large: the gap between its value at one step and the value its own next step implies. From ordinary trajectories that error cannot be estimated without bias (the double-sampling problem). SimGolf adds a local simulator: it can reset to a visited state and sample the next step K times. Averaging K samples shrinks the bias by a factor of K. So the guarantee needs only that the true Q-function is a candidate and that few state-action pairs can soak up the policies' visits (low coverability).",
+ "notation": [
+  {
+   "sym": "MDP, H, h",
+   "means": "Episodic MDP with H steps per episode; h indexes the step."
+  },
+  {
+   "sym": "x<sub>h</sub>, a<sub>h</sub>, r<sub>h</sub>",
+   "means": "State, action, and reward (in [0,1]) at step h."
+  },
+  {
+   "sym": "&pi;, &pi;*, J(&pi;)",
+   "means": "A policy (a rule for picking actions), the optimal policy, and a policy's expected total reward over the episode. <i>Regret</i> of &pi; is J(&pi;*) &minus; J(&pi;)."
+  },
+  {
+   "sym": "Q*",
+   "means": "Optimal expected reward-to-go from (x,a) at step h. A <i>Q-function</i> is any such table of reward-to-go guesses, one per (h, x, a)."
+  },
+  {
+   "sym": "𝒬, g",
+   "means": "The finite class of candidate Q-functions the learner is given, and one candidate in it. <i>Realizability</i>: Q* &isin; 𝒬. The <i>greedy policy</i> for g picks argmax<sub>a</sub> g<sub>h</sub>(x,a) at every step."
+  },
+  {
+   "sym": "𝒯<sub>h</sub>[g](x,a)",
+   "means": "Bellman backup: E[ r<sub>h</sub> + max<sub>a'</sub> g<sub>h+1</sub>(x<sub>h+1</sub>, a') | x<sub>h</sub>=x, a<sub>h</sub>=a ]. What g's own next step says this step should be worth; g<sub>H+1</sub> = 0."
+  },
+  {
+   "sym": "Bellman error",
+   "means": "g<sub>h</sub>(x,a) &minus; 𝒯<sub>h</sub>[g](x,a). It is zero everywhere for Q*; this is the Bellman equation."
+  },
+  {
+   "sym": "C<sub>cov</sub>",
+   "means": "Coverability: the smallest C such that one distribution &mu;<sub>h</sub> satisfies d<sup>&pi;</sup><sub>h</sub> &le; C&middot;&mu;<sub>h</sub> for every policy, where d<sup>&pi;</sup><sub>h</sub>(x,a) is the probability &pi; is at (x,a) at step h. Roughly, how many distinct state-action pairs policies can concentrate on; at most n for a table with n pairs."
+  },
+  {
+   "sym": "E<sup>&pi;</sup>[f]",
+   "means": "The average of f(x<sub>h</sub>, a<sub>h</sub>) when (x<sub>h</sub>, a<sub>h</sub>) comes from running &pi;, i.e. over d<sup>&pi;</sup><sub>h</sub>."
+  },
+  {
+   "sym": "t, N, K",
+   "means": "Iteration (one episode each), number of iterations, simulator draws per visited (x,a)."
+  },
+  {
+   "sym": "𝒬<sup>(t)</sup>, &beta;, &delta;",
+   "means": "Confidence set (candidates still allowed at iteration t), its score threshold &beta; &asymp; 32 log(2HN|𝒬|/&delta;), and &delta;, the allowed probability that the guarantee fails."
+  },
+  {
+   "sym": "&Otilde;( )",
+   "means": "Big-O that hides logarithmic factors."
+  }
+ ],
+ "mechanism": {
+  "title": "The algorithm <span class='ref'>(Algorithm 1, p. 6)</span>",
+  "diagram": {
+   "nodes": [
+    {
+     "title": "1. Pick optimistic g",
+     "text": "highest predicted value in the set [Line 5]"
+    },
+    {
+     "title": "2. Play it once",
+     "text": "greedy policy, record visited pairs [Lines 6-7]"
+    },
+    {
+     "title": "3. Reset, K draws",
+     "text": "sample each visited pair's next step K times [L9]"
+    },
+    {
+     "title": "4. Re-score, prune",
+     "text": "keep candidates with score at most β [Line 10]"
+    }
+   ],
+   "loop": true,
+   "highlight": [
+    2
+   ],
+   "highlight_label": "the only step GOLF does not have",
+   "caption": "repeat for t = 1, ..., N; output a uniformly random one of the N policies"
+  },
+  "steps": [
+   "<b>Pick g<sup>(t)</sup></b>: the candidate in 𝒬<sup>(t)</sup> that predicts the highest value, averaged over the start states seen so far.",
+   "<b>Play</b> the policy that is greedy for g<sup>(t)</sup> for one episode, and record the state-action pair (x<sub>h</sub>, a<sub>h</sub>) it visits at each step h.",
+   "<b>Reset</b> to each visited x<sub>h</sub>, take a<sub>h</sub> K times, and record the K rewards and next states.",
+   "<b>Score</b> every candidate g: for each h, sum over past episodes of ( g<sub>h</sub>(x<sub>h</sub>,a<sub>h</sub>) &minus; average of its K targets )<sup>2</sup>, where a target is r + max<sub>a'</sub> g<sub>h+1</sub>(x', a') for a sampled reward r and next state x'. Keep g if every score is at most &beta;."
+  ],
+  "why": "Either g<sup>(t)</sup>'s high prediction is right, and then the greedy policy is nearly optimal. Or it is wrong, and then the episode visits places where g<sup>(t)</sup> has Bellman error, the score catches it, and g<sup>(t)</sup> leaves the set. Coverability limits how many times the second case can happen."
+ },
+ "example": {
+  "title": "Why resets matter: double sampling, by hand",
+  "body": "<p><b>Setup.</b> At one pair (x,a) the reward is 0 and the next state is one of two states, each with probability 1/2. Two candidates: <b>g<sub>true</sub></b> predicts 1, and its next-step values are 0 and 2, so its targets average 1 and its Bellman error is 0. <b>g<sub>wrong</sub></b> predicts 1.5, and its next-step value is 1 at both states, so its Bellman error is 0.5.</p><p><b>One draw per pair (no reset).</b> g<sub>true</sub> scores (1&minus;0)<sup>2</sup> or (1&minus;2)<sup>2</sup>, which is 1 either way. g<sub>wrong</sub> scores (1.5&minus;1)<sup>2</sup> = 0.25. The wrong candidate looks four times better.</p><p><b>Why.</b> For a fixed prediction c and a random target y, E[(c &minus; y)<sup>2</sup>] = (c &minus; E y)<sup>2</sup> + Var(y). The first term is the squared Bellman error we want; the second is noise in the target, which punishes any candidate whose next-step values vary, even a correct one.</p><p><b>K draws (with reset).</b> Averaging K independent targets divides the noise by K, so g<sub>true</sub>'s expected score is 1/K and g<sub>wrong</sub>'s is still 0.25. At K = 8 the expected ranking is correct: 0.125 against 0.25.</p><p>More episodes do not fix this: without a reset, each pair in a large state space is usually seen once, so every score term keeps its Var(y). GOLF cancels the noise instead: it subtracts the score of the best candidate fit to the same targets, which carries the same Var(y). That works only if the class contains the backup of every candidate (Bellman completeness), an assumption SimGolf drops by averaging.</p>"
+ },
+ "checks": [
+  {
+   "q": "In the example, how large must K be before g<sub>true</sub>'s expected score is below g<sub>wrong</sub>'s?",
+   "answer": "g<sub>true</sub>'s expected score is 1/K and g<sub>wrong</sub>'s is 0.25, so we need 1/K &lt; 0.25, which means K &gt; 4. The smallest K that works is 5."
+  }
+ ],
+ "proof": {
+  "goal": "Theorem 3.1 (p. 5): if Q* is in the class 𝒬 and the MDP has coverability C<sub>cov</sub>, SimGolf returns a policy &pi;&#770; with J(&pi;*) &minus; E[J(&pi;&#770;)] &le; &epsilon; with probability at least 1 &minus; &delta;, using &Otilde;(H<sup>5</sup>C<sub>cov</sub><sup>2</sup> log(|𝒬|/&delta;) / &epsilon;<sup>4</sup>) samples. &pi;&#770; picks one &pi;<sup>(t)</sup> uniformly, so it suffices to bound the average of J(&pi;*) &minus; J(&pi;<sup>(t)</sup>) by &epsilon;.",
+  "diagram": {
+   "nodes": [
+    {
+     "title": "1. Valid sets",
+     "text": "Q* kept; survivors have small error"
+    },
+    {
+     "title": "2. Optimism",
+     "text": "J(π*) at most g(t)'s prediction"
+    },
+    {
+     "title": "3. Telescoping",
+     "text": "gap = sum of g(t)'s Bellman errors"
+    },
+    {
+     "title": "4. Change of measure",
+     "text": "coverability turns past accuracy into new"
+    }
+   ],
+   "loop": false,
+   "highlight": [
+    0,
+    3
+   ],
+   "highlight_label": "orange: the two hard steps, broken down below"
+  },
+  "steps": [
+   {
+    "name": "Valid confidence sets",
+    "where": "Lemmas C.1, C.2",
+    "claim": "With high probability, at every iteration Q* is still in the set, and every surviving g has small true squared Bellman error <i>on the distributions of the past policies</i>: &Sigma;<sub>i&lt;t</sub> E<sup>&pi;(i)</sup>[(g<sub>h</sub> &minus; 𝒯<sub>h</sub>[g])<sup>2</sup>] &le; 9&beta;."
+   },
+   {
+    "name": "Optimism",
+    "where": "Eqs. 11-14",
+    "claim": "J(&pi;*) = E[max<sub>a</sub> Q*<sub>1</sub>(x<sub>1</sub>,a)], Q* is in the set, and g<sup>(t)</sup> maximizes the predicted start value averaged over past start states. So J(&pi;*) &le; g<sup>(t)</sup>'s prediction, up to a Hoeffding error of order &radic;(log(N|𝒬|/&delta;)/t) from that average."
+   },
+   {
+    "name": "Telescoping",
+    "where": "p. 30",
+    "claim": "The gap between g<sup>(t)</sup>'s start prediction and &pi;<sup>(t)</sup>'s value is &Sigma;<sub>h</sub> E<sup>&pi;(t)</sup>[g<sub>h</sub> &minus; r<sub>h</sub> &minus; g<sub>h+1</sub>(x<sub>h+1</sub>, a<sub>h+1</sub>)], since the g terms cancel in pairs. &pi;<sup>(t)</sup> is greedy, so g<sub>h+1</sub> at the action taken is max<sub>a'</sub> g<sub>h+1</sub>, and each term averages to g<sub>h</sub> &minus; 𝒯<sub>h</sub>[g], a Bellman error."
+   },
+   {
+    "name": "Change of measure",
+    "where": "Lemma B.7",
+    "claim": "Outline step 1 bounds <i>squared</i> errors where past policies went; outline step 3 needs plain errors where the new policy goes. Coverability converts one into the other, with Cauchy-Schwarz turning squares into plain errors: summed over the N iterations, the total is at most about H&radic;(C<sub>cov</sub> &beta; N log N)."
+   }
+  ],
+  "result": "Average regret is about H&radic;(C<sub>cov</sub>&beta;/N), which reaches &epsilon; once N &asymp; H<sup>2</sup>C<sub>cov</sub>&beta;/&epsilon;<sup>2</sup>. Each iteration makes H&middot;K simulator calls with K &asymp; N/&beta;, so the total is about H N<sup>2</sup>/&beta; = &Otilde;(H<sup>5</sup>C<sub>cov</sub><sup>2</sup> log(|𝒬|/&delta;) / &epsilon;<sup>4</sup>), the theorem's bound. The 1/&epsilon;<sup>4</sup> comes from K growing with N."
+ },
+ "hard_steps": [
+  {
+   "title": "why the computed score tracks the true error",
+   "where": "Lemmas C.1, C.2",
+   "intro": "The algorithm computes the score; the proof needs the true error. Five moves connect them.",
+   "moves": [
+    "<b>Average out the simulator draws.</b> Condition on everything seen before episode i (this history is called a filtration). The expected score term is then the true squared Bellman error on &pi;<sup>(i)</sup>'s distribution plus target noise of order 1/K (times the squared range of the targets, which is bounded): the example's identity, averaged over where &pi;<sup>(i)</sup> goes.",
+    "<b>Dependent terms still concentrate.</b> &pi;<sup>(i)</sup> depends on earlier data, so the terms are not independent. Freedman's inequality bounds such a sum by its expected sum plus a deviation that scales with the variance. Each term lies in [0, R], so its variance is at most R times its mean, and the deviation is at most about &radic;(R &middot; expected sum &middot; log): below half the expected sum plus a log term.",
+    "<b>Both directions.</b> So the score is at most 3/2 times its expected sum plus a log term, and the expected sum is at most twice the score plus a log term (Lemma B.3). A union bound over g, h, and t puts log(HN|𝒬|/&delta;) in that term.",
+    "<b>Choose K so Q* survives.</b> Moves 1-3 with the paper's constants give Lemma C.1: score &le; 3&middot;(true error sum) + 8N/K + &beta;<sub>stat</sub>, where &beta;<sub>stat</sub> = 16 log(2HN|𝒬|/&delta;) is the log term. The paper takes K = 8N/&beta;<sub>stat</sub>, so 8N/K = &beta;<sub>stat</sub>, and sets &beta; = 2&beta;<sub>stat</sub>. Q* has zero true error, so its score is at most 2&beta;<sub>stat</sub> = &beta;: it stays.",
+    "<b>Survivors have small true error.</b> A survivor scores at most &beta;, so the second inequality puts its true error at most 2&beta; plus a log term: a constant times &beta;. Lemma C.2 states 9&beta; from a looser split; only the order matters."
+   ],
+   "check": {
+    "q": "Why can K not stay fixed as N grows?",
+    "answer": "The noise over N episodes is about 8N/K. With K fixed it grows linearly in N, while &beta; grows only like log N, so eventually Q*'s own score would exceed &beta; and the true Q-function would be thrown out."
+   }
+  },
+  {
+   "title": "the change of measure",
+   "where": "potential lemma, Lemma B.7, p. 25",
+   "intro": "The <i>potential lemma</i> is the counting argument that turns accuracy on past policies' visits into accuracy on new ones. A simplified tabular version shows the mechanism. Suppose there are n state-action cells, each policy lands on one cell (so C<sub>cov</sub> = n), B is the largest possible error, and the run has T = N rounds. Lemma B.7 is stated with C<sub>push</sub>, a later assumption's constant; its proof uses only that every visit distribution is at most C&middot;&mu;, so p. 30 applies it with C<sub>cov</sub>.",
+   "moves": [
+    "<b>One cell.</b> Outline step 1 (with its constant 9 dropped) says a cell visited m times before has m&middot;err<sup>2</sup> &le; &beta;, so err &le; &radic;(&beta;/m); a first visit is unconstrained, err &le; B. So a cell visited m<sub>c</sub> times in all contributes at most B + &Sigma;<sub>k=1</sub><sup>m<sub>c</sub>&minus;1</sup> &radic;(&beta;/k) &le; B + 2&radic;(&beta; m<sub>c</sub>).",
+    "<b>All cells.</b> Sum over cells with Cauchy-Schwarz, &Sigma;<sub>c</sub>&radic;m<sub>c</sub> &le; &radic;(nT): total error over T rounds &le; nB + 2&radic;(&beta;nT). So total error grows like &radic;T, not T: a new policy can only be surprised where past policies rarely went.",
+    "<b>Burn-in, in general.</b> Fix step h; let d<sub>t</sub> = d<sup>&pi;(t)</sup><sub>h</sub> and D<sub>t</sub> = &Sigma;<sub>i&lt;t</sub> d<sub>i</sub>, past policies' total visit probability. Coverability gives one &mu; with every d<sub>t</sub> &le; C<sub>cov</sub>&mu;. A pair is unconstrained, like a first visit, until D<sub>t</sub> reaches C<sub>cov</sub>&mu;(x,a). The crossing round overshoots by at most one d<sub>t</sub> &le; C<sub>cov</sub>&mu;, so unconstrained mass is at most 2C<sub>cov</sub>&mu; per pair, 2C<sub>cov</sub> in total: a burn-in of 2BC<sub>cov</sub>.",
+    "<b>Split after burn-in.</b> Let e<sub>t</sub>(x,a) be g<sup>(t)</sup>'s Bellman error at (x,a). Write the total error as &Sigma;<sub>t</sub>&Sigma;<sub>x,a</sub> (d<sub>t</sub>/&radic;D<sub>t</sub>)&middot;(&radic;D<sub>t</sub> e<sub>t</sub>) and apply Cauchy-Schwarz. The second factor is &radic;(&Sigma;<sub>t</sub>&Sigma;<sub>i&lt;t</sub> E<sup>&pi;(i)</sup>[e<sub>t</sub><sup>2</sup>]) &le; &radic;(&beta;'T), where &beta;' = 9&beta; is outline step 1's bound.",
+    "<b>The log factor.</b> After burn-in d<sub>t</sub> &le; C<sub>cov</sub>&mu; &le; D<sub>t</sub>: each increment is at most the running total. So d<sub>t</sub><sup>2</sup>/D<sub>t</sub> &le; C<sub>cov</sub>&mu;&middot;d<sub>t</sub>/D<sub>t</sub>, and D grows from C<sub>cov</sub>&mu; to at most TC<sub>cov</sub>&mu;, so &Sigma;<sub>t</sub> d<sub>t</sub>/D<sub>t</sub> is like &Sigma;1/k: about log T. Total: 2&radic;(&beta;'C<sub>cov</sub> T log 2T) + 2BC<sub>cov</sub>, Lemma B.7 (p. 25). Summing over the H steps gives outline step 4's leading H."
+   ],
+   "check": {
+    "q": "In the tabular sketch, where does the nB term come from, and why does it not grow with T?",
+    "answer": "It is the first visit to each cell, where no past data constrains the error. There are only n first visits however long the run, so this burn-in cost is paid once."
+   }
+  }
+ ],
+ "skim": "The AM-GM arithmetic in Appendix C (p. 28), the Hoeffding step for start states (Eqs. 12-13), the conjecture on p. 6, and the corollary on p. 7 for Exogenous Block MDPs (MDPs whose rich observations hide a small latent state plus irrelevant noise) do not affect how SimGolf works or why the proof goes through."
+}

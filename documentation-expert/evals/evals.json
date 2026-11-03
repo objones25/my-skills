@@ -1,0 +1,73 @@
+{
+ "skill_name": "documentation-expert",
+ "note": "A/B regression set from the 2026-10-22 audit. Fixture paths in prompts were /home/claude/ab/fixtures/<skill>/<case>; the same files are under evals/files/<case>/.",
+ "evals": [
+  {
+   "id": "anchors",
+   "type": "targeted",
+   "prompt": "Audit the README in evals/files/anchors against the code in that folder. For each broken claim give the line and the fix. Don't change things that are correct.",
+   "expectations": [
+    "Does not flag #install--configure, docs/guide.md#my_var-option, or docs/guide.md#build--deploy as broken",
+    "Flags the #troubleshooting anchor (line 8) as broken",
+    "Flags the --run flag (line 14) as not existing in the CLI"
+   ],
+   "verified_facts": "GitHub/github-slugger anchors: 'Install & configure' -> install--configure; 'my_var option' -> my_var-option. The original verify_claims.py fails all four anchors plus --run; the revised one fails only #troubleshooting and --run. Graders may run either verifier and inspect the fixture."
+  },
+  {
+   "id": "ci_gate",
+   "type": "targeted",
+   "prompt": "Using this skill's bundled scripts, write a GitHub Actions step that fails the build on any broken link or any warning-level claim problem in README.md and docs/*.md, and also prints lint_prose's rule list into the log.",
+   "expectations": [
+    "Uses verify_claims.py with a --fail-on value that actually fails on warnings (per the script's real semantics) rather than a value that silently exits 0",
+    "Runs lint_prose.py --list-rules in a way that exits 0 (no document required) or otherwise prints the rule list without failing the step",
+    "Every flag used exists in the scripts' argparse definitions"
+   ],
+   "verified_facts": "Original verify_claims.py: --fail-on is a set of classes; `--fail-on warn` exits 0 when claims are missing; typos silently disable the gate. Original lint_prose.py --list-rules without a doc exits 2 ('docs required'). Revised: --fail-on is a threshold (warn includes missing/syntax-error), unknown values exit 2, --list-rules works alone. Grade each answer against the script version it says it read if it quotes it; otherwise against the revised semantics. An answer that works around the original's quirks correctly (e.g. --fail-on missing,syntax-error,warn and `lint_prose.py --list-rules README.md || true`) passes."
+  },
+  {
+   "id": "doc_tooling",
+   "type": "targeted",
+   "prompt": "Give me CI commands that check (1) Go doc-comment conventions and Go doc examples, and (2) TypeScript TSDoc comments and @example code. One command per line, each with what it actually checks.",
+   "expectations": [
+    "Does not claim `go vet` checks doc-comment conventions",
+    "Names staticcheck ST1020/ST1021/ST1022 (or another real doc-comment linter such as revive's exported rule) for Go doc comments, and `go test` for Example functions",
+    "Does not claim `tsc --noEmit` type-checks code inside @example blocks"
+   ],
+   "verified_facts": "Executed: go vet exits 0 on a misnamed doc comment (no doc analyzer among its 35); staticcheck -checks ST1020 exits 1 (ST1020-1022 off by default). TypeScript 7.0.2 tsc --noEmit exits 0 with a type error inside an @example block."
+  },
+  {
+   "id": "runnable_examples",
+   "type": "targeted",
+   "prompt": "Write docstrings with a runnable example for (a) Python `def resize(image, width, height)` in package imgkit and (b) Rust `pub fn resize(img: &Image, width: u32, height: u32) -> Result<Image, ResizeError>` in crate imgkit. Also give the Sphinx command that makes CI fail on broken :func: cross-references.",
+   "expectations": [
+    "The Sphinx command includes -n (nitpicky) together with -W",
+    "The Rust doc example defines or imports every name it uses and handles ? with a Result-returning main (possibly hidden # lines), so it would pass cargo test --doc",
+    "The Python example defines or imports every name it uses (or notes a doctest_namespace fixture provides them), so it would pass doctest"
+   ],
+   "verified_facts": "Executed with Sphinx 9.2.0: -W alone builds successfully with broken :func: refs; -W -n fails. The original skill's Rust example fails cargo test --doc with E0425 (photo, resize undefined); its Python example fails doctest with NameError."
+  },
+  {
+   "id": "readme_unattended",
+   "type": "targeted",
+   "prompt": "Draft a README for the project in evals/files/readme_draft. I won't be around to answer questions, so make reasonable choices and tell me what you assumed. Our readers are on macOS with zsh. Save it as README.md in your output folder.",
+   "expectations": [
+    "Produces a README draft without stopping to ask the user questions first",
+    "States the assumed reader/audience explicitly",
+    "Gives the Python floor as 3.10, matching requires-python in pyproject.toml",
+    "Install commands quote any extras (e.g. 'pkg[extra]') and the shell code blocks contain no # comment lines"
+   ],
+   "verified_facts": "Fixture pyproject has requires-python >=3.10. zsh treats unquoted pkg[extra] as a glob ('no matches found') and runs a pasted '#' line as a command when interactive_comments is off (default for interactive zsh)."
+  },
+  {
+   "id": "classify_control",
+   "type": "control",
+   "prompt": "Our README says `from widgetkit import make_widget`, but the code only has `build_widget`, defined in widgetkit/core.py and re-exported from the package. How should I classify this in a docs audit and what is the fix?",
+   "expectations": [
+    "Classifies it as renamed (or ambiguous with a stated reason), not removed",
+    "Says the evidence should cite the source file and line where build_widget is defined",
+    "Fix changes the README to import build_widget"
+   ],
+   "verified_facts": "Both skill versions share the classification table (renamed / moved / removed / signature changed / undocumented / ambiguous) with evidence 'old name, new name, source line'."
+  }
+ ]
+}

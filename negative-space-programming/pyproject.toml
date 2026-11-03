@@ -1,0 +1,46 @@
+# Checker settings this skill's own code passes. Copy the sections you want.
+# Run from the skill root:  pyright  |  mypy  |  ruff check  |  python scripts/test_types.py
+
+[tool.pyright]
+typeCheckingMode = "strict"
+pythonVersion = "3.10"
+extraPaths = ["assets"]
+# typing_before.py fails on purpose; scripts/test_types.py checks it explicitly.
+exclude = ["assets/examples/typing_before.py", "**/__pycache__"]
+# Beyond strict: rules that catch negative space strict mode leaves on.
+reportImplicitOverride = "error"
+reportUnnecessaryTypeIgnoreComment = "error"
+reportUninitializedInstanceVariable = "error"
+reportPropertyTypeMismatch = "error"
+reportImportCycles = "error"
+reportCallInDefaultInitializer = "error"
+
+[tool.mypy]
+strict = true
+python_version = "3.10"
+mypy_path = "assets"
+warn_unreachable = true
+enable_error_code = ["redundant-expr", "truthy-bool", "possibly-undefined",
+                     "ignore-without-code", "explicit-override", "exhaustive-match"]
+exclude = ["assets/examples/typing_before\\.py$"]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+extend-exclude = ["assets/examples/typing_before.py"]
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+    "D",        # docstring style: out of scope here
+    "CPY001",   # copyright headers
+    "COM812",   # conflicts with ruff format
+    "INP001",   # scripts/ and assets/ are not packages
+    "T201",     # print is the CLI's output channel
+    "EM101", "EM102", "TRY003",  # f-string messages are the point of a check helper
+    "PLR2004",  # magic numbers: allowed case by case with noqa
+]
+
+[tool.ruff.lint.per-file-ignores]
+"scripts/test_*.py" = ["S101"]           # pytest-style assert belongs in tests
+"assets/examples/before.py" = ["ALL"]    # deliberately unchecked; the audit is the lint here

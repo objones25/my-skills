@@ -1,0 +1,19 @@
+{
+  "_note": "Verdicts recorded from kubectl apply --dry-run=server against kube-apiserver v1.37.1 with the namespace enforcing pod-security restricted, 2026-10-19.",
+  "verdicts": {
+    "add-net-bind.yaml": "admit",
+    "add-sys-admin.yaml": "reject",
+    "good.yaml": "admit",
+    "hostnetwork.yaml": "reject",
+    "hostpath.yaml": "reject",
+    "image-volume.yaml": "admit",
+    "nfs-volume.yaml": "reject",
+    "no-seccomp.yaml": "reject",
+    "nonroot-on-container-only.yaml": "admit",
+    "priv-esc-unset.yaml": "reject",
+    "readonly-root-off.yaml": "admit",
+    "runasuser-0.yaml": "reject",
+    "seccomp-on-container-only.yaml": "admit",
+    "shm-memory.yaml": "admit"
+  }
+}

@@ -1,0 +1,46 @@
+# syntax=docker/dockerfile:1
+# check=error=true
+
+# Node.js / TypeScript service using npm with package-lock.json.
+# Placeholders to adapt: NODE_VERSION (use an LTS line), build output dir, CMD, EXPOSE.
+# For pnpm or yarn, see references/node.md. Tested with Node 24 (LTS) on Debian 13.
+
+ARG NODE_VERSION=24
+
+FROM node:${NODE_VERSION}-trixie-slim AS base
+WORKDIR /app
+
+# ---------- production dependencies only ----------
+FROM base AS deps
+RUN --mount=type=bind,source=package.json,target=package.json \
+    --mount=type=bind,source=package-lock.json,target=package-lock.json \
+    --mount=type=cache,target=/root/.npm \
+    npm ci --omit=dev --no-audit --no-fund
+
+# ---------- full install + compile ----------
+FROM base AS build
+RUN --mount=type=bind,source=package.json,target=package.json \
+    --mount=type=bind,source=package-lock.json,target=package-lock.json \
+    --mount=type=cache,target=/root/.npm \
+    npm ci --no-audit --no-fund
+COPY . .
+RUN npm run build
+
+# ---------- runtime ----------
+FROM base AS runtime
+ENV NODE_ENV=production
+
+# Root-owned, read-only for the app user.
+COPY package.json ./
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=build /app/dist ./dist
+
+# The official image ships a "node" user with UID/GID 1000. Use the number so
+# Kubernetes runAsNonRoot can verify it.
+USER 1000:1000
+EXPOSE 3000
+
+# Run node directly, not "npm start": npm does not forward SIGTERM reliably.
+# The app must handle SIGTERM itself (Node as PID 1 ignores it otherwise),
+# or run the container with an init (docker run --init, or tini).
+CMD ["node", "dist/server.js"]

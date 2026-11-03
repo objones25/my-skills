@@ -1,0 +1,19 @@
+# Keep the build context small and secret-free. Copy to <project>/.dockerignore.
+.git
+.gitignore
+.dockerignore
+Dockerfile*
+compose*.y*ml
+bin
+dist
+vendor
+*.test
+*.out
+coverage.*
+.env
+.env.*
+*.pem
+*.key
+.idea
+.vscode
+.DS_Store

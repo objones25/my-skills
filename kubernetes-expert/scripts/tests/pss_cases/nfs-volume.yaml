@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app.kubernetes.io/name: x
+  name: nfs-volume
+  namespace: myapp
+spec:
+  automountServiceAccountToken: false
+  containers:
+  - image: r/x:1
+    name: app
+    securityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+        - ALL
+      readOnlyRootFilesystem: true
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 10001
+    seccompProfile:
+      type: RuntimeDefault
+  serviceAccountName: myapp
+  volumes:
+  - name: n
+    nfs:
+      path: /
+      server: a

@@ -1,0 +1,16 @@
+# Apply with: kubectl apply -k .   (preview first: kubectl diff -k .)
+# Replace "myapp", the namespace, image, port, and resource numbers before use.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: myapp
+resources:
+  - namespace.yaml
+  - serviceaccount.yaml
+  - deployment.yaml
+  - service.yaml
+  - pdb.yaml
+  - hpa.yaml
+  - networkpolicy.yaml
+images:
+  - name: registry.example.com/myapp
+    newTag: "1.4.2"

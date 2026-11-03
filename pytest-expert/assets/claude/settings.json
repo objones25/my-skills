@@ -1,0 +1,65 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3",
+            "args": [
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/pytest_expert_post_edit.py"
+            ],
+            "timeout": 120,
+            "statusMessage": "pytest-expert: auditing the edited test file"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3",
+            "args": [
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/pytest_expert_stop_gate.py"
+            ],
+            "timeout": 600,
+            "statusMessage": "pytest-expert: audit, diff guard, and fast suite before stopping"
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3",
+            "args": [
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/pytest_expert_stop_gate.py"
+            ],
+            "timeout": 600,
+            "statusMessage": "pytest-expert: audit, diff guard, and fast suite before the subagent stops"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear|compact|fork",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3",
+            "args": [
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/pytest_expert_session_start.py"
+            ],
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}

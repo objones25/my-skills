@@ -1,0 +1,45 @@
+# Ruff config for the lint gate. Merge into pyproject.toml under [tool.ruff], or
+# keep standalone: ruff check --config ruff-pytest.toml .
+# Verified against ruff 0.17.3 (PT001-PT031, S = bandit rules).
+
+target-version = "py311"
+line-length = 120
+# mutmut writes a mutated copy of the project into mutants/; never lint it.
+extend-exclude = ["mutants"]
+
+[lint]
+select = [
+    "PT",     # flake8-pytest-style
+    "B",      # bugbear: B015 catches a comparison used as a statement
+    "S",      # bandit security rules (src only; see per-file-ignores)
+    "SIM", "RUF", "E", "F", "I", "UP",
+    "ARG",    # unused arguments, including requested-but-unused fixtures
+    "DTZ",    # naive datetimes, a cross-timezone flake source
+    "PGH004", # blanket noqa hides real findings
+]
+ignore = [
+    "PT001", "PT023",  # parentheses style: cosmetic
+    "E501",            # line length is the formatter's job (ruff format)
+]
+
+[lint.flake8-pytest-style]
+parametrize-names-type = "tuple"
+parametrize-values-type = "list"
+parametrize-values-row-type = "tuple"
+raises-require-match-for = ["BaseException", "Exception", "ValueError", "OSError", "IOError", "socket.error"]
+
+[lint.per-file-ignores]
+# Globs start with **/ so they match wherever this file lives (globs are resolved
+# relative to the config file's directory).
+# S101: tests use assert by design. ARG001: fixtures requested for side effects.
+# S311: non-crypto random is fine in tests. SIM105 would rewrite a swallowed
+# `except AssertionError: pass` into contextlib.suppress, making the hidden
+# failure permanent; the audit reports it as SWALLOWED_FAILURE instead.
+"**/tests/**/*.py" = ["S101", "S311", "ARG001", "SIM105"]
+"**/test_*.py" = ["S101", "S311", "ARG001", "SIM105"]
+"**/conftest.py" = ["S101", "S311", "ARG001"]
+"**/fuzz/**/*.py" = ["S101"]
+# Tooling that exists to run subprocesses on paths it was given.
+"**/scripts/*.py" = ["S603", "S607"]
+"**/hooks/*.py" = ["S603", "S607"]
+"**/selftest/*.py" = ["S603", "S607"]

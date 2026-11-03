@@ -1,0 +1,24 @@
+# Source archives: only the unpacked skill folders belong in this repo.
+*.zip
+
+# Skills held back from the repo by the owner.
+/accessible-course-materials/
+/lesson-design/
+/find-docs/
+/study-notes/
+
+# OS files
+.DS_Store
+
+# Tool caches. Some archives shipped these, so they are dropped here.
+__pycache__/
+*.pyc
+.ruff_cache/
+.pytest_cache/
+.mypy_cache/
+.hypothesis/
+.coverage
+
+# Local environments and secrets
+.venv/
+.env

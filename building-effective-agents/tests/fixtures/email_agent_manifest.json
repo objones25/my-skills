@@ -1,0 +1,15 @@
+{
+  "tools": {
+    "read_inbox":  {"A": true, "B": true},
+    "crm_lookup":  {"B": true},
+    "send_reply":  {"C": true},
+    "draft_reply": {}
+  },
+  "sessions": {
+    "single_agent": {"tools": ["read_inbox", "crm_lookup", "send_reply"]},
+    "gated_agent":  {"tools": ["read_inbox", "crm_lookup", "send_reply"], "human_approval_on": ["send_reply"]},
+    "reader":       {"tools": ["read_inbox", "draft_reply"]},
+    "sender_free_text":  {"tools": ["crm_lookup", "send_reply"], "inputs_from": ["reader"]},
+    "sender_structured": {"tools": ["crm_lookup", "send_reply"], "inputs_from": ["reader"], "structured_handoff": true}
+  }
+}

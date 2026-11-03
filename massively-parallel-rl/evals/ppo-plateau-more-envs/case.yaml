@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: ppo-plateau-more-envs
+expected_outcome: |
+  Explains that keeping NUM_MINIBATCHES=8 while raising NUM_ENVS 16x grew the minibatch from 8192 to 131072 and cut optimizer steps per frame, and that the step-size/noise account (Beukman et al. 2026) recommends holding minibatch size and learning rate fixed and adding minibatches. Gives concrete runnable configs (at least a fixed-minibatch arm) with the batch arithmetic shown, recommends comparing against the 1024-env baseline over several seeds with IQM, and mentions data diversity or reset-curriculum fixes as next steps if the plateau persists.

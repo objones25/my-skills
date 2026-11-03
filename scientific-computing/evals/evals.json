@@ -1,0 +1,72 @@
+{
+ "skill_name": "scientific-computing",
+ "note": "A/B regression set from the 2026-10-22 audit. Fixture paths in prompts were /home/claude/ab/fixtures/<skill>/<case>; the same files are under evals/files/<case>/.",
+ "evals": [
+  {
+   "id": "curve_fit_fail",
+   "type": "targeted",
+   "prompt": "I'm fitting a*exp(-b*t)+c to a few hundred noisy datasets with scipy.optimize.curve_fit in a loop, and some fits fail. Write fit_one(t, y) that returns the parameters and their standard errors, or None when the fit did not converge or the parameters aren't identifiable. scipy 1.17.",
+   "expectations": [
+    "Catches RuntimeError from curve_fit to detect non-convergence",
+    "Never reads .success, .status or .message from curve_fit's return value (unless it passes full_output=True and reads the documented ier/mesg)",
+    "Checks that pcov is finite (e.g. np.isfinite(pcov).all()) before computing standard errors"
+   ],
+   "verified_facts": "Executed on scipy 1.17.1: curve_fit returns a (popt, pcov) tuple; non-convergence raises RuntimeError('Optimal parameters not found: ...'); an unidentifiable model returns pcov full of inf with only an OptimizeWarning. The original skill's SKILL.md says nothing in scipy raises and lists curve_fit under sol.success."
+  },
+  {
+   "id": "eigsh_singular",
+   "type": "targeted",
+   "prompt": "Using L from evals/files/neumann_eigs/laplacian.py (a 200x200 1-D Neumann Laplacian, sparse), compute its 3 smallest eigenvalues with scipy.sparse.linalg.eigsh efficiently, and tell me what values you expect.",
+   "expectations": [
+    "Does not end up calling eigsh with sigma=0 exactly on this matrix (uses a small negative shift, which='SA', or a regularization), or if it tries sigma=0 it reports the failure and switches",
+    "States that the smallest eigenvalue is 0 (L is singular: constant vector in the null space)",
+    "Any numeric values given are about 0, 2.47e-4 and 9.87e-4"
+   ],
+   "verified_facts": "Executed on scipy 1.17.1 and 1.18.1: eigsh(L, k=3, sigma=0, which='LM') raises RuntimeError: Factor is exactly singular; sigma=-1e-3 returns [~-1e-16, 2.467e-4, 9.869e-4]. Analytic: lambda_k = 2-2cos(k*pi/N) for k=0,1,2 with N=200. The original skill's defaults table recommends eigsh(A, k=6, sigma=0, which='LM') for the smallest."
+  },
+  {
+   "id": "sos_response",
+   "type": "targeted",
+   "prompt": "sos = scipy.signal.butter(6, 40, fs=500, output='sos'). Write code that plots the magnitude response in dB and the group delay in samples, both against frequency in Hz.",
+   "expectations": [
+    "Computes the frequency response with freqz_sos or sosfreqz (not freqz(sos, ...))",
+    "Computes group delay via sos2tf/(b, a) or from the unwrapped phase of the SOS response, not by passing the sos array to group_delay",
+    "Passes fs=500 (or converts the frequency axis to Hz correctly)"
+   ],
+   "verified_facts": "Executed on scipy 1.15-1.18: signal.freqz(sos, fs=fs) raises ValueError (broadcast); group_delay(sos, ...) silently returns wrong values (0.364 vs correct 4.665 samples for a 4th-order 100 Hz test filter at 50 Hz). freqz_sos exists from 1.15."
+  },
+  {
+   "id": "complex_stiff_ode",
+   "type": "targeted",
+   "prompt": "I need to integrate y' = A y where A is a 50x50 complex matrix (a discretized Schrodinger operator with an absorbing boundary), y0 is complex, t in [0, 10], and I don't know how stiff it is. Write the solve_ivp call and explain the method choice. Use numpy 2.4 / scipy 1.17.",
+   "expectations": [
+    "Does not use method='LSODA' or method='Radau' with complex y0 (unless it explicitly splits the system into real and imaginary parts)",
+    "Uses BDF (with complex y0), a real 100-dimensional split with a stiff method, or a justified explicit method",
+    "If it runs code, the call actually succeeds"
+   ],
+   "verified_facts": "Executed on scipy 1.17.1: LSODA and Radau raise ValueError: `y0` is complex, but the chosen solver does not support integration in a complex domain. RK23, RK45, DOP853 and BDF accept complex y0. The original skill's defaults send 'stiff or unknown' to LSODA, and its ODE reference says complex y0 works directly."
+  },
+  {
+   "id": "seed_legacy_rvs",
+   "type": "targeted",
+   "prompt": "Reproducibly draw 1000 samples each from scipy.stats.gamma(a=2, scale=1.5) and scipy.stats.lognorm(s=0.5) using one seeded numpy Generator, then compute a 95% bootstrap CI of the gamma sample's median. Use the modern scipy API (scipy 1.17).",
+   "expectations": [
+    "Seeds the frozen/legacy distributions' .rvs via random_state=rng (or uses the new distribution infrastructure's .sample(rng=)); does not pass rng= to .rvs",
+    "Passes rng= (or random_state=) to scipy.stats.bootstrap",
+    "Does not call np.random.seed"
+   ],
+   "verified_facts": "Executed on scipy 1.14-1.18: stats.gamma.rvs(..., rng=...) raises TypeError: _parse_args_rvs() got an unexpected keyword argument 'rng'. bootstrap accepts rng= from 1.15. The original SKILL.md says 'Pass rng= to scipy.'"
+  },
+  {
+   "id": "krylov_control",
+   "type": "control",
+   "prompt": "After upgrading scipy, `x, info = scipy.sparse.linalg.cg(A, b, tol=1e-10)` fails with a TypeError. Fix it, and make sure I know whether it actually converged.",
+   "expectations": [
+    "Replaces tol= with rtol= passed as a keyword",
+    "Checks info == 0 (and explains info > 0 means not converged)",
+    "Optionally verifies the residual norm; does not claim cg raises on non-convergence"
+   ],
+   "verified_facts": "Executed on scipy 1.17.1: cg() got an unexpected keyword argument 'tol'. Did you mean 'rtol'? cg returns info>0 on non-convergence without raising. Same guidance in both skill versions."
+  }
+ ]
+}

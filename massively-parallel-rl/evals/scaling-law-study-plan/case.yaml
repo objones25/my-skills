@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: scaling-law-study-plan
+expected_outcome: |
+  A two-stage plan: stage 1 grid over batch size and learning rate at several budgets with bootstrapped competitive configurations and power-law fits; stage 2 isoFLOPs sweep over model size measured in FLOPs per frame using the stage-1 hyperparameters, with parabola fits and power-law/log-linear fits. Uses an Elo league with a fixed shared evaluation set and a random-policy anchor instead of mean return, IQM over multiple seeds, and a held-out larger budget for validation. Gives budget arithmetic that fits 200 A100-hours or says how to check it, and concrete commands or code.

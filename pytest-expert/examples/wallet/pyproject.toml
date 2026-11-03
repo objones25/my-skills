@@ -1,0 +1,65 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "wallet"
+version = "0.1.0"
+description = "Worked example for the pytest-expert skill"
+requires-python = ">=3.11"
+
+[project.optional-dependencies]
+test = ["pytest>=9.0", "pytest-cov>=7", "pytest-xdist>=3.8", "pytest-randomly>=5", "pytest-timeout>=2.4", "hypothesis>=6.150"]
+symbolic = ["crosshair-tool>=0.0.100", "hypothesis-crosshair>=0.0.30"]
+fuzz = ["atheris>=3"]
+mutation = ["mutmut>=3.8"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+minversion = "9.0"
+testpaths = ["tests"]
+strict = true
+addopts = [
+    "--import-mode=importlib",
+    "-ra",
+    "--showlocals",
+    "--tb=short",
+    "--cov",
+    "--cov-branch",
+    "--cov-report=term-missing:skip-covered",
+    "--cov-fail-under=90",
+    "-m", "not slow and not integration and not e2e and not gpu and not symbolic",
+]
+markers = [
+    "slow: takes more than ~1s; deselected by default",
+    "integration: crosses a process, service, or network boundary; deselected by default",
+    "e2e: full end-to-end workflow; deselected by default",
+    "gpu: requires CUDA; deselected by default",
+    "security: security regression test (path traversal, injection, input limits)",
+    "symbolic: runs Hypothesis with the CrossHair solver backend; deselected by default",
+]
+filterwarnings = [
+    "error",
+    'ignore:The configuration option "asyncio_default_fixture_loop_scope" is unset:pytest.PytestDeprecationWarning',
+]
+faulthandler_timeout = 120
+timeout = 120
+pythonpath = ["src"]
+
+[tool.coverage.run]
+branch = true
+source = ["src"]
+parallel = true
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+exclude_also = ["if TYPE_CHECKING:", "raise NotImplementedError"]
+
+[tool.mutmut]
+source_paths = ["src/wallet"]
+also_copy = ["fuzz"]
+pytest_add_cli_args = ["-p", "no:randomly", "--no-cov", "-q"]
+pytest_add_cli_args_test_selection = ["tests/unit", "tests/property", "tests/security"]

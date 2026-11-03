@@ -1,0 +1,113 @@
+{
+  "skill_name": "robot-learning-expert",
+  "note": "Regression set for robot-learning-expert (general robot learning, not tied to a course). Expectations are objectively checkable against the reply; referenced facts were verified against books and lecture notes, rsl_rl 5.4.2 / mjlab 1.6.0 source, or the G1 sweep CSV.",
+  "evals": [
+    {
+      "id": "q-learning-chatter",
+      "type": "targeted",
+      "prompt": "My tabular Q-learning never converges, Q keeps jumping around. My update is Q[s,a] = r + gamma * Q[s2].max(). What's wrong?",
+      "expectations": [
+        "Identifies that the update overwrites Q instead of blending with a step size alpha (Q <- Q + alpha*(target - Q))",
+        "Explains the chattering: even at Q* a single sampled backup moves the estimate",
+        "Mentions the Robbins-Monro conditions or a decaying step-size schedule",
+        "Suggests a concrete check (e.g. a small MDP where B and C pay 1 and 0, or comparing against exact Q-value iteration from mdp_tools)"
+      ]
+    },
+    {
+      "id": "timeout-bootstrap",
+      "type": "targeted",
+      "prompt": "My PPO critic's value predictions drop sharply near the end of every 20 second episode even though the robot is walking fine. Why, and how does rsl_rl deal with this?",
+      "expectations": [
+        "Identifies time-limit truncation being treated as termination (no bootstrap) as the cause",
+        "States that rsl_rl adds gamma times the value to the reward on time-out steps",
+        "Notes that rsl_rl uses V(s_t) as a stand-in for V(s_{t+1}) because the env has already reset",
+        "Distinguishes falls (true terminations, no bootstrap) from time-outs"
+      ]
+    },
+    {
+      "id": "batch-arithmetic-16384",
+      "type": "targeted",
+      "prompt": "With the shipped mjlab G1 PPO config, what actually changes when I go from 4096 to 16384 envs?",
+      "expectations": [
+        "Batch goes from 98,304 to 393,216 samples per iteration (24 steps per env)",
+        "Minibatch size goes from 24,576 to 98,304 because num_mini_batches stays 4",
+        "Gradient steps per iteration stay at 20 (5 epochs x 4 minibatches)",
+        "Mentions fewer iterations per wall-clock minute (about 1,280 vs 2,570 in 45 min in the sweep)"
+      ]
+    },
+    {
+      "id": "lsvi-ucb-beta",
+      "type": "targeted",
+      "prompt": "In LSVI-UCB I've seen Q_h = min{theta^T phi + beta b_h, H} with b_h = beta sqrt(phi^T Lambda^-1 phi). Isn't beta applied twice?",
+      "expectations": [
+        "Agrees beta should be applied once",
+        "Cites Jin et al. 2020 Algorithm 1 form min{w^T phi + beta sqrt(phi^T Lambda^-1 phi), H}",
+        "Mentions at least one other detail from the paper (targets recomputed each episode over all past data, T = KH total steps, or beta = c d H sqrt(iota))"
+      ]
+    },
+    {
+      "id": "linear-bonus-to-tabular",
+      "type": "explanation",
+      "prompt": "Explain why the LSVI-UCB exploration bonus reduces to the tabular count bonus. I don't really get the ellipsoid picture.",
+      "expectations": [
+        "Defines Lambda_h (ridge Gram matrix) and phi before using them",
+        "Explains that eigenvalues of Lambda measure how much data lies in each feature direction",
+        "Shows that one-hot features make Lambda diagonal with visit counts, giving beta / sqrt(N_h(s,a))",
+        "Contains no em dashes"
+      ]
+    },
+    {
+      "id": "sweep-16384-vs-4096",
+      "type": "analysis",
+      "prompt": "Can I claim in the write-up that 16384 envs beats 4096 envs?",
+      "expectations": [
+        "Reports the 45-min vel_error_xy means (about 0.077 vs 0.082) from the sweep",
+        "Gives P(16384 better than 4096) of about 0.89 with only 3 seeds per arm (fractions of 9 pairs) and says the claim is weak",
+        "Notes that 16384 ran about half as many iterations, so the comparison is at matched wall-clock, not matched updates",
+        "Suggests a fixed-evaluator comparison with more seeds or matched budgets rather than training reward"
+      ]
+    },
+    {
+      "id": "standing-still-plateau",
+      "type": "analysis",
+      "prompt": "Why are so many of the small num_envs runs stuck at vel_error_xy of almost exactly 0.50?",
+      "expectations": [
+        "Explains that 0.50 is the mean commanded speed over the 6 evaluation commands, so the robot is standing still",
+        "Shows the arithmetic (0.5 + 1.0 + 0.5 + 0.5 + 0.5 + 0) / 6 = 0.5",
+        "Connects it to a local optimum where the policy learns not to fall but not to walk (no_fall_fraction near 1)"
+      ]
+    },
+    {
+      "id": "plan-ppo-vs-fasttd3",
+      "type": "design",
+      "prompt": "I want to compare PPO and FastTD3 for G1 velocity tracking on one A100. Help me design the experiment.",
+      "expectations": [
+        "Uses a fixed offline evaluator rather than training reward",
+        "Specifies the x-axis (wall-clock with only rollout and update timed, and/or env steps) and says why",
+        "States batch arithmetic or replay/batch sizes for both methods and a compute cost estimate",
+        "Asks for multiple seeds with IQM or bootstrap intervals and names the surveyed G1 wall-clock claims as the comparison to test"
+      ]
+    },
+    {
+      "id": "ppo-clip-explanation",
+      "type": "explanation",
+      "prompt": "Explain the PPO clipped objective. When does a sample stop contributing gradient?",
+      "expectations": [
+        "Defines the probability ratio and the advantage before using them",
+        "States the gradient is zero when the ratio has moved past 1+eps with positive advantage or below 1-eps with negative advantage",
+        "Notes clipping does not bound the KL directly (hence target-KL early stopping or rsl_rl's adaptive learning rate)"
+      ]
+    },
+    {
+      "id": "sim2real-randomization",
+      "type": "targeted",
+      "prompt": "What does the shipped mjlab G1 velocity task already randomize, and what would I add before trying it on a real G1?",
+      "expectations": [
+        "Lists the shipped randomizations: foot friction 0.3 to 1.2, encoder bias +-0.015, torso COM offset, random pushes every 1 to 3 s, plus observation noise",
+        "Mentions the action space is joint position targets through PD control at 50 Hz",
+        "Proposes additions grounded in sim-to-real literature (e.g. actuator latency or gains, mass, motor strength) with a paper named",
+        "Says library details were read from the installed mjlab version or should be checked there"
+      ]
+    }
+  ]
+}

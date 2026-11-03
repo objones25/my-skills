@@ -1,0 +1,31 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: vol-image
+  namespace: myapp
+spec:
+  serviceAccountName: myapp
+  automountServiceAccountToken: false
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 10001
+    seccompProfile: {type: RuntimeDefault}
+  containers:
+    - name: app
+      image: registry.example.com/infer:1.0.0
+      resources:
+        requests: {cpu: "1", memory: 4Gi}
+        limits: {memory: 4Gi, nvidia.com/gpu: 1}
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities: {drop: [ALL]}
+      volumeMounts:
+        - name: weights
+          mountPath: /models
+          readOnly: true
+  volumes:
+    - name: weights
+      image:
+        reference: registry.example.com/models/llm-weights:2026-10
+        pullPolicy: IfNotPresent

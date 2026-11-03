@@ -1,0 +1,15 @@
+# Voluntary disruptions (node drains, upgrades) may take down at most one pod at a time.
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: myapp
+  labels:
+    app.kubernetes.io/name: myapp
+spec:
+  maxUnavailable: 1
+  # Lets drains evict pods that are already unhealthy instead of blocking on them.
+  unhealthyPodEvictionPolicy: AlwaysAllow
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: myapp
+      app.kubernetes.io/component: api

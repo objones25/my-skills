@@ -1,0 +1,11 @@
+[
+  {"name": "search_customers", "description": "Search customers by name or email and return matching customer records.",
+   "input_schema": {"type": "object", "properties": {"query": {"type": "string"}}}},
+  {"name": "find_customer", "description": "Find customer records matching a name or email address.",
+   "input_schema": {"type": "object", "properties": {"user": {"type": "string"}}}},
+  {"name": "delete_customer", "description": "Permanently delete a customer and all of their data. Do not use for deactivation; use deactivate_customer instead.",
+   "input_schema": {"type": "object", "properties": {"customer_id": {"type": "string"}}}},
+  {"name": "get_customer_context", "description": "Return one customer's profile, last 20 transactions, and open support notes in a single call. Use when you already have a customer_id; not for searching by name.",
+   "input_schema": {"type": "object", "properties": {"customer_id": {"type": "string"}}},
+   "annotations": {"readOnlyHint": true}}
+]

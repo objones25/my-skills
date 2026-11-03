@@ -1,0 +1,114 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myapp
+  labels:
+    app.kubernetes.io/name: myapp
+    app.kubernetes.io/component: api
+    app.kubernetes.io/part-of: myapp
+spec:
+  # No "replicas": hpa.yaml owns the count (minReplicas: 2). If you remove the HPA,
+  # add "replicas: 2" here; with both, every apply resets the HPA's scaling.
+  revisionHistoryLimit: 5
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: myapp
+      app.kubernetes.io/component: api
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: myapp
+        app.kubernetes.io/component: api
+        app.kubernetes.io/part-of: myapp
+    spec:
+      serviceAccountName: myapp
+      automountServiceAccountToken: false
+      # Must exceed preStop sleep + the app's own shutdown time.
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: myapp
+              app.kubernetes.io/component: api
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: myapp
+              app.kubernetes.io/component: api
+      containers:
+        - name: app
+          # kustomization.yaml can override the tag; in CI, pin the digest too
+          # (kustomize edit set image registry.example.com/myapp:1.4.2@sha256:...).
+          image: registry.example.com/myapp:1.4.2
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8000
+          env:
+            - name: LOG_LEVEL
+              value: info
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: myapp-secrets
+                  key: database-url
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              memory: 256Mi
+          # Gives a slow start up to 30 x 2 s = 60 s before liveness takes over.
+          startupProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 2
+            failureThreshold: 30
+          # Readiness gates traffic; it may check dependencies the app needs to serve.
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: http
+            periodSeconds: 5
+            failureThreshold: 3
+          # Liveness restarts the container; it must only check the process itself.
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 10
+            failureThreshold: 3
+          lifecycle:
+            # Keep serving briefly while endpoints are removed from load balancers.
+            preStop:
+              sleep:
+                seconds: 5
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 64Mi

@@ -1,0 +1,75 @@
+\documentclass[11pt]{article}
+% Conference-style write-up skeleton for an RL / robot learning experiment:
+% abstract, introduction, related work, setup, method, experiments, conclusions;
+% theory organized as definitions, assumptions, theorems; link the code.
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{graphicx,booktabs,natbib,hyperref}
+\usepackage[ruled,vlined]{algorithm2e}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}
+\newtheorem{assumption}{Assumption}
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\cS}{\mathcal{S}}
+\newcommand{\cA}{\mathcal{A}}
+\newcommand{\cO}{\mathcal{O}}
+
+\title{TITLE}
+\author{AUTHORS}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Problem, why it matters, what you did, the main result in numbers, and what it implies. Four to six sentences.
+\end{abstract}
+
+\section{Introduction}
+Motivation, the question, contributions as a short list, and the paper's organization.
+
+\section{Related work}
+Group by idea (access models, structural conditions, practical reset-based exploration), not by paper.
+
+\section{Problem setup}
+\begin{definition}[Access protocol]
+State exactly what the learner may query.
+\end{definition}
+\begin{assumption}[Structure]
+State each assumption once; refer to it by name later.
+\end{assumption}
+
+\section{Method}
+\begin{algorithm}[t]
+\caption{METHOD}
+\KwIn{...}
+\KwOut{...}
+...
+\end{algorithm}
+List every choice that departs from the source paper (constants, function class, reset semantics).
+
+\section{Experiments}
+Environments, the swept variable, baselines, the fixed evaluator and its metrics, batch arithmetic and compute, number of seeds, how intervals are computed (IQM with stratified bootstrap, 95\%).
+\begin{table}[t]\centering
+\begin{tabular}{lcc}\toprule
+Method & IQM return & 95\% CI \\ \midrule
+ & & \\ \bottomrule
+\end{tabular}
+\caption{...}
+\end{table}
+
+\section{Discussion and conclusions}
+What held, what did not and why, limitations, next steps.
+
+\paragraph{Code.} \url{REPO-URL}
+
+\bibliographystyle{plainnat}
+\bibliography{refs}
+\end{document}

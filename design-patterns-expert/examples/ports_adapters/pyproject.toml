@@ -1,0 +1,18 @@
+# import-linter contract for the ports-and-adapters example.
+# Run from this directory: PYTHONPATH=. lint-imports --no-cache
+# Kept in pyproject.toml rather than .importlinter because dotfiles get dropped
+# when a skill is zipped or uploaded.
+
+[tool.importlinter]
+root_package = "shop"
+include_external_packages = true
+
+[[tool.importlinter.contracts]]
+name = "Domain depends on nothing outward"
+type = "forbidden"
+source_modules = ["shop.domain"]
+forbidden_modules = [
+    "shop.adapters",
+    "shop.main",
+    "sqlite3",
+]
