@@ -104,3 +104,28 @@ spec:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
             capabilities: {drop: [ALL]}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: scaled
+spec:
+  replicas: 3
+  selector:
+    matchLabels: {app: scaled}
+  template:
+    metadata:
+      labels: {app: scaled}
+    spec:
+      containers:
+        - name: app
+          image: registry.example.com/scaled:1.0.0@sha256:000000000000
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: scaled
+spec:
+  scaleTargetRef: {apiVersion: apps/v1, kind: Deployment, name: scaled}
+  minReplicas: 2
+  maxReplicas: 5

@@ -5,6 +5,7 @@ import re
 import subprocess
 import sys
 
+import pytest
 import torch
 
 EPOCH_LINE = re.compile(r"^epoch\s+(\d+)\s+train ([\d.]+)\s+val ([\d.]+)\s+acc [\d.]+\s+lr ([\d.e+-]+)")
@@ -51,3 +52,78 @@ def test_compiled_model_checkpoint_loads_into_plain_model(template, tmp_path):
     state = torch.load(tmp_path / "c.pth", weights_only=False)["model"]
     result = fresh.load_state_dict(state, strict=True)
     assert result.missing_keys == [] and result.unexpected_keys == []
+
+
+def test_checkpoint_loads_to_cpu_so_rng_state_can_be_restored(template, tmp_path, monkeypatch):
+    """Regression: map_location=<accelerator> moved the saved RNG state off the CPU.
+
+    torch.set_rng_state only accepts a CPU ByteTensor, so --resume crashed on MPS. This
+    checks the load location directly so that it also guards a CPU-only machine.
+    """
+    model = template.build_model(4, 3)
+    opt = torch.optim.AdamW(model.parameters())
+    gen = torch.Generator().manual_seed(0)
+    template.save_ckpt(tmp_path / "c.pth", epoch=0, model=model, optimizer=opt,
+                       scheduler=None, scaler=None, best_val=1.0, bad_epochs=0,
+                       total_epochs=1, generator=gen)
+    locations = []
+    real_load = torch.load
+
+    def recording_load(*args, **kwargs):
+        locations.append(kwargs.get("map_location"))
+        return real_load(*args, **kwargs)
+
+    monkeypatch.setattr(torch, "load", recording_load)
+    template.load_ckpt(tmp_path / "c.pth", model=model, optimizer=opt, scheduler=None,
+                       scaler=None, generator=gen)
+    assert locations == ["cpu"]
+
+
+def _checkpoint_with_device_state(template, tmp_path, device_state):
+    model = template.build_model(4, 3)
+    opt = torch.optim.AdamW(model.parameters())
+    gen = torch.Generator().manual_seed(0)
+    path = tmp_path / "c.pth"
+    template.save_ckpt(path, epoch=0, model=model, optimizer=opt, scheduler=None, scaler=None,
+                       best_val=1.0, bad_epochs=0, total_epochs=1, generator=gen)
+    ckpt = torch.load(path, weights_only=False)
+    ckpt["rng"]["device"] = device_state
+    torch.save(ckpt, path)
+    return path, model, opt, gen
+
+
+@pytest.mark.parametrize("device_state", [
+    {"type": "xpu", "state": torch.zeros(4, dtype=torch.uint8)},   # a device this machine lacks
+    [torch.zeros(4, dtype=torch.uint8)],                           # the old CUDA list form
+    torch.zeros(4, dtype=torch.uint8),                             # the old MPS tensor form
+    None,                                                          # saved on CPU
+])
+def test_resume_survives_a_checkpoint_from_another_device(template, tmp_path, device_state):
+    path, model, opt, gen = _checkpoint_with_device_state(template, tmp_path, device_state)
+    template.load_ckpt(path, model=model, optimizer=opt, scheduler=None, scaler=None, generator=gen)
+
+
+def test_device_rng_state_records_its_device_type(template):
+    state = template.device_rng_state()
+    if torch.accelerator.is_available():
+        assert state["type"] == torch.accelerator.current_accelerator().type
+    else:
+        assert state is None
+
+
+def test_note_is_printed_when_the_devices_differ(template, monkeypatch, capsys):
+    monkeypatch.setattr(template, "device_rng_state", lambda: None)
+    template.set_device_rng_state({"type": "mps", "state": torch.zeros(4, dtype=torch.uint8)})
+    assert "not bit-exact" in capsys.readouterr().err
+
+
+def test_note_is_printed_for_a_cpu_checkpoint_on_an_accelerator(template, monkeypatch, capsys):
+    monkeypatch.setattr(template, "device_rng_state", lambda: {"type": "mps", "state": torch.zeros(4, dtype=torch.uint8)})
+    template.set_device_rng_state(None)
+    assert "not bit-exact" in capsys.readouterr().err
+
+
+def test_no_note_when_neither_side_has_an_accelerator(template, monkeypatch, capsys):
+    monkeypatch.setattr(template, "device_rng_state", lambda: None)
+    template.set_device_rng_state(None)
+    assert capsys.readouterr().err == ""

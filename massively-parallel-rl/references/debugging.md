@@ -62,7 +62,33 @@ seeds per arm and compare IQMs.
 2. `python scripts/throughput_bench.py --env <env> --n 256 1024 4096 16384`: where
    throughput saturates.
 3. One seed of the scaffold at small N reaches a known score (CartPole 500 for PPO or
-   PQN) before any scaling run.
+   PQN) before any scaling run. A single low PQN seed is not proof of a bug: see
+   "Reference runs" below.
 4. On a time-limited env, compare the default run against `--truncation-as-terminal`
    once, so the size of the truncation effect is known for that task.
 5. Three seeds before any comparison, IQM for the summary.
+
+## Reference runs
+
+These results are specific to the machine and versions shown. Compare the spread, not
+the exact numbers.
+
+`pqn_jax.py --env CartPole-v1`, greedy evaluation per seed, on 2026-11-03 on macOS arm64
+(Apple Silicon, JAX CPU backend) with JAX 0.12.0.1, Flax 0.12.12, Optax 0.2.8:
+
+| Timesteps | Seeds | Scores |
+|---|---|---|
+| 500,000 | 8 | 338.9, 500, 500, 500, 500, 500, 184.3, 449.5 |
+| 1,000,000 | 2 | 500, 53.7 |
+| 1,000,000 | 6 | 500, 53.7, 500, 500, 398.9, 500 |
+| 1,000,000 | 8 | 500 for all 8 |
+| 2,000,000 | 8 | 500 for all 8 |
+
+In the 2-seed run, the low seed reached 500 at the halfway point before collapsing. Why
+it collapses was not determined. A seed's result also depends on `--num-seeds`: seed index
+1 scored 53.7 with 2 and 6 seeds and 500 with 8. So judge a run from several seeds, and do
+not compare single seeds between runs of different widths.
+
+An earlier version of the test required both of 2 seeds to finish above 400. This skill's
+earlier "Tested on" note does not record the machine or that test's result. The current
+test requires a median above 400 across 8 seeds, with at most 2 below 100.

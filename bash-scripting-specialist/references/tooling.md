@@ -87,7 +87,7 @@ clone the repo and run `./install.sh /usr/local`. Helper libraries `bats-support
 `test/test_helper/`.
 
 `assets/template.bats` is a working suite for `assets/template.sh` (10 tests, passing on
-bats 1.13.0 and 1.14.0, and on bash 3.2 and 5.2). Patterns it shows:
+bats 1.13.0 and 1.14.0, and on bash 3.2 and 5.2; October 2026, machine not recorded; not rerun on 2026-11-03). Patterns it shows:
 
 ```bash
 bats_require_minimum_version 1.5.0     # otherwise old bats reads new run flags as the command
@@ -117,7 +117,7 @@ run -2 --separate-stderr "$SCRIPT" --bogus   # assert exit 2, keep stderr in $st
   an error (`--allow-empty-suite` restores the old behavior). *Tested:* a function that
   runs `set -e; false; echo after` returns 0 under `run` on 1.13 and 1 on 1.14.
 - Test old bash: `PATH=/bin:$PATH bats test/` on a Mac runs both bats and the script under
-  3.2 (*tested* with a locally built 3.2.57: all 10 template tests pass).
+  3.2 (*tested* October 2026, machine not recorded, with a locally built 3.2.57: all 10 template tests pass).
 
 Alternatives: ShellSpec (BDD style, mocking, built-in kcov; last release 0.28.1 in 2021)
 and shUnit2 (xUnit style, sourced at the end of the test file).

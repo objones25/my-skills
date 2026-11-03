@@ -66,3 +66,15 @@ def test_evals_well_formed():
 def test_examples_are_marked_illustrative():
     for p in (ROOT / "examples").glob("0*.md"):
         assert "*Illustrative" in p.read_text(), p.name
+
+
+def test_scripts_do_not_hardcode_a_tmp_path():
+    offenders = [p.name for p in (ROOT / "scripts").glob("*.py")
+                 if re.search(r"""["']/tmp/""", p.read_text(encoding="utf-8"))]
+    assert offenders == []
+
+
+def test_every_script_compiles():
+    # Some scripts import optional packages and their tests skip, so check syntax directly.
+    for path in (ROOT / "scripts").glob("*.py"):
+        compile(path.read_text(encoding="utf-8"), str(path), "exec")

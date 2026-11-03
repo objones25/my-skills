@@ -5,6 +5,7 @@ import importlib.util
 
 import pytest
 
+import walkthrough_runner
 from walkthrough_runner import run_walkthrough
 
 FILES = [
@@ -31,3 +32,20 @@ OPTIONAL = tuple(m for m in ("peft",) if importlib.util.find_spec(m) is None)
 def test_walkthrough_output_matches_documented_output(skill_root, name):
     mismatches = run_walkthrough(skill_root / "references" / name, skip_modules=OPTIONAL)
     assert mismatches == []
+
+
+def _write_walkthrough(tmp_path, documented):
+    doc = tmp_path / "doc.md"
+    doc.write_text("## Walkthrough\n\n```python\nprint('device: mps')\n```\n"
+                   f"```cpu-output\n{documented}\n```\n")
+    return doc
+
+
+def test_cpu_output_is_compared_on_a_cpu_only_machine(tmp_path, monkeypatch):
+    monkeypatch.setattr(walkthrough_runner, "has_accelerator", lambda: False)
+    assert len(run_walkthrough(_write_walkthrough(tmp_path, "device: cpu"))) == 1
+
+
+def test_cpu_output_is_not_compared_on_an_accelerator(tmp_path, monkeypatch):
+    monkeypatch.setattr(walkthrough_runner, "has_accelerator", lambda: True)
+    assert run_walkthrough(_write_walkthrough(tmp_path, "device: cpu")) == []

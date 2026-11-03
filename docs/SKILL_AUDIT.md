@@ -2,6 +2,8 @@
 
 Audit date: 2026-11-03. This records the skills as they were received, before any fixes.
 
+Sections 2 to 7 describe the skills before the fixes that followed; see section 10 for what changed and for corrections to this audit.
+
 ## 1. Summary
 
 - **The most recent skills share a recognizable shape.** The six skills packaged on 2026-11-02 include all five that have a test guarding their own structure, and all the root-level `CHANGELOG.md` and `AUDIT.md` files. Three have all eight components on your checklist: `pytest-expert`, `pytorch` and `transformer-architecture`. Those six came from one day, so this may reflect one batch of work as much as a trend.
@@ -301,3 +303,28 @@ Reported so nothing is lost. These are not committed.
 
 1. Do the tiers in section 5 match what you want, particularly requiring evals and a CHANGELOG for every skill?
 2. Should existing tests move to `tests/`, or should skills only declare a run command?
+
+## 10. After the audit
+
+### Corrections to this audit
+
+- **`massively-parallel-rl`, "22 repos" (section 7):** not a defect. A count across the whole skill finds 22 distinct GitHub repositories, 21 of them in `papers.md`. Whether all 22 were "verified" as the description says was not checked.
+- **`massively-parallel-rl`, "deterministic per seed" (section 3):** too strong. A seed's result also depends on `--num-seeds`: seed index 1 scored 53.7 with 2 and 6 seeds and 500 with 8. Why a seed collapses is still undetermined.
+- **`negative-space-programming` (section 3):** the audit missed that the skill failed its own "audits clean" claim, because of a stale suppression. A baseline agent found it during the skill builder's testing.
+- **`annotate-research-paper` (section 7):** the audit missed that `->` in its description fails skill-creator's validator. The conformance checker found it.
+
+### Fixes
+
+Fixes are in the branch history, with a test for each change to behaviour. Results changed by these fixes are labelled by date and machine in each skill's docs. Other unlabelled results may remain: `check_skill.py` flags those it can find as SB050.
+
+### Still open
+
+- Component gaps in section 7 (evals, trigger cases, CHANGELOG and AUDIT.md for most skills). These are for the skill builder's update mode.
+- `annotate-research-paper`'s scripts have no tests, and `hook-writer`'s tests cover only part of its logic.
+- `massively-parallel-rl`: the cause of the seed collapse, and a NOTICE for adapted Apache-2.0 code.
+- `kubernetes-expert`: the GPU Job template's wording.
+- `design-patterns-expert`: its `evals/` folder was not in the archive and no copy was found.
+- `robot-learning-expert`: the owner's name in one paper digest.
+- `async-expert`: a historical `/home/claude` path in the note in `evals/evals.json`, which is accurate history but looks like a live path.
+- Some labels take a date or version from elsewhere in the same skill, rather than from the sentence they sit on (`bash-scripting-specialist`, `dockerfile-expert`). These are likely true and were not independently confirmed.
+- CUDA paths in `pytorch`'s resume fix have not been run. Nothing here has been run on Linux or Windows.

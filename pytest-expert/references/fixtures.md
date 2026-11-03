@@ -329,7 +329,7 @@ def pytest_sessionstart(session):
         pytest.register_fixture(name=f"{name}_backend", func=_make_backend(name), node=session)
 ```
 
-That ran green (2 passed). In a project, a parametrized fixture is almost always the
+That ran green (2 passed; date and machine not recorded). In a project, a parametrized fixture is almost always the
 better answer; reach for this only inside a plugin.
 
 ## Fixture anti-patterns

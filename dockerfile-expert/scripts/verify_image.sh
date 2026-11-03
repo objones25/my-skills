@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Inspect a built image for the properties the Dockerfile was supposed to give it.
-# Usage: verify_image.sh IMAGE [--stop-test PORT_OR_NONE]
+# Usage: verify_image.sh IMAGE [--stop-test]
 #   --stop-test runs the container, sends SIGTERM via `docker stop`, and reports how long it took.
 #   A clean stop is well under the 10 s default; ~10 s plus exit 137 means SIGTERM was ignored.
 # Needs only docker and standard POSIX tools (no jq). Exit 1 if a hard check fails.

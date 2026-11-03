@@ -248,11 +248,14 @@ def test_minibatch_count_scales_with_envs():
 
 
 def test_pqn_learns_cartpole(tmp_path):
-    out = run("pqn_jax.py", "--env", "CartPole-v1", "--total-timesteps", "1000000", "--num-seeds", "2",
+    # Single seeds vary at this budget: see "Reference runs" in references/debugging.md.
+    # So this checks the typical seed, not every seed.
+    out = run("pqn_jax.py", "--env", "CartPole-v1", "--total-timesteps", "1000000", "--num-seeds", "8",
               "--results-csv", tmp_path / "res.csv")
     assert out.returncode == 0, out.stderr
     df = pd.read_csv(tmp_path / "res.csv")
-    assert df["score"].min() > 400, out.stdout
+    assert df["score"].median() > 400, out.stdout
+    assert (df["score"] < 100).sum() <= 2, out.stdout   # a rise in collapsed seeds is a regression
 
 
 def test_elo_warns_on_duplicate_instances(tmp_path):

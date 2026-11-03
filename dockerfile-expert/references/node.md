@@ -11,7 +11,7 @@ Stages:
 - **runtime**: `NODE_ENV=production`, copies prod `node_modules`, the build output, and
   package.json, runs as UID 1000 (the image's `node` user).
 
-Tested result: served healthz as UID 1000 and stopped in 0.2 s, because the test server
+Tested result (October 2026, Engine 29.9, buildx 0.38, architecture of this test not recorded; stop times vary by host): served healthz as UID 1000 and stopped in 0.2 s, because the test server
 registers a SIGTERM handler (see below).
 
 Use an LTS major for production. Check nodejs.org's release table: on 19 October 2026, 24 was
@@ -20,7 +20,7 @@ Node 27 the project moves to one major per year, each becoming LTS).
 
 ## Signals: the most common Node container bug
 
-Node as PID 1 ignores SIGTERM unless the app handles it (tested: a plain `node -e` loop was
+Node as PID 1 ignores SIGTERM unless the app handles it (tested October 2026, architecture of this test not recorded: a plain `node -e` loop was
 SIGKILLed after 10 s). Either add a handler that closes the server:
 
 ```ts

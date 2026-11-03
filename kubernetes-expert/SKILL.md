@@ -46,7 +46,7 @@ impact: security, then availability, then scheduling and cost, then hygiene.
 
 **Security (every pod)**
 - Namespace labels `pod-security.kubernetes.io/enforce: restricted` (plus `audit` and `warn`).
-  Tested on a 1.37.1 API server: a pod with no securityContext is rejected naming four
+  Tested on a 1.37.1 API server (2026-10-19, machine not recorded): a pod with no securityContext is rejected naming four
   fields; the template's pod is admitted.
 - Pod `securityContext`: `runAsNonRoot: true`, numeric `runAsUser`/`runAsGroup` matching the
   image, `seccompProfile.type: RuntimeDefault`. Container `securityContext`:

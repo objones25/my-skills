@@ -12,7 +12,7 @@ metadata:
 ```
 `enforce` rejects pods; `warn` prints warnings on apply (including for Deployment templates,
 before any pod exists); `audit` annotates audit logs. Enforcement applies to Pods only: a
-non-compliant Deployment is still created (tested on 1.37.1: dry-run printed
+non-compliant Deployment is still created (tested on 1.37.1 on 2026-10-19, machine not recorded: dry-run printed
 `Warning: would violate PodSecurity "restricted:latest"` and accepted it), and then its
 ReplicaSet fails to create pods. If a rollout shows 0 pods, check
 `kubectl describe rs` / `kubectl get events` for `FailedCreate ... violates PodSecurity`. Pin

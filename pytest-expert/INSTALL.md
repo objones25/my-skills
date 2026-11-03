@@ -16,8 +16,8 @@ mkdir -p .claude/skills && cp -r pytest-expert .claude/skills/
 Restart Claude Code. The skill loads on requests about writing tests, flaky suites,
 pytest config, fuzzing, mutation testing, test CI, or hooks.
 
-In claude.ai or Claude Cowork, use the `pytest-expert.skill` file and its Save skill
-button.
+In claude.ai or Claude Cowork, upload the skill folder as a zip file. This repo does
+not include a packaged `.skill` file.
 
 ### Updating an existing install
 
@@ -105,7 +105,7 @@ pytest
 
 ```
 pytest-expert/
-├── SKILL.md                         workflow, testing ladder, 31 hard gates
+├── SKILL.md                         workflow, testing ladder, 34 hard gates
 ├── INSTALL.md                       this file
 ├── CHANGELOG.md                     what changed in each audit
 ├── AUDIT.md                         the November 2026 audit: gaps, corrections, how sources were checked

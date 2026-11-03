@@ -41,11 +41,11 @@ how each source was checked, and what was left undone are in `AUDIT.md`.
 - Solver search on the wallet demo now about 0.4 s (was 1.7 s on CrossHair 0.0.111).
 - Scripts are executable (`chmod +x`) and pass ruff 0.17's expanded default rule set; `ci-cd.md` explains that default change.
 
-### Verification at release
+### Verification at release (machine not recorded)
 
 | Check | Result |
 |---|---|
-| `pytest selftest` | 255 passed (audit 56, diff guard 46, hooks 17, mutate_check 5, flake_hunt 3, structure 128) |
+| `pytest selftest` | 255 passed, machine not recorded (audit 56, diff guard 46, hooks 17, mutate_check 5, flake_hunt 3, structure 128) |
 | `examples/wallet`: `pytest` | 87 passed, 96.95% branch coverage |
 | `examples/wallet`: `-m integration --no-cov`, `-m symbolic --no-cov` | 2 passed, 1 passed |
 | `examples/wallet/demo` | 6 failed, 1 passed (as designed) |
@@ -57,7 +57,11 @@ how each source was checked, and what was left undone are in `AUDIT.md`.
 | zizmor 1.31.1 (auditor persona), actionlint 1.7.12, pre-commit validate-config | no findings, clean, valid |
 | `conftest_ml.py` fixtures on PyTorch 2.15 CPU | 4 passed (shape, overfit, determinism, checkpoint) |
 
+Machine for every row above: not recorded. Rerun 2026-11-03 on macOS arm64 (Apple Silicon), Python 3.13: `pytest selftest` 253 passed, 3 skipped; `examples/wallet` 87 passed, 1 skipped, 2 deselected. The other rows were not rerun.
+
 ## 2026-10-04: audit and expansion
+
+Machine for the results in this release: not recorded.
 
 The previous version (August 2026) was audited by running its own tooling against
 deliberately broken tests and its own reference module. Every fix below was
@@ -110,7 +114,7 @@ reproduced before it was made and re-checked after.
   step 5; new escalation step and testing ladder. Rules 28 to 31 added.
 - Shell snippets in docs contain no `#` comment lines, so they paste cleanly into zsh.
 
-### Verification at release
+### Verification at release (machine not recorded)
 
 | Check | Result |
 |---|---|

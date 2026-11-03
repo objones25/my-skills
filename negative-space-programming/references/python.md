@@ -39,7 +39,7 @@ crash handlers keep working.
 ## Footguns
 
 **Tuple assert.** `assert (x > 0, "x must be positive")` asserts a two-element tuple, which is
-always truthy. It never fires. Python emits a `SyntaxWarning` for this in 3.12+, which is easy to
+always truthy. It never fires. Python emits a `SyntaxWarning` for this (seen on Python 3.9, 3.10 and 3.14 on 2026-11-03 on macOS arm64), which is easy to
 miss in a noisy log. The audit script flags it as NSP002.
 
 **Array truthiness.** `assert x == y` on NumPy arrays or torch tensors raises
@@ -112,7 +112,7 @@ so they cannot do NSP001, NSP003/NSP004 on `require` calls, NSP005, or NSP009.
 | NSP002 tuple assert | `F631` | on by default in ruff |
 | NSP004 compound check | `PT018` | `assert` only |
 | NSP006 bare except | `E722` | |
-| NSP007 swallowed exception | `S110`, `S112` | `pass` / `continue` bodies only; `BLE001` flags `except Exception` itself |
+| NSP007 swallowed exception | `S110`, `S112` | `pass` / `continue` bodies only, and by default only for bare or `Exception` handlers: `except ValueError: pass` was not flagged (ruff 0.17.3, 2026-11-03); `BLE001` flags `except Exception` itself |
 | NSP008 plain assert | `S101` | ignore it in test files |
 | NSP009 stale `# nsp: ignore` | `RUF100` for `# noqa` | `RUF100` also flags a `# noqa: BLE001` when `BLE` is not selected: enable the rule or delete the comment |
 

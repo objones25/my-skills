@@ -61,7 +61,7 @@ guard would be.
 - `/bin/sh` on macOS is bash 3.2 in POSIX mode, so bashisms in `#!/bin/sh` scripts work on
   a Mac and break on Debian/Ubuntu (dash) and Alpine (BusyBox ash).
 
-### Behavior that differs on 3.2 (tested on 3.2.57 vs 4.4+)
+### Behavior that differs on 3.2 (tested on 3.2.57 vs 4.4+, October 2026, machine not recorded)
 
 | Construct | bash 3.2 | bash 4.4+ |
 |---|---|---|

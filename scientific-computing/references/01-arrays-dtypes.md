@@ -5,6 +5,8 @@ promote under NumPy 2's NEP 50 rules, and how to create, reshape, and persist ar
 bugs, dtype surprises, integer overflow, or layout questions. Ground truth: numpy 2.4.4. Throughout, `# ->` shows
 what `print()` of that expression displayed when the line was run.
 
+> Timings and speed ratios in this file: date and machine not recorded. They vary by machine.
+
 One toy array runs through the whole file: `a = np.arange(12, dtype=np.float64).reshape(3, 4)`.
 
 Contents: Anatomy of an ndarray; Views vs copies; dtypes; Promotion: NEP 50; Creation and filling; Shape

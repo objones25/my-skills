@@ -22,6 +22,8 @@ tools, which run inside the sandbox rather than on the host.
 """
 from __future__ import annotations
 
+import tempfile
+
 import sys
 
 from inspect_ai import Epochs, Task, task
@@ -139,7 +141,7 @@ def _smoke() -> None:
 
     model = get_model("mockllm/model", custom_outputs=scripted)
     t = order_status(epochs=2)
-    logs = inspect_eval(t, model=model, display="none", log_dir="/tmp/inspect-smoke")
+    logs = inspect_eval(t, model=model, display="none", log_dir=tempfile.mkdtemp(prefix="inspect-smoke-"))
     log = logs[0]
     print("status:", log.status)
     for s in log.results.scores:

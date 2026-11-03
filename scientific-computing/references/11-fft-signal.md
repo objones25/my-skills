@@ -5,6 +5,8 @@ make the numbers come out right. The recurring failure here is not a wrong funct
 wrong normalization or a wrong frequency axis, both of which produce plots that look
 plausible and are off by a factor of `N` or `2`.
 
+> Timings and speed ratios in this file: date and machine not recorded. They vary by machine.
+
 Use `scipy.fft`, not `numpy.fft`. Same conventions, plus `workers=` for threading,
 `next_fast_len`, DCT/DST, and better real-input transforms.
 

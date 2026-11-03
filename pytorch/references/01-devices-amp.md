@@ -84,9 +84,13 @@ import torch
 device = torch.accelerator.current_accelerator(check_available=True) or torch.device("cpu")
 print("device:", device, "| type:", device.type)
 ```
-```
+```cpu-output
 device: cpu | type: cpu
 ```
+
+The printed outputs in steps 1 and 2 depend on the machine. The blocks show a machine
+with no accelerator. On 2026-11-03 on macOS arm64 (Apple Silicon) with torch 2.15.0,
+step 1 printed `device: mps | type: mps` and step 2 printed `param device: mps:0`.
 
 **2. Build the model and move it in place.** `.to()` on a module mutates and returns
 it, so no reassignment.
@@ -98,7 +102,7 @@ model = torch.nn.Sequential(
 model.to(device)
 print("param device:", next(model.parameters()).device)
 ```
-```
+```cpu-output
 param device: cpu
 ```
 

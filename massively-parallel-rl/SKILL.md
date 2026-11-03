@@ -2,7 +2,7 @@
 name: massively-parallel-rl
 description: Massively parallel reinforcement learning - thousands to millions of GPU/JAX environments stepped in lockstep - grounded in 2024-2026 papers and verified against 22 repos (PureJaxRL, PQN, Craftax, Kinetix, Brax/Playground, Isaac Lab, rsl_rl, mjlab, FastTD3, FastSAC, FlashSAC, SAPG, PufferLib and others). Use when writing, scaling, tuning or debugging RL that runs many vectorized environments (jax.vmap env.step, gymnax, Craftax, Brax, MJX, Isaac Lab, num_envs in the thousands), when choosing num_envs / batch size / minibatches / learning rate as compute grows, when PPO plateaus or stops improving with more environments, when fitting or applying RL scaling laws (compute-optimal model size, isoFLOPs, Elo instead of mean return), or when picking between PPO, PQN, FastTD3 and FlashSAC for fast training. Ships runnable JAX PPO/A2C and PQN scaffolds, a single-agent Elo league, a scaling-law fitter and throughput/FLOPs tools. Not for distributed training of one large model across GPUs.
 license: MIT
-compatibility: Python 3.10+. Scripts need jax, flax, optax, distrax, gymnax, numpy, scipy, pandas (craftax optional). Tested on JAX 0.12.0.1 / Flax 0.12.12 / Optax 0.2.8 / gymnax 0.0.9 on CPU. Reference files cite repo commits read on 2026-10-27.
+compatibility: Python 3.10+. Scripts need jax, flax, optax, distrax, gymnax, numpy, scipy, pandas (craftax optional). Tests last run 2026-11-03 on macOS arm64 (JAX CPU backend) with JAX 0.12.0.1 / Flax 0.12.12 / Optax 0.2.8 / gymnax 0.0.9. Reference files cite repo commits read on 2026-10-27.
 metadata:
   author: owenbeckettjones
   version: '1.0.0'

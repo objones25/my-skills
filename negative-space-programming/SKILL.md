@@ -1,6 +1,6 @@
 ---
 name: negative-space-programming
-description: Write and review code that states what must never happen: runtime checks on arguments, returns and invariants, a bound on every loop, queue and retry, and a hard line between programmer errors that crash and operating errors that are handled. Use whenever the user asks to make code more robust, defensive, fail-fast, safer, or harder to misuse; when they mention assertions, invariants, preconditions, postconditions, contracts, defensive programming, negative space, TigerStyle, or NASA's Power of Ten; when hardening code that swallows exceptions, loops without a bound, or trusts its inputs; when pyright/Pylance/mypy flag Optional or TypedDict access right next to a runtime check; and proactively when writing a training loop, data pipeline, parser, or any function whose bad output would be wrong rather than loud. Ships an audit script that flags low assertion density, unbounded loops, swallowed exceptions and stale suppressions, and fails the build on violations.
+description: "Write and review code that states what must never happen: runtime checks on arguments, returns and invariants, a bound on every loop, queue and retry, and a hard line between programmer errors that crash and operating errors that are handled. Use whenever the user asks to make code more robust, defensive, fail-fast, safer, or harder to misuse; when they mention assertions, invariants, preconditions, postconditions, contracts, defensive programming, negative space, TigerStyle, or NASA's Power of Ten; when hardening code that swallows exceptions, loops without a bound, or trusts its inputs; when pyright/Pylance/mypy flag Optional or TypedDict access right next to a runtime check; and proactively when writing a training loop, data pipeline, parser, or any function whose bad output would be wrong rather than loud. Ships an audit script that flags low assertion density, unbounded loops, swallowed exceptions and stale suppressions, and fails the build on violations."
 ---
 
 # Negative Space Programming
@@ -186,5 +186,5 @@ overlap with the NSP codes, is in `references/python.md`.
 | `assets/examples/` | `before.py` / `after.py`: one module unchecked and checked. `typing_before.py` / `typing_after.py`: checks a type checker rejects, and their fixes. |
 | `scripts/audit_negative_space.py` | Any hardening or review pass on existing code. |
 | `scripts/test_audit.py` | Changing the audit script; `python scripts/test_audit.py` needs no pytest. |
-| `scripts/test_types.py` | Changing any `.py` here; runs pyright strict on the skill and pins the fixture's rule IDs. |
+| `scripts/test_types.py` | Changing any `.py` here; runs pyright strict on the skill and pins the fixture's rule IDs.; needs `pyright` and `typing_extensions`. |
 | `pyproject.toml` | The pyright / mypy / ruff settings the skill's own code passes; a starting point for a project. |

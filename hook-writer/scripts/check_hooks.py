@@ -15,6 +15,7 @@ parsed. Script heuristics read the hook's script source and can miss things;
 confirm behavior with dry_run.py.
 """
 import argparse
+import difflib
 import json
 import os
 import re
@@ -259,8 +260,13 @@ def check_file(rep, path, project_dir):
     for event, gi, group, hi, handler in hs.iter_handlers(config):
         where = f"{path} :: {event}" + (f"[{gi}]" if gi is not None else "") + (f".hooks[{hi}]" if hi is not None else "")
         if event not in hs.EVENTS:
-            close = [e for e in hs.EVENTS if e.lower() == event.lower()]
-            rep.add("ERROR", where, f"unknown event {event!r}" + (f"; did you mean {close[0]!r}?" if close else ""))
+            close = difflib.get_close_matches(event, hs.EVENTS, n=1, cutoff=0.8) or [
+                e for e in hs.EVENTS if e.lower() == event.lower()]
+            if close:
+                rep.add("ERROR", where, f"unknown event {event!r}; did you mean {close[0]!r}?")
+            else:
+                rep.add("WARN", where, f"event {event!r} is not in this script's table, transcribed {hs.TRANSCRIBED}. "
+                                       "Check the live reference with fetch_reference.py before treating it as a typo.")
             continue
         if gi is None:
             rep.add("ERROR", where, "event value must be a list of matcher groups")

@@ -23,8 +23,8 @@ ls ~/.claude/skills/observability-expert/SKILL.md   # confirm it registered
 
 ## Claude Cowork / claude.ai
 
-Use the `observability-expert.skill` file: its card in the conversation has a **Save
-skill** button when your organization allows it.
+Upload the skill folder as a zip file. This repo does not include a packaged `.skill`
+file.
 
 ## Using the tooling directly, without Claude
 
@@ -110,7 +110,7 @@ observability-expert/
 ├── assets/
 │   ├── obslog/                     setup · json_formatter · context · redact · wandb_run
 │   ├── examples/                   train_example · service_example · bad_example
-│   └── tests/test_obslog.py        43 tests
+│   └── tests/test_obslog.py        43 tests (43 passed 2026-11-03, macOS arm64, py3.13)
 └── scripts/audit_observability.py  17-check AST audit; exit 1 on any finding
 ```
 

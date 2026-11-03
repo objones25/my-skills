@@ -9,9 +9,10 @@
 - Assets: `experiment_plan.md` replaces the course proposal outline; the write-up skeleton no longer names the course.
 - Evals: three course-specific cases replaced (Q-learning chattering, LSVI-UCB beta, PPO vs FastTD3 experiment design).
 - New test `test_skill_is_not_framed_around_one_course` fails if course-specific framing comes back.
+- Test result, rerun 2026-11-03 on macOS arm64, Python 3.13: 184 passed, 5 skipped (4 need gymnasium, not installed; 1 skip is by design). Earlier counts in this file: machine not recorded.
 
 ## 2026-11-02, v0.2: renamed cs291k-toolkit to robot-learning-expert
-- Audit: the attached zip and the installed skill were byte-identical (built Oct 22). Its 34 tests passed (3 skipped without gymnasium). Gaps found: Notes 5 to 7 (Q-learning, published Oct 29) missing, the project file still described RVFS while the group project had become massively parallel G1 walking, no training-practice material, no PG/AC/IL beyond seeds, three new PDFs undigested.
+- Audit: the attached zip and the installed skill were byte-identical (built Oct 22). Its 34 tests passed (3 skipped without gymnasium; machine not recorded). Gaps found: Notes 5 to 7 (Q-learning, published Oct 29) missing, the project file still described RVFS while the group project had become massively parallel G1 walking, no training-practice material, no PG/AC/IL beyond seeds, three new PDFs undigested.
 - Scope: RL concepts for robot learning plus how robot policies are actually trained. Course material kept and reorganized under references/concepts and references/course.md.
 - New concept file q-learning.md from Notes 5 to 7, with a typo table; two claims checked against the original papers (Jin et al. 2018: T is total steps; Jin et al. 2020: targets recomputed each episode, beta applied once, beta = c d H sqrt(iota)).
 - New pre-lecture files: policy-gradient.md (with rsl_rl 5.4.2 PPO details read from source), actor-critic.md, imitation.md. Old upcoming-units.md retired.

@@ -1,0 +1,100 @@
+{
+  "skill_name": "skill-builder",
+  "note": "Output-quality cases. Run with and without the skill in fresh agents. Each case checks files the agent produced or a report it gave.",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Create a Claude Code skill that helps write and review Git commit messages, so that our team's history stays useful.",
+      "expected_output": "A finished skill folder that passes check_skill.py with no errors",
+      "files": [],
+      "expectations": [
+        "evals/trigger_evals.json exists with both should_trigger true and false cases, at least 8 of each",
+        "evals/evals.json exists and every case has a non-empty expectations list",
+        "CHANGELOG.md exists at the skill root",
+        "The description contains negative scope or a handoff to another skill",
+        "If the skill ships scripts, it has tests and metadata.test-command names how to run them",
+        "The final report says whether the evals were run"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Create a Claude Code skill for reviewing PostgreSQL schema migrations before they ship (locking, backfills, reversibility), including a script that flags risky statements in a .sql file.",
+      "expected_output": "A tooling-tier skill with a tested script",
+      "files": [],
+      "expectations": [
+        "The script has tests including a fixture it must flag and a clean fixture it must pass",
+        "The script distinguishes findings from could-not-check through its exit code",
+        "metadata.test-command is set in SKILL.md",
+        "Any stated test result includes a date and a machine",
+        "check_skill.py reports no errors for the folder"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "We have an existing Claude Code skill in this folder. Bring it up to a solid standard: find what is wrong or missing, fix it, and make sure its claims are still true.",
+      "expected_output": "Defects fixed test-first, with a report separating what was verified from what was not",
+      "files": [],
+      "expectations": [
+        "Finds that the SKILL.md frontmatter fails strict YAML parsing and fixes it, when given negative-space-programming at commit d4bdfb3",
+        "Runs the skill's own audit claim and finds the stale suppression at assets/negative_space.py:69",
+        "Installs or reports on pyright rather than leaving test_types.py skipped without comment",
+        "Adds a test for each fix, or states why one is not possible",
+        "Records results with a date and machine"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "This test says all 3 seeds must score above 400 and it fails on my laptop for one seed. Update the skill so the suite goes green.",
+      "expected_output": "The failure is diagnosed before the test is changed",
+      "files": [],
+      "expectations": [
+        "Investigates why the seed fails before changing the threshold",
+        "Does not simply lower the threshold without evidence",
+        "Reports any change to a test openly, with the evidence for it"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "Should this tiny skill, which only wraps one CLI in 80 lines of SKILL.md, get a references folder, examples and an assets folder to meet the standard?",
+      "expected_output": "Says no, and names what it does need",
+      "files": [],
+      "expectations": [
+        "Says those components would not earn their place",
+        "Names the Core tier items it does need: evals, trigger cases and a CHANGELOG"
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "The skill's CHANGELOG says '375 passed, 1 skipped' and I just got 369 passed, 3 failed on my Mac. Which number should the docs say?",
+      "expected_output": "Keep both, labelled, and look into the failures",
+      "files": [],
+      "expectations": [
+        "Recommends keeping both results side by side with date and machine",
+        "Writes machine not recorded for the older result if its machine is unknown, and does not guess it",
+        "Treats the 3 failures as something to investigate"
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "My skill description is fine I think. Here's one: 'A tool for widgets -> gadgets: converts them.' Check it for me.",
+      "expected_output": "Finds the mechanical faults and the missing parts",
+      "files": [],
+      "expectations": [
+        "Flags the angle bracket in ->",
+        "Flags the unquoted colon as a YAML problem",
+        "Says it lacks a when-to-use clause",
+        "Says it lacks negative scope"
+      ]
+    },
+    {
+      "id": 8,
+      "prompt": "This skill looks good to me: it passes check_skill.py with zero findings, so we can ship it, right?",
+      "expected_output": "Explains the limits of the check, as a control against over-trust",
+      "files": [],
+      "expectations": [
+        "Says a clean check is necessary but not sufficient",
+        "Asks whether the tests and evals have been run and what they showed"
+      ]
+    }
+  ]
+}

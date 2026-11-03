@@ -63,7 +63,7 @@ sources file, or structural tests. Its 32 tests still passed on torch 2.15.0, an
   `04`, `05`, `09`, `10`, `11`, `12`, `13`; real API walkthroughs in `08`, `12` and `14`.
 - `examples/`: six worked answers with real output, five planted-bug models, a buggy script.
 - `evals/evals.json` (17 cases); `tests/test_skill_structure.py`.
-- Tests: 32 to 376 on torch 2.15.0 (375 pass, 1 skip); on 2.14.1, 372 pass and 4 skip
+- Tests: 32 to 376 on torch 2.15.0 (375 pass, 1 skip, machine not recorded; see `CHANGELOG.md` for later results by machine); on 2.14.1, 372 pass and 4 skip
   (torchao walkthrough, the 2.15-only docs scan, and two 2.15-only claims).
 
 ## How things were checked

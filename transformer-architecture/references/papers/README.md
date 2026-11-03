@@ -21,8 +21,6 @@ One file per paper or tightly linked pair, written on 2026-11-02 from the arXiv 
 | `hyper-connections.md` | Hyper-Connections (2409.19606) and mHC (2512.24880) | widening the residual stream; why the mixing matrix must be constrained at scale |
 | `rl-post-training.md` | GRPO (2402.03300), DAPO (2503.14476), Dr. GRPO (2503.20783), GSPO (2507.18071), DeepSeek-V3.2 §3.1 | choosing an RL-with-verifiable-rewards objective; loss normalization, clipping, MoE routing in RL |
 
-Also in this folder: `sources_additions.md` (rows for the skill's sources.md) and `skill_implications.md` (concrete edits the skill should make).
-
 Known caveats from the distillation pass:
 - Three papers were posted after June 2026 (2608.30320, 2609.08574, 2609.22005). They are read from the PDF only, have no independent replication, and two of them are small-scale (1M-350M parameters). Their headers say so.
 - Almost every large-model paper here is a lab benchmarking its own model on its own harness (DeepSeek, Qwen, Kimi, OpenAI). Single-variable ablations inside a paper are more trustworthy than headline comparisons with other labs.

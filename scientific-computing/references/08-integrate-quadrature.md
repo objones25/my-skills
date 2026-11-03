@@ -2,6 +2,8 @@
 
 Which call implements which rule, and what to do in the cases the error analysis assumes away: singularities, infinite limits, oscillation, high dimension. **Every number below is real output from this sandbox** (Python 3.11.15, numpy 2.4.4, scipy 1.17.1); code first, output in the fenced block after. Signatures come from `inspect.signature` on the installed library.
 
+> Timings and speed ratios in this file: date and machine not recorded. They vary by machine.
+
 Every block in this file assumes:
 
 ```python

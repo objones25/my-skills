@@ -1,6 +1,6 @@
 # Audit, 2026-11-02
 
-Previous version: 1.1.0 (verified against torch 2.13.0 and 2.14.1). SKILL.md, 5 reference files, 3 scripts, 38 tests; no evals, examples, assets or paper digests. Its 38 tests still passed on torch 2.15.0.
+Previous version: 1.1.0 (verified against torch 2.13.0 and 2.14.1). SKILL.md, 5 reference files, 3 scripts, 38 tests; no evals, examples, assets or paper digests. Its 38 tests still passed on torch 2.15.0 (machine not recorded).
 
 ## Errors found in the previous version
 

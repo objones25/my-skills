@@ -1,7 +1,7 @@
 ---
 name: transformer-architecture
 description: Design, size, review, implement, debug, and write up decoder-only transformer LLMs, dense or mixture-of-experts. Use whenever the work is how a transformer is built or trained rather than prompted, including choosing a config (width, depth, heads, GQA or MLA, experts, d_ff, vocab, context, RoPE), computing parameter, active-parameter, FLOP, KV-cache or VRAM budgets, writing or fixing RoPE, RMSNorm, GQA, KV-cache, MoE router, MLA, gated-attention or attention-sink code, diagnosing loss spikes, divergence, NaNs or a model that will not learn, choosing AdamW or Muon, planning a pretraining run, setting up SFT, DPO or GRPO-style RL, or defending architecture choices. Trigger on questions like "how big should I make this", "should this be an MoE", "why is my loss spiking at step 4000", "how much VRAM to train this", "garbage after the first token", "what beta for DPO", or "why do my GRPO answers keep getting longer", even when the user never says architecture.
-compatibility: Scripts need Python 3.10+ and torch (tested on 2.15.0, CPU; torch.optim.Muon checked on 2.15). residual_probe.py --model also needs transformers. Run pytest from the skill root to re-check scripts, presets and the claims tied to the reference table.
+compatibility: Scripts need Python 3.10+ and torch (tested on 2.15.0, CPU, machine not recorded; 182 tests passed on 2026-11-03 on macOS arm64; torch.optim.Muon checked on 2.15). residual_probe.py --model also needs transformers. Run pytest from the skill root to re-check scripts, presets and the claims tied to the reference table.
 metadata:
   version: 1.2.0
   verified-against: "torch 2.15.0, transformers 5.22.1"

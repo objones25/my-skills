@@ -29,13 +29,15 @@ demo/                      v0 modules with planted bugs and the tests that find 
 
 Install from this directory with `pip install -e ".[test,symbolic,fuzz,mutation]"`.
 
+Measured at release, machine not recorded. Rerun on 2026-11-03 on macOS arm64 with Python 3.13: `pytest` gave 87 passed, 1 skipped, 2 deselected; the other commands were not rerun.
+
 | Command | Runs | Measured result |
 |---|---|---|
 | `pytest` | unit, property, security, corpus replay | 87 passed, 97% branch coverage |
 | `pytest -m integration --no-cov` | SQLite on disk | 2 passed |
 | `pytest -m symbolic --no-cov -p no:randomly` | solver-backed fee property | 1 passed |
 | `python ../../scripts/audit_tests.py tests` | the audit | clean |
-| `python fuzz/fuzz_parse_amount.py fuzz/corpus/parse_amount -max_total_time=60 -artifact_prefix=fuzz/crashes/` | Atheris | 16.5 million runs in 46 s, no crash |
+| `python fuzz/fuzz_parse_amount.py fuzz/corpus/parse_amount -max_total_time=60 -artifact_prefix=fuzz/crashes/` | Atheris | 16.5 million runs (machine not recorded) in 46 s, no crash |
 | `crosshair check --analysis_kind=PEP316 src/` | contract check on docstrings | no findings |
 | `python ../../scripts/mutate_check.py src/wallet/money.py --function transfer_fee_cents -- python -m pytest -x -q -p no:randomly --no-cov tests/unit` | targeted mutation | 32 of 34 killed; 2 equivalent |
 | `mutmut run --max-children 4` then `mutmut results` | whole-package mutation | 183 of 194 killed |

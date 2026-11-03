@@ -2,6 +2,8 @@
 
 Which container to build, which solver to call, and the API conventions that return a wrong answer without raising. **Every number below is real output from this sandbox** (Python 3.11.15, numpy 2.4.4, scipy 1.17.1); code first, output in the fenced block after. One example runs through the whole file: the 1-D Dirichlet Poisson operator `u'' = f`, the tridiagonal `(1, -2, 1)/h^2` on an interior grid of `n` points with `h = 1/(n+1)`, and its 2-D Kronecker extension.
 
+> Timings and speed ratios in this file: date and machine not recorded. They vary by machine.
+
 Every block in this file assumes:
 
 ```python

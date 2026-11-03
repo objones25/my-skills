@@ -27,7 +27,7 @@ an array subscript inside that expression runs command substitutions. Contexts:
 `$(( ))`, `(( ))`, `let`, array indexes, `${v:offset:len}`, `declare -i` assignments, and
 both sides of `[[ ... -eq/-ne/-lt/-le/-gt/-ge ... ]]` (Vidar Holen, "Security
 implications of arithmetic expansion in bash", 2018; NCC Group, 2020). Quoting does not
-help. *Tested on 3.2 through 5.3:*
+help. *Tested on 3.2 through 5.3 (October 2026, machine not recorded):*
 
 ```bash
 x='a[$(echo INJECTED >&2)]'
