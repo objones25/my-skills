@@ -44,17 +44,6 @@ The patterns these skills share, a proposed standard, and what each skill still 
 | [skill-builder](skill-builder/) | Creates new skills and brings existing ones up to standard, with a conformance checker, templates and a packaging check that tests the unpacked zip. |
 | [building-effective-agents](building-effective-agents/) | Diagnoses and designs LLM agents and their harnesses, routing each symptom to a starting reference, with mostly stdlib scripts and an A/B eval set. |
 
-### Not in this repository
-
-These skills are part of the wider set but are deliberately not committed.
-
-| Skill | What it does |
-| --- | --- |
-| accessible-course-materials | Builds accessible math course materials from LaTeX or PowerPoint and verifies them with check scripts. |
-| lesson-design | Decides what goes in a lesson plan, worksheet or slide deck before any file is built. |
-| find-docs | Looks up current library documentation through Context7. |
-| study-notes | Turns lectures, chapters or papers into flashcards, problem sets and notes. |
-
 ## Using a skill
 
 From the repo root, copy a skill's folder into `~/.claude/skills/`, or into `.claude/skills/` in a project:
@@ -77,4 +66,4 @@ uv run --no-project --with pytest --with torch --with numpy --with scipy python 
 
 ## Repository layout
 
-Source `.zip` archives, tool caches and the skills listed above are excluded by [.gitignore](.gitignore).
+Source `.zip` archives, tool caches and skills kept out of this repo are excluded by [.gitignore](.gitignore).
