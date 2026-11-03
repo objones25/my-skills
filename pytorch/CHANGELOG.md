@@ -1,5 +1,25 @@
 # Changelog
 
+## 1.2.1, 2026-11-03: resume fixed off CPU, machine-specific results labelled
+
+### Fixed
+
+| Problem | Evidence | Fix |
+|---|---|---|
+| `train_template.py --resume` crashed on MPS with `RNG state must be a torch.ByteTensor` | `map_location=device` moved the saved RNG state off the CPU | Load checkpoints to CPU; `load_state_dict` moves the rest |
+| Resume was not bit-exact on MPS (1.7052 versus 1.7077 at epoch 2) | Only the CPU RNG was saved, and dropout on the device draws from the device RNG | Save and restore the accelerator RNG too |
+| `references/01-devices-amp.md` documented `device: cpu` as if universal | Walkthrough printed `device: mps` on Apple Silicon | Labelled machine-specific; new `cpu-output` fence is compared only with no accelerator |
+
+### Test results by machine
+
+| Date | Machine | torch | Result |
+|---|---|---|---|
+| 2026-11-03, after these fixes | macOS arm64 (Apple Silicon), MPS | 2.15.0 | 375 passed, 4 skipped (`safetensors` and `torchao` not installed, one test needs a machine with no accelerator, one is for torch 2.13 and 2.14) |
+| 2026-11-03, before these fixes | macOS arm64 (Apple Silicon), MPS | 2.15.0 | 369 passed, 3 failed, 4 skipped |
+| 2026-11-02, release 1.2.0 | Not recorded | 2.15.0 | 375 passed, 1 skipped |
+
+The CUDA paths in the fix were not run: no CUDA machine was available.
+
 ## 1.2.0, 2026-11-02: torch 2.15, linter, triage and memory scripts, audit fixes
 
 Evidence for each fix is in `AUDIT.md`.
@@ -49,8 +69,8 @@ false positives).
 
 | Check | Result |
 |---|---|
-| `pytest` on torch 2.15.0 | 375 passed, 1 skipped |
-| `pytest` on torch 2.14.1 | 372 passed, 4 skipped (torchao walkthrough, 2.15-only docs scan, two 2.15-only claims) |
+| `pytest` on torch 2.15.0, machine not recorded | 375 passed, 1 skipped |
+| `pytest` on torch 2.14.1, machine not recorded | 372 passed, 4 skipped (torchao walkthrough, 2.15-only docs scan, two 2.15-only claims) |
 | `verify_api.py --docs` on 2.15.0 | no drift, no reference findings |
 | `verify_api.py --docs` on 2.14.1 | 9 pinned differences and 9 reference names, all 2.15 additions or renames |
 | `lint_pytorch.py assets/ scripts/` | clean |
@@ -59,4 +79,4 @@ false positives).
 
 ## 1.1.0
 
-Previous release: torch 2.13 reference with a 2.14.1 re-check (see that version's files).
+Previous release: torch 2.13 reference with a 2.14.1 re-check. That version's files are not kept in this repo.

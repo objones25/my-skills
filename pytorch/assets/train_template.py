@@ -177,6 +177,24 @@ def unwrap(model: nn.Module) -> nn.Module:
     return getattr(model, "_orig_mod", model)
 
 
+def device_rng_state():
+    """The accelerator's RNG (dropout on the device draws from it), or None on CPU."""
+    if torch.cuda.is_available():
+        return torch.cuda.get_rng_state_all()
+    if torch.backends.mps.is_available():
+        return torch.mps.get_rng_state()
+    return None
+
+
+def set_device_rng_state(state) -> None:
+    if state is None:
+        return
+    if torch.cuda.is_available():
+        torch.cuda.set_rng_state_all(state)
+    elif torch.backends.mps.is_available():
+        torch.mps.set_rng_state(state)
+
+
 def save_ckpt(path, *, epoch, model, optimizer, scheduler, scaler, best_val,
               bad_epochs, total_epochs, generator):
     torch.save(
@@ -191,16 +209,17 @@ def save_ckpt(path, *, epoch, model, optimizer, scheduler, scaler, best_val,
             "total_epochs": total_epochs,
             # Without these, a resumed run reshuffles from the seed and replays epoch 0's order.
             "rng": {"torch": torch.get_rng_state(), "python": random.getstate(),
-                    "loader": generator.get_state()},
+                    "loader": generator.get_state(), "device": device_rng_state()},
         },
         path,
     )
 
 
-def load_ckpt(path, *, model, optimizer, scheduler, scaler, device, generator):
+def load_ckpt(path, *, model, optimizer, scheduler, scaler, generator):
     # weights_only=False because the checkpoint carries Python's RNG state (a tuple of ints).
     # Only load checkpoints you wrote yourself.
-    ckpt = torch.load(path, map_location=device, weights_only=False)  # lint: ignore[LOAD_WEIGHTS_ONLY_FALSE] own checkpoint carrying RNG state
+    # Load to CPU: set_rng_state needs a CPU ByteTensor, and load_state_dict moves the rest.
+    ckpt = torch.load(path, map_location="cpu", weights_only=False)  # lint: ignore[LOAD_WEIGHTS_ONLY_FALSE] own checkpoint carrying RNG state
     unwrap(model).load_state_dict(ckpt["model"])
     optimizer.load_state_dict(ckpt["optimizer"])
     if scheduler and ckpt.get("scheduler"):
@@ -210,6 +229,7 @@ def load_ckpt(path, *, model, optimizer, scheduler, scaler, device, generator):
     torch.set_rng_state(ckpt["rng"]["torch"])
     random.setstate(ckpt["rng"]["python"])
     generator.set_state(ckpt["rng"]["loader"])
+    set_device_rng_state(ckpt["rng"].get("device"))
     return ckpt["epoch"] + 1, ckpt["best_val"], ckpt["bad_epochs"], ckpt["total_epochs"]
 
 
@@ -263,7 +283,7 @@ def main() -> None:
     if args.resume and args.resume.exists():
         start_epoch, best_val, bad_epochs, planned = load_ckpt(
             args.resume, model=model, optimizer=optimizer, scheduler=scheduler,
-            scaler=scaler, device=device, generator=g)
+            scaler=scaler, generator=g)
         print(f"resumed from {args.resume} at epoch {start_epoch}")
         if planned != args.epochs:
             # A restored CosineAnnealingLR keeps the old T_max and climbs back to the peak

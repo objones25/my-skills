@@ -5,7 +5,7 @@ license: MIT
 compatibility: Scripts need Python 3.11+ (torch 2.15 dropped 3.10) and torch; lint_pytorch.py needs only the standard library. References are verified against torch 2.15.0 / torchvision 0.29.2 / torchao 0.18.0 and re-checked on torch 2.14.1 / torchvision 0.29.1 (CPU builds). Run pytest from the skill root to re-check every walkthrough, script and claim. No network access required.
 metadata:
   author: owenbeckettjones
-  version: 1.2.0
+  version: 1.2.1
   verified-against: "torch 2.15.0, 2.14.1"
   pytorch-version: "2.15.0"
   torchvision-version: "0.29.2"

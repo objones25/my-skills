@@ -3,7 +3,8 @@
 Every ```python block runs in one namespace, in order. When the next fence is a bare
 ``` block, that is the documented output and must match stdout exactly (memory
 addresses and trailing spaces normalised). Blocks that time things are run but not
-compared, because timings vary by machine.
+compared, because timings vary by machine. A ```cpu-output fence is documented output
+that names the device, so it is compared only when no accelerator is present.
 """
 from __future__ import annotations
 
@@ -26,24 +27,29 @@ class Mismatch:
     actual: str
 
 
+def has_accelerator() -> bool:
+    return torch.accelerator.is_available()
+
+
 def _normalise(text: str) -> str:
     text = re.sub(r"0x[0-9a-f]+", "0xADDR", text)
     return "\n".join(line.rstrip() for line in text.strip().splitlines())
 
 
-def walkthrough_blocks(path: Path) -> list[tuple[str, str | None]]:
+def walkthrough_blocks(path: Path) -> list[tuple[str, str | None, bool]]:
     text = path.read_text()
     section = text.split("## Walkthrough", 1)[1].split("\n## ", 1)[0]
-    fences = re.findall(r"```(\w*)\n(.*?)```", section, re.S)
+    fences = re.findall(r"```([\w-]*)\n(.*?)```", section, re.S)
     blocks, i = [], 0
     while i < len(fences):
         lang, code = fences[i]
-        expected = None
-        if lang == "python" and i + 1 < len(fences) and fences[i + 1][0] == "":
+        expected, cpu_only = None, False
+        if lang == "python" and i + 1 < len(fences) and fences[i + 1][0] in ("", "cpu-output"):
             expected = fences[i + 1][1]
+            cpu_only = fences[i + 1][0] == "cpu-output"
             i += 1
         if lang == "python":
-            blocks.append((code, expected))
+            blocks.append((code, expected, cpu_only))
         i += 1
     return blocks
 
@@ -52,13 +58,15 @@ def run_walkthrough(path: Path, skip_modules: tuple[str, ...] = ()) -> list[Mism
     torch.manual_seed(0)
     namespace: dict = {}
     mismatches = []
-    for code, expected in walkthrough_blocks(path):
+    for code, expected, cpu_only in walkthrough_blocks(path):
         if any(f"import {m}" in code or f"from {m}" in code for m in skip_modules):
             continue
         buf = io.StringIO()
         with contextlib.redirect_stdout(buf):
             exec(compile(code, str(path), "exec"), namespace)
         if expected is None or any(marker in code for marker in TIMING_MARKERS):
+            continue
+        if cpu_only and has_accelerator():
             continue
         if _normalise(buf.getvalue()) != _normalise(expected):
             mismatches.append(Mismatch(path.name, code.strip().splitlines()[0],

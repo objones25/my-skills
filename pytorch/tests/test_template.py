@@ -51,3 +51,28 @@ def test_compiled_model_checkpoint_loads_into_plain_model(template, tmp_path):
     state = torch.load(tmp_path / "c.pth", weights_only=False)["model"]
     result = fresh.load_state_dict(state, strict=True)
     assert result.missing_keys == [] and result.unexpected_keys == []
+
+
+def test_checkpoint_loads_to_cpu_so_rng_state_can_be_restored(template, tmp_path, monkeypatch):
+    """Regression: map_location=<accelerator> moved the saved RNG state off the CPU.
+
+    torch.set_rng_state only accepts a CPU ByteTensor, so --resume crashed on MPS. This
+    checks the load location directly so that it also guards a CPU-only machine.
+    """
+    model = template.build_model(4, 3)
+    opt = torch.optim.AdamW(model.parameters())
+    gen = torch.Generator().manual_seed(0)
+    template.save_ckpt(tmp_path / "c.pth", epoch=0, model=model, optimizer=opt,
+                       scheduler=None, scaler=None, best_val=1.0, bad_epochs=0,
+                       total_epochs=1, generator=gen)
+    locations = []
+    real_load = torch.load
+
+    def recording_load(*args, **kwargs):
+        locations.append(kwargs.get("map_location"))
+        return real_load(*args, **kwargs)
+
+    monkeypatch.setattr(torch, "load", recording_load)
+    template.load_ckpt(tmp_path / "c.pth", model=model, optimizer=opt, scheduler=None,
+                       scaler=None, generator=gen)
+    assert locations == ["cpu"]
