@@ -14,11 +14,11 @@
 
 | Date | Machine | torch | Result |
 |---|---|---|---|
-| 2026-11-03, after these fixes | macOS arm64 (Apple Silicon), MPS | 2.15.0 | 380 passed, 4 skipped (`safetensors` and `torchao` not installed, one test needs a machine with no accelerator, one is for torch 2.13 and 2.14) |
+| 2026-11-03, after these fixes | macOS arm64 (Apple Silicon), MPS | 2.15.0 | 383 passed, 4 skipped (`safetensors` and `torchao` not installed, one test needs a machine with no accelerator, one is for torch 2.13 and 2.14) |
 | 2026-11-03, before these fixes | macOS arm64 (Apple Silicon), MPS | 2.15.0 | 369 passed, 3 failed, 4 skipped |
 | 2026-11-02, release 1.2.0 | Not recorded | 2.15.0 | 375 passed, 1 skipped |
 
-The CUDA paths in the fix were not run: no CUDA machine was available. A checkpoint from a different kind of device, or a different GPU count, now resumes with a printed note and is not bit-exact, because RNG streams cannot be converted between devices.
+The CUDA paths in the fix were not run: no CUDA machine was available. A checkpoint from a different kind of device (including CPU), a different GPU count, or the earlier format now resumes with a printed note and is not bit-exact, because RNG streams cannot be converted between devices.
 
 ## 1.2.0, 2026-11-02: torch 2.15, linter, triage and memory scripts, audit fixes
 

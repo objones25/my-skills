@@ -539,3 +539,72 @@ def test_cli_exits_two_when_frontmatter_needs_pyyaml(tmp_path, run_script):
     made = write_skill(tmp_path)
     (made / "SKILL.md").write_text('---\nname: demo-skill\nmetadata: {a: b}\n---\n\nBody\n', encoding="utf-8")
     assert run_script("check_skill.py", made).returncode == 2
+
+
+# ------------------------------------------------------------------ verification round
+
+
+def test_sb014_finds_todo_in_a_quoted_description(tmp_path, codes):
+    assert "SB014" in codes(write_skill(tmp_path, description="TODO this. Use when X. Not for Y."))
+
+
+def test_fallback_keeps_literal_blocks_out_of_shell_commands(fallback):
+    import check_skill
+    with pytest.raises(check_skill.NeedsPyYAML):
+        fallback(_block("metadata:", "  test-command: |", "    echo start", "    false"))
+
+
+def test_fallback_refuses_block_indentation_indicators(fallback):
+    import check_skill
+    with pytest.raises(check_skill.NeedsPyYAML):
+        fallback(_block("description: >2-", "    text"))
+
+
+def test_fallback_reads_an_empty_key_before_a_blank_line(fallback):
+    fields, problem = fallback(_block("license:", "", "name: demo"))
+    assert problem is None
+    assert fields["name"] == "demo" and fields["license"] == ""
+
+
+@pytest.mark.parametrize("folder", [".git", ".venv", "node_modules"])
+def test_excluded_folders_are_not_read(skill, codes, folder):
+    (skill / folder).mkdir()
+    (skill / folder / "x.md").write_bytes(b"\xff\xfe")
+    assert "SB015" not in codes(skill)
+
+
+def test_tests_in_a_virtualenv_do_not_count(skill, codes):
+    _add_script(skill)
+    (skill / ".venv").mkdir()
+    (skill / ".venv" / "test_x.py").write_text("def test_x(): pass\n", encoding="utf-8")
+    assert "SB020" in codes(skill)
+
+
+def test_sb041_counts_nested_references(skill, codes):
+    nested = skill / "references" / "topic"
+    nested.mkdir(parents=True)
+    for name in ("a.md", "b.md"):
+        (nested / name).write_text("Hi\n", encoding="utf-8")
+    assert "SB041" in codes(skill)
+
+
+def test_sb050_uses_a_date_from_a_parent_heading_for_a_labelled_machine(skill, codes):
+    rows = "| one | ok |\n| two | ok |\n| three | ok |\n"
+    text = f"# Log\n\n## 1.0.0, 2026-11-03\n\n### Runs on macOS arm64\n\n| Check | Result |\n|---|---|\n{rows}| tests | 40 passed |\n"
+    (skill / "CHANGELOG.md").write_text(text, encoding="utf-8")
+    assert "SB050" not in codes(skill)
+
+
+def test_sb050_ignores_prose_about_testing_something(skill, codes):
+    (skill / "SKILL.md").write_text((skill / "SKILL.md").read_text() + "\nThe policy is tested on the learner's states.\n", encoding="utf-8")
+    assert "SB050" not in codes(skill)
+
+
+def test_unreadable_folder_could_not_be_checked(skill, run_script):
+    locked = skill / "locked"
+    locked.mkdir()
+    locked.chmod(0)
+    try:
+        assert run_script("check_skill.py", skill).returncode == 2
+    finally:
+        locked.chmod(0o755)

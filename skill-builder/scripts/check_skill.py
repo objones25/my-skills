@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import sys
 from dataclasses import asdict, dataclass
@@ -51,13 +52,17 @@ RULES = {
 }
 
 JUNK_NAMES = {".DS_Store", "__pycache__", ".ruff_cache", ".pytest_cache", ".mypy_cache", ".hypothesis", ".coverage"}
+ENVIRONMENT_NAMES = {".git", ".venv", "venv", ".tox", "node_modules", ".aws", ".ssh"}
+CREDENTIAL_NAMES = {".netrc", ".npmrc", ".pypirc", "id_rsa", "id_ed25519"}
+CREDENTIAL_SUFFIXES = {".pem", ".key", ".pyc"}
+ENV_TEMPLATES = {".env.example", ".env.sample"}
 BUNDLE_DIRS = "references|scripts|assets|examples|tests|evals|selftest|modes|templates"
 PATH_RE = re.compile(rf"`((?:{BUNDLE_DIRS})/[^`\s]+)`")
 PROJECT_FILES = {"CONTRIBUTING.md", "README.md", "NOTES.md", "CLAUDE.md", "AGENTS.md", "CHANGELOG.md", "AUDIT.md", "INSTALL.md"}
 BARE_MD_RE = re.compile(r"`([A-Za-z0-9_.-]+\.md)`")
 WHEN_RE = re.compile(r"\b[Uu]se (?:this |it )?(?:when|whenever|to|for)\b|\bTriggers? on\b|\bwhen the user\b")
 NEGATIVE_RE = re.compile(r"\bNot for\b|\bnot for\b|\b[Dd]o not use\b|\bFor [^.]{1,60}\buse [a-z0-9:-]+")
-RESULT_RE = re.compile(r"\b\d+ (?:passed|failed)\b|\b[Tt]ested on\b")
+RESULT_RE = re.compile(r"\b\d+ (?:passed|failed)\b|\b[Tt]ested on (?:[A-Z0-9]|v\d)")
 DATE_RE = re.compile(r"\b20\d\d-\d\d-\d\d\b|\b(?:January|February|March|April|May|June|July|August|September|"
                      r"October|November|December) 20\d\d\b")
 MACHINE_RE = re.compile(r"macos|linux|windows|arm64|aarch64|x86|apple silicon|not recorded", re.I)
@@ -75,6 +80,29 @@ class Finding:
     severity: str
     path: str
     message: str
+
+
+def is_excluded(relative: Path) -> bool:
+    """Files that never belong in a skill's checks or its zip: junk, environments, credentials."""
+    for part in relative.parts:
+        lowered = part.lower()
+        if part in JUNK_NAMES or part in ENVIRONMENT_NAMES or part in CREDENTIAL_NAMES:
+            return True
+        if lowered not in ENV_TEMPLATES and (lowered.startswith(".env") or lowered.endswith(".env")):
+            return True
+    return relative.suffix.lower() in CREDENTIAL_SUFFIXES
+
+
+def walk_files(root: Path) -> list[Path]:
+    """Every file under root, raising OSError on a folder that cannot be read."""
+    def fail(error: OSError) -> None:
+        raise error
+
+    found = []
+    for folder, subfolders, names in os.walk(root, onerror=fail):
+        subfolders[:] = [d for d in subfolders if d not in ENVIRONMENT_NAMES]
+        found.extend(Path(folder) / name for name in names)
+    return sorted(p for p in found if p.is_file())
 
 
 class NeedsPyYAML(Exception):
@@ -138,10 +166,12 @@ def _parse_value(key: str, raw: str, nested: list[str], depth: int) -> tuple[obj
     if raw[:1] in ("{", "[", "&", "*", "!"):
         raise NeedsPyYAML(f"{key} uses YAML this parser cannot read")
     value = re.sub(r"\s+#.*$", "", raw)
-    if re.fullmatch(r"[>|][+-]?", value):
+    if value[:1] == ">" and re.fullmatch(r">[+-]?", value):
         return " ".join(text), None
+    if value[:1] in (">", "|"):
+        raise NeedsPyYAML(f"{key} uses a block style this parser will not guess at")
     if not value:
-        if not nested:
+        if not text:
             return "", None
         if depth > 0:
             raise NeedsPyYAML(f"{key} is nested more deeply than this parser reads")
@@ -166,7 +196,7 @@ class Checker:
     def __init__(self, root: Path) -> None:
         self.root = root
         self.findings: list[Finding] = []
-        self.files = sorted(p for p in root.rglob("*") if p.is_file())
+        self.files = walk_files(root)
         self.skill_text = (root / "SKILL.md").read_text(encoding="utf-8")
         self._texts: dict[Path, str] = {}
 
@@ -188,7 +218,7 @@ class Checker:
         return str(path.relative_to(self.root))
 
     def clean_files(self) -> list[Path]:
-        return [p for p in self.files if not JUNK_NAMES.intersection(p.relative_to(self.root).parts)]
+        return [p for p in self.files if not is_excluded(p.relative_to(self.root))]
 
     def run(self) -> list[Finding]:
         self.check_frontmatter()
@@ -324,14 +354,17 @@ class Checker:
                 continue
             text = self.read(path)
             if path.suffix == ".md":
-                text = "\n".join(QUOTED_RE.sub("", line) for _, line in _markdown_lines_outside_code(text))
+                frontmatter = re.match(r"^---\n.*?\n---\n", text, re.S)
+                head = frontmatter.group(0) if frontmatter else ""
+                body = text[len(head):]
+                text = head + "\n".join(QUOTED_RE.sub("", line) for _, line in _markdown_lines_outside_code(body))
             if TODO_RE.search(text):
                 self.add("SB014", self.rel(path))
 
     def check_size_and_routing(self) -> None:
         lines = self.skill_text.count("\n")
         references = self.root / "references"
-        routed = [p for p in references.glob("*.md") if p.name not in ("sources.md", "evidence.md", "CHANGELOG.md")]
+        routed = [p for p in references.rglob("*.md") if p.name not in ("sources.md", "evidence.md", "CHANGELOG.md", "README.md")]
         large = lines > 150 or len(routed) > 1
         if large and not self.has_structure_test:
             self.add("SB041", "SKILL.md", f"{lines} lines, {len(routed)} references")
@@ -342,7 +375,7 @@ class Checker:
         if not references.is_dir():
             return
         for path in sorted(references.rglob("*.md")):
-            if JUNK_NAMES.intersection(path.parts) or path.name in ("sources.md", "evidence.md"):
+            if is_excluded(path.relative_to(self.root)) or path.name in ("sources.md", "evidence.md"):
                 continue
             rel = self.rel(path)
             index = self.rel(path.parent / "README.md")

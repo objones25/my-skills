@@ -109,3 +109,21 @@ def test_device_rng_state_records_its_device_type(template):
         assert state["type"] == torch.accelerator.current_accelerator().type
     else:
         assert state is None
+
+
+def test_note_is_printed_when_the_devices_differ(template, monkeypatch, capsys):
+    monkeypatch.setattr(template, "device_rng_state", lambda: None)
+    template.set_device_rng_state({"type": "mps", "state": torch.zeros(4, dtype=torch.uint8)})
+    assert "not bit-exact" in capsys.readouterr().err
+
+
+def test_note_is_printed_for_a_cpu_checkpoint_on_an_accelerator(template, monkeypatch, capsys):
+    monkeypatch.setattr(template, "device_rng_state", lambda: {"type": "mps", "state": torch.zeros(4, dtype=torch.uint8)})
+    template.set_device_rng_state(None)
+    assert "not bit-exact" in capsys.readouterr().err
+
+
+def test_no_note_when_neither_side_has_an_accelerator(template, monkeypatch, capsys):
+    monkeypatch.setattr(template, "device_rng_state", lambda: None)
+    template.set_device_rng_state(None)
+    assert capsys.readouterr().err == ""

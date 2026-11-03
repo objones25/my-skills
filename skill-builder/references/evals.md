@@ -53,7 +53,7 @@ Optional fields that have proved useful in existing skills:
 |---|---|
 | Trigger rates and description tuning | skill-creator's `run_loop.py` and `run_eval.py`, which read `{query, should_trigger}` |
 | With-skill and without-skill comparison, using `evals.json` | skill-creator's benchmark workflow |
-| Isolated runs with graders, in a plugin | `claude plugin eval`. It uses `evals/<case>/prompt.md` and needs a plugin, and its format is not interchangeable with skill-creator's |
+| Isolated runs with graders, in a plugin | `claude plugin eval`. It uses a folder per case, holding a prompt file, a `case.yaml`, or both, and needs a plugin, and its format is not interchangeable with skill-creator's |
 | A quick check with no other tools | Run each prompt in a fresh subagent, once with the skill and once without, and grade the expectations yourself |
 
 Fresh agents matter: an agent that wrote the skill already knows the answers. Grade from the output, and record the results in the CHANGELOG with the output of `machine_stamp.py`. If the evals were not run, the CHANGELOG says so.

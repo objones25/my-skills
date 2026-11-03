@@ -46,7 +46,7 @@ If this skill was copied out of that repository, the paths below will not resolv
 | Executed knowledge kept apart from recalled knowledge | `observability-expert/references/verified-behavior.md` |
 | Examples marked illustrative, enforced by a test | `building-effective-agents/tests/test_skill_integrity.py` |
 | Evals with executed ground truth | `async-expert/evals/evals.json` (`verified_facts`) |
-| Evals targeting past errors | `building-effective-agents/evals/evals.json` (`targets`) |
+| Evals targeting past errors | `building-effective-agents/evals/evals.json` (`targets`). It uses `assertions` where the standard uses `expectations`, so `check_skill.py` reports SB011 on it |
 
 ## Limits to expect
 

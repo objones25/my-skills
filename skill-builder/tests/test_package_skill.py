@@ -155,3 +155,83 @@ def test_checker_errors_fail_the_package(tmp_path, run_script):
 
 def test_not_a_skill_could_not_be_packaged(tmp_path, run_script):
     assert run_script("package_skill.py", tmp_path, "--out", tmp_path / "out").returncode == 2
+
+
+def test_zip_is_built_on_the_output_volume(skill, tmp_path, monkeypatch):
+    import package_skill
+    folders = []
+    real = package_skill.tempfile.TemporaryDirectory
+
+    def recording(*args, **kwargs):
+        folders.append(kwargs.get("dir"))
+        return real(*args, **kwargs)
+
+    monkeypatch.setattr(package_skill.tempfile, "TemporaryDirectory", recording)
+    monkeypatch.setattr("sys.argv", ["package_skill.py", str(skill), "--out", str(tmp_path / "out")])
+    assert package_skill.main() == 0
+    assert folders[0] == (tmp_path / "out").resolve()
+
+
+def test_rename_failure_could_not_package(skill, tmp_path, monkeypatch, capsys):
+    import package_skill
+    def refuse(*_args):
+        raise OSError("cross-device link")
+    monkeypatch.setattr(package_skill, "move_into_place", refuse)
+    monkeypatch.setattr("sys.argv", ["package_skill.py", str(skill), "--out", str(tmp_path / "out")])
+    assert package_skill.main() == 2
+    assert "cross-device" in capsys.readouterr().err
+
+
+def test_timed_out_tests_fail_the_package(tmp_path, monkeypatch, capsys):
+    import package_skill
+    made = _with_test_command(tmp_path, "sleep 5")
+    monkeypatch.setattr(package_skill, "TEST_TIMEOUT_SECONDS", 1)
+    monkeypatch.setattr("sys.argv", ["package_skill.py", str(made), "--out", str(tmp_path / "out")])
+    assert package_skill.main() == 1
+    assert "timed out" in capsys.readouterr().out
+    assert not (tmp_path / "out" / "demo-skill.zip").exists()
+
+
+@pytest.mark.parametrize("secret", [".env", ".git/config"])
+def test_link_inside_the_skill_to_an_excluded_file_is_refused(skill, tmp_path, run_script, secret):
+    path = skill / secret
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("TOPSECRET", encoding="utf-8")
+    (skill / "visible.txt").symlink_to(path)
+    assert run_script("package_skill.py", skill, "--out", tmp_path / "out").returncode == 1
+
+
+def test_link_to_a_folder_inside_the_skill_is_refused(skill, tmp_path, run_script):
+    (skill / "real").mkdir()
+    (skill / "alias").symlink_to(skill / "real")
+    result = run_script("package_skill.py", skill, "--out", tmp_path / "out")
+    assert result.returncode == 1 and "alias" in result.stdout
+
+
+@pytest.mark.parametrize("make", ["broken", "loop"])
+def test_broken_and_looping_links_are_refused(skill, tmp_path, run_script, make):
+    if make == "broken":
+        (skill / "gone.txt").symlink_to(skill / "missing.txt")
+    else:
+        (skill / "a").symlink_to(skill / "b")
+        (skill / "b").symlink_to(skill / "a")
+    result = run_script("package_skill.py", skill, "--out", tmp_path / "out")
+    assert result.returncode == 1
+    assert "Traceback" not in result.stderr
+
+
+@pytest.mark.parametrize("name", [".envrc", "prod.env", ".netrc", ".npmrc", ".pypirc", "id_rsa", "server.pem", ".aws/credentials", "venv/x", ".tox/y"])
+def test_credentials_and_more_environments_stay_out(skill, tmp_path, run_script, name):
+    path = skill / name
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("x", encoding="utf-8")
+    out = tmp_path / "out"
+    run_script("package_skill.py", skill, "--out", out)
+    assert not [n for n in zipfile.ZipFile(out / "demo-skill.zip").namelist() if n.endswith(name)]
+
+
+def test_env_example_is_kept(skill, tmp_path, run_script):
+    (skill / ".env.example").write_text("KEY=\n", encoding="utf-8")
+    out = tmp_path / "out"
+    run_script("package_skill.py", skill, "--out", out)
+    assert "demo-skill/.env.example" in zipfile.ZipFile(out / "demo-skill.zip").namelist()

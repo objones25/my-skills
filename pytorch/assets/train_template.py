@@ -190,13 +190,15 @@ def device_rng_state():
 def set_device_rng_state(saved) -> None:
     """Restore only onto the same kind of device; other RNG streams cannot be converted."""
     current = device_rng_state()
-    if saved is None or current is None:
+    if saved is None and current is None:
         return
-    same_device = isinstance(saved, dict) and saved.get("type") == current["type"]
+    same_device = (current is not None and isinstance(saved, dict)
+                   and saved.get("type") == current["type"])
     if same_device and saved["type"] == "cuda":
         same_device = len(saved["state"]) == len(current["state"])
     if not same_device:
-        print("note: checkpoint RNG is from another device; resume is not bit-exact", file=sys.stderr)
+        print("note: checkpoint RNG is from another device or an older format; resume is not bit-exact",
+              file=sys.stderr)
         return
     if saved["type"] == "cuda":
         torch.cuda.set_rng_state_all(saved["state"])

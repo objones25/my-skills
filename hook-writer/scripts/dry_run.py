@@ -411,10 +411,14 @@ def main():
         for f in files:
             if f.exists():
                 try:
-                    configs.append((str(f), json.loads(f.read_text())))
-                except (OSError, json.JSONDecodeError) as exc:
+                    loaded = json.loads(f.read_text())
+                except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
                     print(f"could not read {f}: {exc}", file=sys.stderr)
                     return 2
+                if not isinstance(loaded, dict) or not isinstance(loaded.get("hooks", {}), dict):
+                    print(f"could not read {f}: settings and its `hooks` must be JSON objects", file=sys.stderr)
+                    return 2
+                configs.append((str(f), loaded))
 
     results = []
     any_handler = False
@@ -461,14 +465,15 @@ def main():
             print(f"combined PreToolUse outcome: {decision} (precedence deny > defer > ask > allow)")
         else:
             print("combined PreToolUse outcome: no decision; normal permission flow")
-        outcome = decision or "none"
+        outcome = decision or ("block" if "stop" in results else "none")
     elif results:
         blocking = [t for t in results if t in ("block", "deny", "stop")]
         print(f"combined outcome: {'blocked/continued by a hook' if blocking else 'nothing blocks'}")
-        outcome = decision or ("block" if blocking else "none")
+        outcome = decision or ("block" if blocking or "feedback" in results else "none")
     else:
         outcome = "none"
-    if not_run and outcome == "none":
+    if not_run and outcome != "deny":   # an unrun handler could still deny
+        print("a handler was not run, so this outcome is not final")
         outcome = "not-run"
     return check_expected(args.expect, outcome)
 

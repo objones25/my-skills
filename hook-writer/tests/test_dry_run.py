@@ -74,3 +74,39 @@ def test_invalid_settings_could_not_be_checked(project, run_script):
     result = run_script("dry_run.py", *PRE_TOOL, "ls", cwd=project)
     assert result.returncode == 2
     assert "Traceback" not in result.stderr
+
+
+def _script_hook(project, event, body, matcher="Bash", kind="command"):
+    script = project / ".claude" / "hooks" / "h.py"
+    script.write_text(body)
+    hooks = [{"type": "command", "command": f"{sys.executable} .claude/hooks/h.py"}]
+    (project / ".claude" / "settings.json").write_text(json.dumps({"hooks": {event: [{"matcher": matcher, "hooks": hooks}]}}))
+
+
+def test_pretooluse_hook_that_stops_claude_counts_as_block(project, run_script):
+    _script_hook(project, "PreToolUse", 'print(\'{"continue": false}\')\n')
+    assert run_script("dry_run.py", *PRE_TOOL, "ls", "--expect", "block", cwd=project).returncode == 0
+
+
+def test_unrun_handler_keeps_a_weaker_decision_from_passing(project, run_script):
+    body = 'print(\'{"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "allow"}}\')\n'
+    (project / ".claude" / "hooks" / "h.py").write_text(body)
+    hooks = [{"type": "command", "command": f"{sys.executable} .claude/hooks/h.py"}, {"type": "http", "url": "http://localhost:1"}]
+    (project / ".claude" / "settings.json").write_text(json.dumps({"hooks": {"PreToolUse": [{"matcher": "Bash", "hooks": hooks}]}}))
+    assert run_script("dry_run.py", *PRE_TOOL, "ls", "--expect", "allow", cwd=project).returncode == 1
+    assert run_script("dry_run.py", *PRE_TOOL, "ls", "--expect", "not-run", cwd=project).returncode == 0
+
+
+def test_non_utf8_settings_could_not_be_checked(project, run_script):
+    (project / ".claude" / "settings.json").write_bytes(b"\xff\xfe")
+    result = run_script("dry_run.py", *PRE_TOOL, "ls", cwd=project)
+    assert result.returncode == 2 and "Traceback" not in result.stderr
+
+
+import pytest  # noqa: E402
+
+
+@pytest.mark.parametrize("content", ["[]", '{"hooks": 3}'])
+def test_settings_of_the_wrong_shape_could_not_be_checked(project, run_script, content):
+    (project / ".claude" / "settings.json").write_text(content)
+    assert run_script("dry_run.py", *PRE_TOOL, "ls", cwd=project).returncode == 2

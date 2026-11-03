@@ -2,14 +2,14 @@
 
 ## 0.1.0, 2026-11-03
 
-First version, built from the audit in `docs/SKILL_AUDIT.md` of the `my-skills` repository. Reviewed independently: see `AUDIT.md`.
+First version, built from the audit in `docs/SKILL_AUDIT.md` of the `my-skills` repository. Reviewed and verified independently: see `AUDIT.md`.
 
 ### Test results by machine
 
 | Date | Machine | Versions | Result |
 |---|---|---|---|
-| 2026-11-03 | macOS arm64 (Apple Silicon) | Python 3.13.2, pytest 9.2.0, PyYAML 6.0.3 | 169 passed, 1 skipped (a test of the fallback parser) |
-| 2026-11-03 | macOS arm64 (Apple Silicon) | Python 3.13.2, pytest 9.2.0, no PyYAML | 169 passed, 1 skipped (a test needing PyYAML) |
+| 2026-11-03 | macOS arm64 (Apple Silicon) | Python 3.13.2, pytest 9.2.0, PyYAML 6.0.3 | 200 passed, 1 skipped (a test of the fallback parser) |
+| 2026-11-03 | macOS arm64 (Apple Silicon) | Python 3.13.2, pytest 9.2.0, no PyYAML | 200 passed, 1 skipped (a test needing PyYAML) |
 
 ### Evals
 
@@ -30,4 +30,4 @@ Other differences, read from the runs' reports and files:
 - **Trigger cases:** none without the skill, and 8 of each kind in all three runs with it.
 - **Ground truth:** the migrations run with the skill ran its lock and rewrite claims on a throwaway Postgres 17.9. The run without it reported that it did not test on a live Postgres.
 - **Update task:** both runs found the stale suppression and the version error. Only the run with the skill found the invalid frontmatter, installed pyright instead of skipping it, and corrected the ruff note.
-- **Not followed even with the skill:** none of the runs executed the evals, one reviewed its own work instead of using a fresh agent, and one did not package. The final gate was reworded afterwards because of this.
+- **Not followed even with the skill:** none of the runs executed the evals or packaged the skill, and one reviewed its own work instead of using a fresh agent. The final gate was reworded afterwards because of this.

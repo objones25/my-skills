@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -20,40 +21,45 @@ import zipfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from check_skill import JUNK_NAMES, Checker, NeedsPyYAML, parse_frontmatter  # noqa: E402
+from check_skill import Checker, NeedsPyYAML, is_excluded, parse_frontmatter, walk_files  # noqa: E402
 
 TEST_TIMEOUT_SECONDS = 1800
-EXCLUDED_NAMES = JUNK_NAMES | {".git", ".venv", "node_modules"}
 BLOCKING_WARNINGS = {"SB014"}  # a TODO means the skill is not finished
 
 
-def is_excluded(relative: Path) -> bool:
-    return (bool(EXCLUDED_NAMES.intersection(relative.parts)) or relative.suffix == ".pyc"
-            or any(part == ".env" or part.startswith(".env.") for part in relative.parts))
-
-
 def bad_links(skill: Path) -> list[str]:
-    """Links that would leak files from outside the skill, or vanish from the zip."""
+    """Links that would leak an excluded or outside file, or vanish from the zip."""
     found = []
-    for path in sorted(skill.rglob("*")):
-        relative = path.relative_to(skill)
-        if not path.is_symlink() or is_excluded(relative):
-            continue
-        target = path.resolve()
-        if path.is_dir() or skill != target and skill not in target.parents:
-            found.append(str(relative))
-    return found
+    for folder, subfolders, names in os.walk(skill):
+        for name in [*subfolders, *names]:
+            path = Path(folder) / name
+            relative = path.relative_to(skill)
+            if not path.is_symlink() or is_excluded(relative):
+                continue
+            try:
+                target = path.resolve(strict=True)
+            except (OSError, RuntimeError):
+                found.append(str(relative))
+                continue
+            outside = skill != target and skill not in target.parents
+            if path.is_dir() or outside or is_excluded(target.relative_to(skill)):
+                found.append(str(relative))
+    return sorted(found)
 
 
 def build_zip(skill: Path, target: Path) -> int:
     count = 0
     with zipfile.ZipFile(target, "w", zipfile.ZIP_DEFLATED, strict_timestamps=False) as archive:
-        for path in sorted(skill.rglob("*")):
+        for path in walk_files(skill):
             relative = path.relative_to(skill)
-            if path.is_file() and not is_excluded(relative):
+            if not is_excluded(relative):
                 archive.write(path, Path(skill.name) / relative)
                 count += 1
     return count
+
+
+def move_into_place(built: Path, target: Path) -> None:
+    built.replace(target)
 
 
 def extract_keeping_modes(zip_path: Path, destination: Path) -> None:
@@ -120,7 +126,8 @@ def main() -> int:
         print(f"could not package {skill}: metadata.test-command must be text", file=sys.stderr)
         return 2
     report["test_command"] = command
-    with tempfile.TemporaryDirectory() as building:
+    # Build beside the target, because a rename cannot cross volumes.
+    with tempfile.TemporaryDirectory(dir=out) as building:
         built = Path(building) / target.name
         try:
             report["files"] = build_zip(skill, built)
@@ -133,7 +140,11 @@ def main() -> int:
                 report["tests"] = "failed"
                 return finish(1, f"not packaged, tests failed in the unpacked copy:\n{output.strip()[-2000:]}")
             report["tests"] = "passed"
-        built.replace(target)
+        try:
+            move_into_place(built, target)
+        except OSError as exc:
+            print(f"could not package {skill}: {exc}", file=sys.stderr)
+            return 2
     report["zip"] = str(target)
     if command:
         return finish(0, f"packaged {target} ({report['files']} files); tests passed in the unpacked copy")

@@ -15,7 +15,7 @@ Requirements depend on what a skill does, so a small skill stays small.
 | Core | Always | `SKILL.md` with valid YAML and `name` matching the folder; a description covering what, when and negative scope; a way to verify the work; `CHANGELOG.md`; `evals/evals.json`; `evals/trigger_evals.json` |
 | Tooling | It ships scripts | Tests, with failing and clean fixtures; exit codes 0, 1, 2; `metadata.test-command` |
 | Knowledge | It states facts that can age or be wrong | `references/sources.md` recording check depth; dates and versions beside claims; `AUDIT.md` with a "Not verified" section |
-| Large | More than one reference (not counting `sources.md`), or over 150 lines | A routing table; a structure test; an "Extend this skill" recipe |
+| Large | More than one reference (nested files count; `sources.md` and index READMEs do not), or over 150 lines | A routing table; a structure test; an "Extend this skill" recipe |
 
 These are optional, and earn their place when:
 

@@ -315,7 +315,7 @@ Reported so nothing is lost. These are not committed.
 
 ### Fixes
 
-Fixes are on the branch history, one commit per group, each with a test written first where the change was to behaviour. Each skill's own docs state the results by date and machine.
+Fixes are in the branch history, with a test for each change to behaviour. Results changed by these fixes are labelled by date and machine in each skill's docs. Other unlabelled results may remain: `check_skill.py` flags those it can find as SB050.
 
 ### Still open
 
@@ -325,4 +325,6 @@ Fixes are on the branch history, one commit per group, each with a test written 
 - `kubernetes-expert`: the GPU Job template's wording.
 - `design-patterns-expert`: its `evals/` folder was not in the archive and no copy was found.
 - `robot-learning-expert`: the owner's name in one paper digest.
+- `async-expert`: a historical `/home/claude` path in the note in `evals/evals.json`, which is accurate history but looks like a live path.
+- Some labels take a date or version from elsewhere in the same skill, rather than from the sentence they sit on (`bash-scripting-specialist`, `dockerfile-expert`). These are likely true and were not independently confirmed.
 - CUDA paths in `pytorch`'s resume fix have not been run. Nothing here has been run on Linux or Windows.
