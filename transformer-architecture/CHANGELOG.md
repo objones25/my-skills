@@ -34,7 +34,7 @@ Audit details, with the evidence for each fix, are in `AUDIT.md`.
 
 | Check | Result |
 |---|---|
-| `python -m pytest tests` | 181 passed (was 38) |
+| `python -m pytest tests` | 181 passed (was 38), machine not recorded; 182 passed on 2026-11-03 on macOS arm64, Python 3.13, after one added test |
 | `config_budget.py --self-test` | 13 of 13 totals exact; 4 of 4 active claims matched |
 | `reference_block.py --verify` | all checks passed; `--impl examples/buggy_port.py` fails exactly the 2 planted bugs |
 | `modern_blocks.py --verify` | 34 of 34 checks passed (including 4 bug detectors) |

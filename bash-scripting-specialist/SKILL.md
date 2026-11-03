@@ -107,8 +107,8 @@ exact fix.
 
 ## Gotchas confirmed by testing
 
-Tested October 2026 on bash 3.2.57, 4.3.30, 4.4.18, 5.2.21 and 5.3.20 (built from GNU
-sources), ShellCheck 0.11.0, shfmt 3.14.1, bats 1.13.0 and 1.14.0, zsh 5.9.
+Tested October 2026 (machine not recorded) on bash 3.2.57, 4.3.30, 4.4.18, 5.2.21 and 5.3.20 (built from GNU
+sources), ShellCheck 0.11.0, shfmt 3.14.1, bats 1.13.0 and 1.14.0, zsh 5.9. Rerun 2026-11-03 on macOS arm64: only `scripts/tests` (24 passed); `test_matrix.sh` and bats were not rerun.
 
 - `set -e` without `-E`: an ERR trap prints nothing for a failure inside a function; the
   script just exits.

@@ -159,6 +159,6 @@ observability-expert/
 │   │   ├── train_example.py       instrumented training loop (runs offline)
 │   │   ├── service_example.py     request-scoped logging under concurrency
 │   │   └── bad_example.py         every rule violated once, on purpose
-│   └── tests/test_obslog.py       43 tests covering the plumbing and the gate
+│   └── tests/test_obslog.py       43 tests (43 passed 2026-11-03, macOS arm64, py3.13)
 └── scripts/audit_observability.py 17-check AST audit; exit 1 on any finding
 ```

@@ -17,7 +17,7 @@ How the template works, stage by stage:
 4. **runtime**: same base image, creates UID/GID 10001, copies only `/app/.venv`, puts its
    `bin` on PATH. Source code is not in the final image at all.
 
-Tested result: 204 MB image, healthz served as UID 10001, `docker stop` in under 0.5 s, and an
+Tested result (October 2026, Engine 29.9, buildx 0.38, architecture not recorded; sizes and stop times vary by architecture and host): 204 MB image, healthz served as UID 10001, `docker stop` in under 0.5 s, and an
 edit to a source file rebuilt only the last two builder steps (the dependency layer stayed
 `CACHED`).
 

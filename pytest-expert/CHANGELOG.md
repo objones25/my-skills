@@ -45,7 +45,7 @@ how each source was checked, and what was left undone are in `AUDIT.md`.
 
 | Check | Result |
 |---|---|
-| `pytest selftest` | 255 passed (audit 56, diff guard 46, hooks 17, mutate_check 5, flake_hunt 3, structure 128) |
+| `pytest selftest` | 255 passed, machine not recorded (audit 56, diff guard 46, hooks 17, mutate_check 5, flake_hunt 3, structure 128) |
 | `examples/wallet`: `pytest` | 87 passed, 96.95% branch coverage |
 | `examples/wallet`: `-m integration --no-cov`, `-m symbolic --no-cov` | 2 passed, 1 passed |
 | `examples/wallet/demo` | 6 failed, 1 passed (as designed) |
@@ -56,6 +56,8 @@ how each source was checked, and what was left undone are in `AUDIT.md`.
 | Independent fact-check (separate agent re-read the papers, reran the scripts and diagnoses, checked pins with `git ls-remote`) | 2 errors and 12 imprecisions, all fixed: `CASES_REDUCED` missing from the guard's table, a digest contradicting Chen 2020 §6.4, `RaisesExc` deletions not detected by the guard (now tested), `-m` validation undocumented, SessionStart missing `fork`, Gruber 13% row mislabeled, a Petrovic correlation removed as unverifiable, stale pins; about 60 claims confirmed |
 | zizmor 1.31.1 (auditor persona), actionlint 1.7.12, pre-commit validate-config | no findings, clean, valid |
 | `conftest_ml.py` fixtures on PyTorch 2.15 CPU | 4 passed (shape, overfit, determinism, checkpoint) |
+
+Machine for every row above: not recorded. Rerun 2026-11-03 on macOS arm64 (Apple Silicon), Python 3.13: `pytest selftest` 253 passed, 3 skipped; `examples/wallet` 87 passed, 1 skipped, 2 deselected. The other rows were not rerun.
 
 ## 2026-10-04: audit and expansion
 

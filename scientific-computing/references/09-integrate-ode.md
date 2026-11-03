@@ -6,6 +6,8 @@ knobs. The theory (LTE vs global error, order `p` from `O(h^{p+1})` per step, ex
 implicit, absolute stability regions, Dahlquist) is assumed known; this file is about which
 call implements it and what goes wrong.
 
+> Timings and speed ratios in this file: date and machine not recorded. They vary by machine.
+
 ## The interface
 
 ```python

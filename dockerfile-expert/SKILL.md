@@ -84,11 +84,11 @@ build speed, then size) with an exact diff for each.
 
 **Runtime behavior**
 - Exec-form `CMD`/`ENTRYPOINT` (`["uvicorn", "app:app"]`). Shell form makes `/bin/sh -c`
-  PID 1, which does not forward SIGTERM: in testing, a shell-form image was SIGKILLed after
+  PID 1, which does not forward SIGTERM: in testing (October 2026, Engine 29.9, architecture not recorded), a shell-form image was SIGKILLed after
   the 10 s timeout (exit 137) while the exec-form templates stopped in under 0.5 s.
 - Start the runtime directly, not through `npm start` or `yarn start`.
 - The process must handle SIGTERM. The kernel does not apply default signal actions to PID 1,
-  so a process without its own SIGTERM handler ignores it. Tested: a plain `python -c` script
+  so a process without its own SIGTERM handler ignores it. Tested (same environment): a plain `python -c` script
   and a plain `node -e` script as PID 1 were both SIGKILLed after 10 s (exit 137); with
   `docker run --init` the same Node process exited on SIGTERM immediately (exit 143). Servers
   like uvicorn and gunicorn, and Go code using `signal.NotifyContext`, handle it themselves;
@@ -107,6 +107,8 @@ build speed, then size) with an exact diff for each.
   optimizing anything else.
 
 ## Gotchas confirmed by testing (October 2026, Engine 29.9, buildx 0.38)
+
+Architecture not recorded. Image sizes, stop times and exit codes in this skill depend on architecture and host. On 2026-11-03 (macOS arm64) only the linter tests were rerun (3 passed); no image was built.
 
 - `ADD https://...` creates the file with mode 600, unreadable by a non-root user. Add
   `--chmod=0644` (or `0755` for executables).

@@ -2,6 +2,8 @@
 
 Which call implements the factorization you already know, what it hands back, and where the return convention or an unchecked assumption wrecks the answer silently. **Every number below is real output from this sandbox** (Python 3.11.15, numpy 2.4.4, scipy 1.17.1, OpenBLAS 0.3.31); code first, output in the fenced block after. `t(f)` is a min-of-repeats timer. Prefer `scipy.linalg`: it exposes structure keywords, more drivers, more factorizations. Reach for `np.linalg` when you want array-API-standard batching.
 
+> Timings and speed ratios in this file: date and machine not recorded. They vary by machine.
+
 Every block in this file assumes:
 
 ```python

@@ -90,7 +90,7 @@ docker buildx build --platform linux/amd64,linux/arm64 -t registry/app:1.2.3 --p
 - Stages declared `FROM --platform=$BUILDPLATFORM` run natively and should cross-compile using
   `ARG TARGETOS` and `ARG TARGETARCH` (Go, Rust, Node bundlers).
 - Any `RUN` in a stage for the target platform needs QEMU (`docker run --privileged --rm
-  tonistiigi/binfmt --install all`) or a native builder node. Verified: the Go template built
+  tonistiigi/binfmt --install all`) or a native builder node. Verified (October 2026, Engine 29.9, buildx 0.38): the Go template built
   for arm64 on an amd64 host with no QEMU because its final stage has no RUN.
 - Loading a multi-platform image locally requires the containerd image store (it was on by
   default in the Engine 29.9 used for testing) or `--push` to a registry.

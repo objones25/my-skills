@@ -13,7 +13,7 @@
 - Runtime `gcr.io/distroless/static-debian13:nonroot`: CA certificates, tzdata, and a passwd
   entry for UID 65532, no shell.
 
-Tested result: 16.6 MB image, healthz as UID 65532, graceful stop in 0.2 s (the server uses
+Tested result (October 2026, Engine 29.9, buildx 0.38, architecture not recorded; sizes and stop times vary by architecture and host): 16.6 MB image, healthz as UID 65532, graceful stop in 0.2 s (the server uses
 `signal.NotifyContext` + `srv.Shutdown`).
 
 ## Gotchas

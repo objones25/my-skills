@@ -65,7 +65,7 @@ To check someone's implementation, run it and the oracle on the same inputs and 
 
 | File | Shows |
 |---|---|
-| `examples/ppo_pendulum.py` | 200-line PPO with correct time-out bootstrapping and logged KL, clip fraction, explained variance; solves Pendulum-v1 (deterministic eval near −130) in about 75 s of CPU. `--timeout-as-terminal` switches the bug on (measured effect: small and noisy at γ = 0.99, see its docstring) |
+| `examples/ppo_pendulum.py` | 200-line PPO with correct time-out bootstrapping and logged KL, clip fraction, explained variance; solves Pendulum-v1 (deterministic eval near −130) in about 75 s of CPU (machine not recorded; varies by machine). `--timeout-as-terminal` switches the bug on (measured effect: small and noisy at γ = 0.99, see its docstring) |
 | `examples/analyze_sweep.py` | a real G1 num_envs sweep (`assets/g1_sweep_results.csv`): seed means, the standing-still reference, pairwise P(improvement) |
 | `examples/exploration_chain.py` | exact A^H episodes for random exploration vs about H(A+1)/2 steps with resets on the combination lock |
 | `assets/experiment_plan.md`, `assets/writeup_skeleton.tex` | templates for planning a robot RL experiment and writing it up |

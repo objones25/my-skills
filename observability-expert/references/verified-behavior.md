@@ -308,7 +308,7 @@ the config, so the record printed either way.
 
 ```bash
 python -m pip install wandb pytest
-PYTHONPATH=assets python -m pytest assets/tests -q      # 42 passed (40 + 2 skipped on 3.11)
+PYTHONPATH=assets python -m pytest assets/tests -q      # historical: 42 passed (40 + 2 skipped on 3.11), machine not recorded; 43 passed on 2026-11-03, macOS arm64, Python 3.13
 PYTHONPATH=assets LOG_FORMAT=json  python assets/examples/service_example.py
 PYTHONPATH=assets WANDB_MODE=offline python assets/examples/train_example.py --epochs 3
 python scripts/audit_observability.py assets/examples/bad_example.py   # 17 findings

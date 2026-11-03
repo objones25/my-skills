@@ -207,7 +207,7 @@ Run these instead of describing what they would show.
 | `scripts/design_smells.py` | find structural leads in code the user provided (`--list-kinds`, `--json`, `--fail-on-findings`) |
 | `scripts/check_layers.py` | prove or disprove that an inner package imports nothing it shouldn't |
 | `scripts/verify_python_claims.py` | re-check the version-dependent Python facts before citing them |
-| `examples/` | runnable, type-checked, tested implementations on one order-shop domain: strategy ladder, state machine, ports and adapters (with an import-linter contract), retry budget, idempotency keys, parse don't validate, functional core, `match` dispatch, chain vs pipeline, hedged requests, sentinel and null object. Adapt one to the user's nouns rather than writing from scratch |
+| `examples/` | runnable implementations (the type-check and import-contract tests skip unless mypy and import-linter are installed; 76 passed, 1 skipped (`evals/` not shipped) on 2026-11-03, macOS arm64, Python 3.13, mypy 2.4.1, import-linter 2.15) on one order-shop domain: strategy ladder, state machine, ports and adapters (with an import-linter contract), retry budget, idempotency keys, parse don't validate, functional core, `match` dispatch, chain vs pipeline, hedged requests, sentinel and null object. Adapt one to the user's nouns rather than writing from scratch |
 
 ---
 
