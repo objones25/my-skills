@@ -1,0 +1,20 @@
+[
+  {"query": "I want to make a Claude Code skill for reviewing Terraform plans, can you help me build it?", "should_trigger": true},
+  {"query": "write me a new skill that teaches claude our company's SQL style", "should_trigger": true},
+  {"query": "scaffold a SKILL.md for a kubernetes debugging skill with the usual folders", "should_trigger": true},
+  {"query": "our dockerfile-expert skill hasn't been touched in months, can you audit it and bring it up to standard", "should_trigger": true},
+  {"query": "what is my pytest skill missing? it has no changelog or evals and I think some claims are stale", "should_trigger": true},
+  {"query": "harden this skill folder, make sure its tests run and everything it claims is still true", "should_trigger": true},
+  {"query": "my skill never activates when people ask about migrations, and the frontmatter might be broken, can you look at the skill", "should_trigger": true},
+  {"query": "add tests and evals to the hook-writer skill so it meets our standard", "should_trigger": true},
+  {"query": "turn the process we just went through into a reusable skill", "should_trigger": true},
+  {"query": "run a benchmark comparing version 1 and version 2 of my skill's description across 20 trigger queries and tune it", "should_trigger": false},
+  {"query": "write a hook that runs ruff every time claude edits a python file", "should_trigger": false},
+  {"query": "create a plugin marketplace entry and plugin.json for my tools", "should_trigger": false},
+  {"query": "write a CLAUDE.md for this repository describing how to run the tests", "should_trigger": false},
+  {"query": "build an MCP server that exposes our internal ticket API", "should_trigger": false},
+  {"query": "add pytest tests to my flask app's auth module", "should_trigger": false},
+  {"query": "write a changelog for our web app's 2.0 release", "should_trigger": false},
+  {"query": "what skills do I have installed, and how do I invoke one", "should_trigger": false},
+  {"query": "design an agent harness with tools and a verification step for customer support", "should_trigger": false}
+]

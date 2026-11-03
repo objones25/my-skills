@@ -112,7 +112,7 @@ so they cannot do NSP001, NSP003/NSP004 on `require` calls, NSP005, or NSP009.
 | NSP002 tuple assert | `F631` | on by default in ruff |
 | NSP004 compound check | `PT018` | `assert` only |
 | NSP006 bare except | `E722` | |
-| NSP007 swallowed exception | `S110`, `S112` | `pass` / `continue` bodies only; `BLE001` flags `except Exception` itself |
+| NSP007 swallowed exception | `S110`, `S112` | `pass` / `continue` bodies only, and by default only for bare or `Exception` handlers: `except ValueError: pass` was not flagged (ruff 0.17.3, 2026-11-03); `BLE001` flags `except Exception` itself |
 | NSP008 plain assert | `S101` | ignore it in test files |
 | NSP009 stale `# nsp: ignore` | `RUF100` for `# noqa` | `RUF100` also flags a `# noqa: BLE001` when `BLE` is not selected: enable the rule or delete the comment |
 

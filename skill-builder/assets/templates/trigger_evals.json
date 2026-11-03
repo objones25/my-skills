@@ -1,0 +1,4 @@
+[
+  {"query": "TODO a request that should load this skill", "should_trigger": true},
+  {"query": "TODO a nearby request that belongs to another skill", "should_trigger": false}
+]
