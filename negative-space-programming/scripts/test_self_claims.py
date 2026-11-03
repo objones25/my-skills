@@ -18,3 +18,18 @@ def test_frontmatter_parses_with_a_strict_yaml_parser() -> None:
     data = yaml.safe_load(block.group(1))
     assert data["name"] == "negative-space-programming"
     assert data["description"].startswith("Write and review code")
+
+
+def test_shipped_helper_and_audit_script_audit_clean() -> None:
+    """The audit script's docstring promises this; hold it to that."""
+    import subprocess
+    import sys
+
+    root = Path(__file__).parent.parent
+    result = subprocess.run(
+        [sys.executable, str(root / "scripts" / "audit_negative_space.py"),
+         str(root / "assets" / "negative_space.py"), str(root / "scripts" / "audit_negative_space.py"),
+         "--min-assertions", "1"],
+        capture_output=True, text=True, timeout=60,
+    )
+    assert result.returncode == 0, result.stdout

@@ -66,7 +66,7 @@ def require(condition: object, message: str = "") -> None:
         raise CheckFailed(message or "requirement failed")
 
 
-def expect(value: T | None, message: str = "") -> T:  # nsp: ignore NSP001 if-raise is the contract
+def expect(value: T | None, message: str = "") -> T:
     """Return ``value`` if it is not ``None``; fail otherwise.
 
     The narrowing counterpart of ``require``: the return type has ``None``

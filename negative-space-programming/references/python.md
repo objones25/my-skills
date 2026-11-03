@@ -39,7 +39,7 @@ crash handlers keep working.
 ## Footguns
 
 **Tuple assert.** `assert (x > 0, "x must be positive")` asserts a two-element tuple, which is
-always truthy. It never fires. Python emits a `SyntaxWarning` for this in 3.12+, which is easy to
+always truthy. It never fires. Python emits a `SyntaxWarning` for this (seen on 3.10 through 3.14, and not on 3.9, on 2026-11-03 on macOS arm64), which is easy to
 miss in a noisy log. The audit script flags it as NSP002.
 
 **Array truthiness.** `assert x == y` on NumPy arrays or torch tensors raises
