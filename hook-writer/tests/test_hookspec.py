@@ -6,10 +6,6 @@ import pytest
 import hookspec as hs
 
 
-def test_table_records_when_it_was_transcribed():
-    assert hs.TRANSCRIBED == "2026-10-25"
-
-
 def test_every_event_in_the_table_is_in_the_live_reference(project, run_script):
     missing = []
     for event in hs.EVENTS:

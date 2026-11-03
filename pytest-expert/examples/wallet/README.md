@@ -29,6 +29,8 @@ demo/                      v0 modules with planted bugs and the tests that find 
 
 Install from this directory with `pip install -e ".[test,symbolic,fuzz,mutation]"`.
 
+Measured at release, machine not recorded. Rerun on 2026-11-03 on macOS arm64 with Python 3.13: `pytest` gave 87 passed, 1 skipped, 2 deselected; the other commands were not rerun.
+
 | Command | Runs | Measured result |
 |---|---|---|
 | `pytest` | unit, property, security, corpus replay | 87 passed, 97% branch coverage |

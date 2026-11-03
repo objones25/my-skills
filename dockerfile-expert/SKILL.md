@@ -108,7 +108,7 @@ build speed, then size) with an exact diff for each.
 
 ## Gotchas confirmed by testing (October 2026, Engine 29.9, buildx 0.38)
 
-Architecture not recorded. Image sizes, stop times and exit codes in this skill depend on architecture and host. On 2026-11-03 (macOS arm64) only the linter tests were rerun (3 passed); no image was built.
+The multi-platform test ran on an amd64 host (`references/buildkit.md`); the architecture of the other tests was not recorded. Image sizes, stop times and exit codes in this skill depend on architecture and host. On 2026-11-03 (macOS arm64) only the linter tests were rerun (3 passed); no image was built.
 
 - `ADD https://...` creates the file with mode 600, unreadable by a non-root user. Add
   `--chmod=0644` (or `0755` for executables).

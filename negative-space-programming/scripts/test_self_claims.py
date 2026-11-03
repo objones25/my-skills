@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""SKILL.md frontmatter must be valid YAML. Needs pytest and pyyaml; skips without pyyaml."""
+"""Claims the skill makes about itself. Needs pytest; the frontmatter test skips without pyyaml."""
 
 from __future__ import annotations
 
@@ -8,10 +8,8 @@ from pathlib import Path
 
 import pytest
 
-yaml = pytest.importorskip("yaml")
-
-
 def test_frontmatter_parses_with_a_strict_yaml_parser() -> None:
+    yaml = pytest.importorskip("yaml")
     text = (Path(__file__).parent.parent / "SKILL.md").read_text(encoding="utf-8")
     block = re.match(r"^---\n(.*?)\n---\n", text, re.S)
     assert block is not None

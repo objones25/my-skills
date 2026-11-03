@@ -36,11 +36,12 @@ The patterns these skills share, a proposed standard, and what each skill still 
 | [scientific-computing](scientific-computing/) | NumPy and SciPy engineering reference with a symptom-indexed debugging guide and a version-drift checker. |
 | [transformer-architecture](transformer-architecture/) | Sizes, implements and debugs decoder-only transformer LLMs, with exact-count budget scripts, property tests and paper digests. |
 
-### Agents and research
+### Agents, research and skills
 
 | Skill | What it does |
 | --- | --- |
 | [annotate-research-paper](annotate-research-paper/) | Writes expert margin notes, highlights and critique onto a paper's PDF through a build-gated pipeline that splits the work across subagents. |
+| [skill-builder](skill-builder/) | Creates new skills and brings existing ones up to standard, with a conformance checker, templates and a packaging check that tests the unpacked zip. |
 | [building-effective-agents](building-effective-agents/) | Diagnoses and designs LLM agents and their harnesses, routing each symptom to a starting reference, with mostly stdlib scripts and an A/B eval set. |
 
 ### Not in this repository
@@ -67,7 +68,7 @@ Claude Code picks up the skill from its `SKILL.md`. Some skills need extra tools
 
 ## Running a skill's tests
 
-Test locations and dependencies differ between skills. [Section 3 of the audit](docs/SKILL_AUDIT.md#3-test-runs) lists the path for each one and the result of the last run. For example:
+Test locations and dependencies differ between skills. [Section 3 of the audit](docs/SKILL_AUDIT.md#3-test-runs) lists the path for each one and its result at the time of the audit. For example:
 
 ```bash
 cd transformer-architecture

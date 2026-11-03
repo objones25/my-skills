@@ -46,7 +46,11 @@ if __name__ == "__main__":
             sys.exit(1)
 
 
-def test_verify_image_header_matches_what_the_script_accepts() -> None:
+def test_verify_image_documents_only_the_flags_it_parses() -> None:
     with open(os.path.join(os.path.dirname(HERE), "verify_image.sh"), encoding="utf-8") as fh:
         source = fh.read()
-    assert "# Usage: verify_image.sh IMAGE [--stop-test]\n" in source
+    header = next(line for line in source.splitlines() if line.startswith("# Usage:"))
+    documented = header.split("IMAGE", 1)[1].strip()
+    assert documented == "[--stop-test]"
+    assert '"${2:-}" == "--stop-test"' in source
+    assert 'IMAGE [--stop-test]" >&2' in source

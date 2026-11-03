@@ -186,5 +186,5 @@ overlap with the NSP codes, is in `references/python.md`.
 | `assets/examples/` | `before.py` / `after.py`: one module unchecked and checked. `typing_before.py` / `typing_after.py`: checks a type checker rejects, and their fixes. |
 | `scripts/audit_negative_space.py` | Any hardening or review pass on existing code. |
 | `scripts/test_audit.py` | Changing the audit script; `python scripts/test_audit.py` needs no pytest. |
-| `scripts/test_types.py` | Changing any `.py` here; runs pyright strict on the skill and pins the fixture's rule IDs. |
+| `scripts/test_types.py` | Changing any `.py` here; runs pyright strict on the skill and pins the fixture's rule IDs.; needs `pyright` and `typing_extensions`. |
 | `pyproject.toml` | The pyright / mypy / ruff settings the skill's own code passes; a starting point for a project. |

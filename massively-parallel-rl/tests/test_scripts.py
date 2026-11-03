@@ -255,6 +255,7 @@ def test_pqn_learns_cartpole(tmp_path):
     assert out.returncode == 0, out.stderr
     df = pd.read_csv(tmp_path / "res.csv")
     assert df["score"].median() > 400, out.stdout
+    assert (df["score"] < 100).sum() <= 2, out.stdout   # a rise in collapsed seeds is a regression
 
 
 def test_elo_warns_on_duplicate_instances(tmp_path):

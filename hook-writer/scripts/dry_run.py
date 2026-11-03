@@ -18,7 +18,8 @@ the rules in the hooks reference. http, mcp_tool, prompt, and agent handlers
 are listed but not run.
 
 Exits 0 whatever the hooks decide, unless --expect names the outcome to require
-(deny, defer, ask, allow, block, none, or no-handler); then a mismatch exits 1.
+(deny, defer, ask, allow, block, none, not-run, or no-handler); then a mismatch
+exits 1. Settings that cannot be read exit 2.
 
 This runs the real scripts, so side effects (formatting a file, running
 tests) happen for real. Matching `if` rules is approximate; when unsure it
@@ -393,7 +394,8 @@ def main():
     ap.add_argument("--hook", help="test this shell-form command instead of reading settings")
     ap.add_argument("--project-dir", type=Path, default=Path.cwd())
     ap.add_argument("--show-input", action="store_true")
-    ap.add_argument("--expect", help="required outcome; exit 1 on a mismatch (deny, defer, ask, allow, block, none, no-handler)")
+    ap.add_argument("--expect", choices=["deny", "defer", "ask", "allow", "block", "none", "not-run", "no-handler"],
+                    help="required outcome; exit 1 on a mismatch")
     args = ap.parse_args()
 
     project_dir = args.project_dir.resolve()
@@ -408,10 +410,15 @@ def main():
         configs = []
         for f in files:
             if f.exists():
-                configs.append((str(f), json.loads(f.read_text())))
+                try:
+                    configs.append((str(f), json.loads(f.read_text())))
+                except (OSError, json.JSONDecodeError) as exc:
+                    print(f"could not read {f}: {exc}", file=sys.stderr)
+                    return 2
 
     results = []
     any_handler = False
+    not_run = False
     for source, gi, hi, handler, runs, note in select_handlers(configs, ev, project_dir):
         any_handler = True
         label = f"{source} :: {args.event}[{gi}].hooks[{hi}]"
@@ -421,11 +428,13 @@ def main():
         print(f"- {label}\n  {handler.get('type')}: {shown}")
         if not runs:
             print(f"  {note}\n")
+            any_handler = bool(results) or not_run
             continue
         if note:
             print(f"  note: {note}")
         if handler.get("type") != "command":
             print(f"  not run: dry_run only executes command handlers\n")
+            not_run = True
             continue
         res = run_handler(handler, ev, project_dir)
         tag, desc, notes = interpret(args.event, handler, res)
@@ -446,18 +455,21 @@ def main():
     if not any_handler:
         print(f"no handler matches this {args.event} input. Check the event name, matcher (case-sensitive), and `if`.")
         return check_expected(args.expect, "no-handler")
+    decision = next((t for t in ("deny", "defer", "ask", "allow") if t in results), None)
     if args.event == "PreToolUse" and results:
-        outcome = next((t for t in ("deny", "defer", "ask", "allow") if t in results), "none")
-        if outcome == "none":
-            print("combined PreToolUse outcome: no decision; normal permission flow")
+        if decision:
+            print(f"combined PreToolUse outcome: {decision} (precedence deny > defer > ask > allow)")
         else:
-            print(f"combined PreToolUse outcome: {outcome} (precedence deny > defer > ask > allow)")
+            print("combined PreToolUse outcome: no decision; normal permission flow")
+        outcome = decision or "none"
     elif results:
         blocking = [t for t in results if t in ("block", "deny", "stop")]
         print(f"combined outcome: {'blocked/continued by a hook' if blocking else 'nothing blocks'}")
-        outcome = "block" if blocking else "none"
+        outcome = decision or ("block" if blocking else "none")
     else:
         outcome = "none"
+    if not_run and outcome == "none":
+        outcome = "not-run"
     return check_expected(args.expect, outcome)
 
 

@@ -7,7 +7,7 @@
 | Problem | Evidence | Fix |
 |---|---|---|
 | `train_template.py --resume` crashed on MPS with `RNG state must be a torch.ByteTensor` | `map_location=device` moved the saved RNG state off the CPU | Load checkpoints to CPU; `load_state_dict` moves the rest |
-| Resume was not bit-exact on MPS (1.7052 versus 1.7077 at epoch 2) | Only the CPU RNG was saved, and dropout on the device draws from the device RNG | Save and restore the accelerator RNG too |
+| Resume was not bit-exact on MPS (1.7052 versus 1.7077 at epoch 2) | Only the CPU RNG was saved, and dropout on the device draws from the device RNG | Save the accelerator RNG with its device type, and restore it on the same kind of device |
 | `references/01-devices-amp.md` documented `device: cpu` as if universal | Walkthrough printed `device: mps` on Apple Silicon | Labelled machine-specific; new `cpu-output` fence is compared only with no accelerator |
 
 ### Test results by machine
@@ -18,7 +18,7 @@
 | 2026-11-03, before these fixes | macOS arm64 (Apple Silicon), MPS | 2.15.0 | 369 passed, 3 failed, 4 skipped |
 | 2026-11-02, release 1.2.0 | Not recorded | 2.15.0 | 375 passed, 1 skipped |
 
-The CUDA paths in the fix were not run: no CUDA machine was available.
+The CUDA paths in the fix were not run: no CUDA machine was available. A checkpoint from a different kind of device, or a different GPU count, now resumes with a printed note and is not bit-exact, because RNG streams cannot be converted between devices.
 
 ## 1.2.0, 2026-11-02: torch 2.15, linter, triage and memory scripts, audit fixes
 

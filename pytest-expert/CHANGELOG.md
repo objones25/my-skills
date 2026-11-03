@@ -61,6 +61,8 @@ Machine for every row above: not recorded. Rerun 2026-11-03 on macOS arm64 (Appl
 
 ## 2026-10-04: audit and expansion
 
+Machine for the results in this release: not recorded.
+
 The previous version (August 2026) was audited by running its own tooling against
 deliberately broken tests and its own reference module. Every fix below was
 reproduced before it was made and re-checked after.

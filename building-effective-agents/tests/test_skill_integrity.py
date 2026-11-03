@@ -72,3 +72,9 @@ def test_scripts_do_not_hardcode_a_tmp_path():
     offenders = [p.name for p in (ROOT / "scripts").glob("*.py")
                  if re.search(r"""["']/tmp/""", p.read_text(encoding="utf-8"))]
     assert offenders == []
+
+
+def test_every_script_compiles():
+    # Some scripts import optional packages and their tests skip, so check syntax directly.
+    for path in (ROOT / "scripts").glob("*.py"):
+        compile(path.read_text(encoding="utf-8"), str(path), "exec")

@@ -20,8 +20,9 @@ Offline smoke test (no API key): python scripts/inspect_eval_template.py --smoke
 For code-writing agents add sandbox="docker" to Task and use the bash()/python()
 tools, which run inside the sandbox rather than on the host.
 """
-import tempfile
 from __future__ import annotations
+
+import tempfile
 
 import sys
 

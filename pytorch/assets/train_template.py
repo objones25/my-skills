@@ -21,6 +21,7 @@ from __future__ import annotations
 import argparse
 import math
 import random
+import sys
 import time
 import warnings
 from pathlib import Path
@@ -180,19 +181,27 @@ def unwrap(model: nn.Module) -> nn.Module:
 def device_rng_state():
     """The accelerator's RNG (dropout on the device draws from it), or None on CPU."""
     if torch.cuda.is_available():
-        return torch.cuda.get_rng_state_all()
+        return {"type": "cuda", "state": torch.cuda.get_rng_state_all()}
     if torch.backends.mps.is_available():
-        return torch.mps.get_rng_state()
+        return {"type": "mps", "state": torch.mps.get_rng_state()}
     return None
 
 
-def set_device_rng_state(state) -> None:
-    if state is None:
+def set_device_rng_state(saved) -> None:
+    """Restore only onto the same kind of device; other RNG streams cannot be converted."""
+    current = device_rng_state()
+    if saved is None or current is None:
         return
-    if torch.cuda.is_available():
-        torch.cuda.set_rng_state_all(state)
-    elif torch.backends.mps.is_available():
-        torch.mps.set_rng_state(state)
+    same_device = isinstance(saved, dict) and saved.get("type") == current["type"]
+    if same_device and saved["type"] == "cuda":
+        same_device = len(saved["state"]) == len(current["state"])
+    if not same_device:
+        print("note: checkpoint RNG is from another device; resume is not bit-exact", file=sys.stderr)
+        return
+    if saved["type"] == "cuda":
+        torch.cuda.set_rng_state_all(saved["state"])
+    else:
+        torch.mps.set_rng_state(saved["state"])
 
 
 def save_ckpt(path, *, epoch, model, optimizer, scheduler, scaler, best_val,

@@ -26,3 +26,10 @@ def test_event_missing_from_the_table_warns_instead_of_failing(project, run_scri
     assert result.returncode == 0
     assert "SomeNewEvent" in result.stdout
     assert "2026-10-25" in result.stdout
+
+
+def test_misspelled_event_is_an_error_with_a_suggestion(project, run_script):
+    _settings(project, "PreToolUze")
+    result = run_script("check_hooks.py", cwd=project)
+    assert result.returncode == 1
+    assert "did you mean 'PreToolUse'" in result.stdout

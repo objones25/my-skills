@@ -5,6 +5,7 @@ import re
 import subprocess
 import sys
 
+import pytest
 import torch
 
 EPOCH_LINE = re.compile(r"^epoch\s+(\d+)\s+train ([\d.]+)\s+val ([\d.]+)\s+acc [\d.]+\s+lr ([\d.e+-]+)")
@@ -76,3 +77,35 @@ def test_checkpoint_loads_to_cpu_so_rng_state_can_be_restored(template, tmp_path
     template.load_ckpt(tmp_path / "c.pth", model=model, optimizer=opt, scheduler=None,
                        scaler=None, generator=gen)
     assert locations == ["cpu"]
+
+
+def _checkpoint_with_device_state(template, tmp_path, device_state):
+    model = template.build_model(4, 3)
+    opt = torch.optim.AdamW(model.parameters())
+    gen = torch.Generator().manual_seed(0)
+    path = tmp_path / "c.pth"
+    template.save_ckpt(path, epoch=0, model=model, optimizer=opt, scheduler=None, scaler=None,
+                       best_val=1.0, bad_epochs=0, total_epochs=1, generator=gen)
+    ckpt = torch.load(path, weights_only=False)
+    ckpt["rng"]["device"] = device_state
+    torch.save(ckpt, path)
+    return path, model, opt, gen
+
+
+@pytest.mark.parametrize("device_state", [
+    {"type": "xpu", "state": torch.zeros(4, dtype=torch.uint8)},   # a device this machine lacks
+    [torch.zeros(4, dtype=torch.uint8)],                           # the old CUDA list form
+    torch.zeros(4, dtype=torch.uint8),                             # the old MPS tensor form
+    None,                                                          # saved on CPU
+])
+def test_resume_survives_a_checkpoint_from_another_device(template, tmp_path, device_state):
+    path, model, opt, gen = _checkpoint_with_device_state(template, tmp_path, device_state)
+    template.load_ckpt(path, model=model, optimizer=opt, scheduler=None, scaler=None, generator=gen)
+
+
+def test_device_rng_state_records_its_device_type(template):
+    state = template.device_rng_state()
+    if torch.accelerator.is_available():
+        assert state["type"] == torch.accelerator.current_accelerator().type
+    else:
+        assert state is None

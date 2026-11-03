@@ -84,7 +84,11 @@ the exact numbers.
 | 1,000,000 | 8 | 500 for all 8 |
 | 2,000,000 | 8 | 500 for all 8 |
 
-In the 2-seed run, the low seed reached 500 at the halfway point before collapsing, so
-judge a run from several seeds. An earlier version of the test required both of 2 seeds
-to finish above 400. This skill's earlier "Tested on" note does not record the machine
-or that test's result.
+In the 2-seed run, the low seed reached 500 at the halfway point before collapsing. Why
+it collapses was not determined. A seed's result also depends on `--num-seeds`: seed index
+1 scored 53.7 with 2 and 6 seeds and 500 with 8. So judge a run from several seeds, and do
+not compare single seeds between runs of different widths.
+
+An earlier version of the test required both of 2 seeds to finish above 400. This skill's
+earlier "Tested on" note does not record the machine or that test's result. The current
+test requires a median above 400 across 8 seeds, with at most 2 below 100.
