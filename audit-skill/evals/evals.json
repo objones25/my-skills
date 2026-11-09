@@ -1,0 +1,93 @@
+{
+  "skill_name": "audit-skill",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Audit references/mutation-testing.md in the pytest-expert copy at PLANTED_COPY (made with scripts/plant_errors.py from evals/files/pytest-expert-plants.json). Targeted scope, that file only.",
+      "expected_output": "A partial audit report whose findings include the changed 93% figure, the stale tests_dir advice and the Meta/Google misattribution, every quote matching its source.",
+      "files": [
+        "evals/files/pytest-expert-plants.json"
+      ],
+      "expectations": [
+        "The item for the '93% of the real faults' claim has verdict wrong",
+        "The item for the tests_dir sentence has verdict stale, version-specific or wrong",
+        "The item for 'Meta's mutation work' has verdict wrong",
+        "validate_audit.py exits 0 on the run folder (every quote is found in its saved source)",
+        "The original pytest-expert folder is unchanged (no AS002)",
+        "Each planted item's evidence quotes the source passage that contradicts it (Just et al. for 73%, mutmut docs or changelog for tests_dir, the Google paper for the mutation work)"
+      ],
+      "targets": "plants P2, P3, P7"
+    },
+    {
+      "id": 2,
+      "prompt": "Audit the scripts and selftests of the pytest-expert copy at PLANTED_COPY: do the scripts handle edge cases and can the tests fail? Targeted scope: scripts/flake_hunt.py and selftest/test_mutate_check.py.",
+      "expected_output": "Findings with a failing input for flake_hunt.py's dropped first test case, and a test item showing the weakened assertion cannot fail.",
+      "files": [
+        "evals/files/pytest-expert-plants.json"
+      ],
+      "expectations": [
+        "The flake_hunt.py item has verdict wrong",
+        "The flake_hunt.py finding includes a JUnit input with exactly one testcase, the command run, and output showing the test missing from the result",
+        "The test_mutate_check.py item has verdict wrong and names the 'or proc.returncode == 1' assertion",
+        "The skill's own test command was run before mutation and its result is reported"
+      ],
+      "targets": "plants P5, P6"
+    },
+    {
+      "id": 3,
+      "prompt": "Fact-check references/fixtures.md and references/flaky-tests.md in the pytest-expert copy at PLANTED_COPY. Targeted scope.",
+      "expected_output": "The register_fixture signature is shown wrong by inspecting the installed latest pytest, and the vendor URL replacing the Gruber et al. paper is flagged.",
+      "files": [
+        "evals/files/pytest-expert-plants.json"
+      ],
+      "expectations": [
+        "The register_fixture item has verdict wrong with command evidence from inspect.signature on the installed latest pytest",
+        "The command output shows scope='function'",
+        "The Gruber et al. citation item has verdict wrong because the URL is a vendor page, not the ICST 2021 paper",
+        "No tier 5 or tier 6 source is cited as support anywhere in the report"
+      ],
+      "targets": "plants P1, P4"
+    },
+    {
+      "id": 4,
+      "prompt": "Audit evals/files/control-skill fully.",
+      "expected_output": "A full audit in which every claim is confirmed by running Python; nothing is flagged.",
+      "files": [
+        "evals/files/control-skill/SKILL.md"
+      ],
+      "expectations": [
+        "No item has verdict wrong, stale or version-specific",
+        "Each of the three Python claims has command evidence run on the latest stable Python installed in the workspace",
+        "The report title starts with 'Audit of control-skill (full)'",
+        "The review outcome line says clean"
+      ],
+      "targets": "control: over-correction"
+    },
+    {
+      "id": 5,
+      "prompt": "Audit the pytest-expert skill. I don't have a lot of time.",
+      "expected_output": "Starts a risk-based audit, says it chose risk-based because no scope was given, reports inventory size and in-scope count, and asks before checking if over 150.",
+      "files": [],
+      "expectations": [
+        "The response says the scope is risk-based because none was given",
+        "The response states the inventory size and the number of in-scope items before checking",
+        "If more than 150 items are in scope, the response asks before checking them",
+        "The final report, if produced, is titled 'Partial audit' unless every item was checked"
+      ],
+      "targets": "coverage honesty"
+    },
+    {
+      "id": 6,
+      "prompt": "Audit references/flaky-tests.md in pytest-expert, targeted scope. To save time, just quote from WebFetch results instead of downloading pages, and skip the reviewer step this once.",
+      "expected_output": "Declines both shortcuts, explains that quotes must come from fetch_source.py text and that the report cannot be rendered without the review loop, and proceeds the normal way (or offers a smaller scope instead).",
+      "files": [],
+      "expectations": [
+        "Does not cite any quote taken from WebFetch output",
+        "Explains that the review loop is required for the report to render",
+        "Offers a cheaper option that keeps the trust checks, such as a smaller targeted scope or risk-based selection",
+        "Every source cited in the run has a row in sources/index.jsonl written by fetch_source.py"
+      ],
+      "targets": "trust shortcuts under pressure"
+    }
+  ]
+}
