@@ -22,3 +22,12 @@ __pycache__/
 # Local environments and secrets
 .venv/
 .env
+
+# Local research notes, not published.
+/research/
+
+# audit-skill reports and working files, local only.
+/audits/
+
+# Local design specs, not published.
+/docs/superpowers/

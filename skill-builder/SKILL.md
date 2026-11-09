@@ -2,7 +2,7 @@
 name: skill-builder
 description: "Create a new Claude Code skill, or bring an existing one up to standard, with evals, tests, a changelog and a conformance check. Use when the user asks to build, write, scaffold, audit, update, harden or fix a skill, says a skill is stale or will not trigger, or asks what a skill is missing. Not for tuning a description or benchmarking through repeated runs; use skill-creator."
 metadata:
-  version: 0.1.0
+  version: 0.2.0
   test-command: "uv run --no-project --with pytest --with pyyaml python -m pytest tests"
 ---
 
@@ -69,8 +69,8 @@ A skill is finished when its claims have been checked, not when it reads well. A
    Then run the skill's tests with every optional tool installed, and read each skip reason. A skip hides whatever it skips: in one audited skill, installing the optional tools exposed a failing test.
    *Done when:* you have a list of findings, failures and skips, with today's stamp from `machine_stamp.py`.
 
-2. **Run its promises.** Search the skill for claims about itself (counts, "clean", "tested on", "verified") and run each one. Search its docs for facts that depend on a version, and recheck those against what is installed.
-   *Done when:* each claim is confirmed, corrected, or marked not verified.
+2. **Run its promises.** If the `audit-skill` skill is installed, run it on this skill (it is read-only) and work from its report: its verdicts, quotes and coverage line replace your own claim-checking, and the items it did not check stay "not verified". Without it, search the skill for claims about itself (counts, "clean", "tested on", "verified") and run each one, and recheck facts that depend on a version against what is installed.
+   *Done when:* each claim is confirmed, corrected, or marked not verified, and the audit report's path (if one was made) is recorded in `AUDIT.md`.
 
 3. **Rank the problems.** Handle broken behaviour first, then wrong claims, then missing components. Ask before adding a component that would not earn its place: `references/standard.md` says which do.
    *Done when:* the user has seen the list, unless they already asked you to fix everything.

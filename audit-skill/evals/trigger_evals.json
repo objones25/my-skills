@@ -1,0 +1,20 @@
+[
+  {"query": "audit my pytest-expert skill and tell me which of its claims are actually still true", "should_trigger": true},
+  {"query": "fact-check the citations in negative-space-programming/references, I think some of the papers are misquoted", "should_trigger": true},
+  {"query": "can you verify every number in the transformer-architecture skill against the papers it cites?", "should_trigger": true},
+  {"query": "I suspect the pytorch skill is stale since 2.15 came out, check what's out of date but don't change anything yet", "should_trigger": true},
+  {"query": "do a read-only review of the dockerfile-expert skill with sources for every verdict", "should_trigger": true},
+  {"query": "before I update async-expert I want an evidence report on what's wrong with it", "should_trigger": true},
+  {"query": "check whether the mutation-testing reference in pytest-expert cites reputable sources or just blog posts", "should_trigger": true},
+  {"query": "run a targeted audit of just the scripts folder in bash-scripting-specialist, do the scripts handle edge cases?", "should_trigger": true},
+  {"query": "are the tests in observability-expert actually able to fail? audit them", "should_trigger": true},
+  {"query": "fix the stale claims in pytest-expert and bump its version", "should_trigger": false},
+  {"query": "create a new skill for writing Terraform modules", "should_trigger": false},
+  {"query": "my hook-writer skill never triggers when I ask about hooks, tune its description", "should_trigger": false},
+  {"query": "review this pull request for bugs before I merge it", "should_trigger": false},
+  {"query": "audit the tests in my web app repo and find ones that can't fail", "should_trigger": false},
+  {"query": "fact-check this blog post about Rust async runtimes", "should_trigger": false},
+  {"query": "annotate this paper on mutation testing so I can present it", "should_trigger": false},
+  {"query": "audit our README and API docs against the source code", "should_trigger": false},
+  {"query": "run skill-builder's conformance check on kubernetes-expert", "should_trigger": false}
+]

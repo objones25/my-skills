@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.0, 2026-11-07
+
+- Update mode step 2 runs the `audit-skill` skill when it is installed and works from its report, which adds domain-claim checking, source tiers, machine-checked quotes and a blind review loop. Without `audit-skill` the step is unchanged, so this skill stays self-contained.
+
+### Test results by machine
+
+| Date | Machine | Versions | Result |
+|---|---|---|---|
+| 2026-11-07 | macOS arm64 (Apple Silicon) | Python 3.13.2, pytest 9.2.0, PyYAML 6.0.3 | 200 passed, 1 skipped (a test of the fallback parser) |
+
 ## 0.1.0, 2026-11-03
 
 First version, built from the audit in `docs/SKILL_AUDIT.md` of the `my-skills` repository. Reviewed and verified independently: see `AUDIT.md`.
