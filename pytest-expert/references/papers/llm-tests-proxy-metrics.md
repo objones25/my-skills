@@ -24,7 +24,7 @@ Papers on LLM test generation report coverage and mutation score as if they meas
 2. **Models.** 11 LLMs from six vendors, base and reasoning variants, 13 settings (for example Claude 4 Sonnet with and without reasoning, GPT-4.1, o4-mini, DeepSeek-V3/R1, Qwen3) [§3.3, Table 2]. One automated prompt template using only the code under test [§8].
 3. **RQ1** replicates [Ino14]: size vs mutation, coverage vs mutation with and without fixed size (k = 3, 5, 10), and correlations among coverage types [§4].
 4. **RQ2** coverage vs real-bug detection, for suites generated from bug-free and from buggy code [§5].
-5. **RQ3** replicates Papadakis et al.: mutation vs real-bug detection [§6]. Mutation is skipped in the buggy setting because it needs a green suite, which would exclude the very tests that expose the bug [§3.3 footnote].
+5. **RQ3** replicates Papadakis et al.: mutation vs real-bug detection [§6]. Mutation is skipped in the buggy setting because it needs a green suite, which would exclude the very tests that expose the bug [footnote 1, on RQ2 in §3.1; printed on the §3.3 page].
 
 ## Key results
 
@@ -39,7 +39,7 @@ Papers on LLM test generation report coverage and mutation score as if they meas
 ## What it means for a pytest suite
 
 - When an agent writes tests for code that might already be wrong, do not accept coverage as evidence the tests are good. The skill's "write the failing test first" rule for bug fixes (Choosing what to test, item 3) is the right check: a test must be shown to fail on the buggy code [§7 ①-②].
-- Mutation scores on agent-written tests are meaningful only after the suite is green on code believed correct. `mutate_check.py` already refuses to run on a red baseline; keep that and say why in `mutation-testing.md` [§3.3 footnote].
+- Mutation scores on agent-written tests are meaningful only after the suite is green on code believed correct. `mutate_check.py` already refuses to run on a red baseline; keep that and say why in `mutation-testing.md` [footnote 1].
 - Report branch coverage alongside line coverage for agent-written suites; coverage types disagree more for LLM tests than [Ino14] found for human tests [§7 ③].
 - More generated tests is not better tests. A hook or review step should not reward test count [§4.5 (1)].
 

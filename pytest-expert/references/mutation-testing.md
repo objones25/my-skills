@@ -3,7 +3,9 @@
 Coverage says a line ran. Mutation testing asks whether any test would notice if
 that line were wrong. It makes one small change to the code (a **mutant**), runs
 the tests, and records whether some test failed (**killed**) or everything still
-passed (**survived**). A survivor is a behavior change no test detects.
+passed (**survived**). A survivor is a change no test detects: usually a missing
+test, sometimes an equivalent mutant that no input can tell apart from the original
+(see [Reading survivors](#reading-survivors)).
 
 ## Contents
 
@@ -20,9 +22,13 @@ passed (**survived**). A survivor is a behavior change no test detects.
 - Inozemtseva and Holmes (ICSE 2014) found only a low to moderate correlation
   between coverage and test-suite effectiveness once suite size is controlled for,
   and concluded coverage should not be used as a quality target. Chen et al. (ASE
-  2020, with Holmes as a co-author) dispute the size control itself: stratifying by
-  suite size is unrealistic, and at equal size, mutation-based test selection found
-  more faults than coverage-based selection (`papers/coverage-mutation-real-faults.md`).
+  2020, with Holmes as a co-author) dispute the size control itself: test-set size is
+  a consequence of the test goal, not a variable to fix. At equal size, tests chosen
+  for coverage were as strong as or stronger than tests chosen for mutants until
+  coverage was satisfied; mutants added the most when used after coverage had
+  "exhausted its usefulness" [§6.4, Fig. 5; §8]. Shrinking a fault-detecting test
+  set by mutants mostly kept its fault detection, while shrinking it by coverage
+  lost much of it [Fig. 7] (`papers/coverage-mutation-real-faults.md`).
 - Just et al. (FSE 2014), across 357 real faults in 5 programs, found a
   statistically significant correlation between mutant detection and real-fault
   detection, independent of coverage. 73% of the real faults were coupled to
@@ -33,7 +39,7 @@ Coverage remains useful as a floor: an uncovered line's mutants survive triviall
 One limit: mutation scoring needs a green suite on code believed correct. It cannot
 judge a test whose purpose is to expose a bug that is already in the code, which is
 why `mutate_check.py` refuses a red baseline (`papers/llm-tests-proxy-metrics.md`,
-[Zhao26 §3.3]).
+[Zhao26, footnote 1 on RQ2 in §3.1]).
 
 Survivors have three acceptable outcomes, not two: killed by a new test, equivalent
 (no input can tell the mutant apart), or unproductive (killable, but the test would
@@ -45,8 +51,8 @@ unproductive and suppresses them (`papers/google-mutation-at-scale.md`).
 
 | Tool | Scope | Speed | Use when |
 |---|---|---|---|
-| `scripts/mutate_check.py` | one file, optionally one function | seconds to a minute | workflow step 6: prove the tests you just wrote can fail |
-| mutmut 3 | whole package | minutes | nightly, or before trusting a suite |
+| `scripts/mutate_check.py` | one file, optionally one function | seconds to a minute | workflow step 5: prove the tests you just wrote can fail |
+| mutmut 3 | whole package | seconds on the example (under 10 s), and it grows with mutants times suite time | nightly, or before trusting a suite |
 
 `mutate_check.py` is stdlib only. Operators: comparison boundaries (`<` and `<=`,
 `==` and `!=`), arithmetic swaps, integer constant +1, `True`/`False`, `and`/`or`,
@@ -120,7 +126,7 @@ failed with `test_corpus_is_not_empty` for exactly that reason. Add `mutants/` t
 | `mutmut results` | list survivors |
 | `mutmut show <name>` | diff of one mutant |
 
-Result on the example, first run (72 s, 3.25 mutants/s):
+Result on the example, first run (72 s, 3.25 mutants/s; machine not recorded):
 
 ```
 194/194  killed 175  survived 19
@@ -156,20 +162,23 @@ No test at exactly 32 characters. Added accept-32 and reject-33 tests.
 ```
 Equivalent. Ignore.
 
-After the four new tests (61 s):
+After the four new tests, on 2026-11-09 on macOS arm64 with Python 3.13.2, mutmut
+3.8.1 and pytest 9.2.0 (two runs, 6 s and 9 s; an earlier record of 183 killed and 11
+survived in 61 s, machine not recorded, did not reproduce):
 
 ```
-194/194  killed 183  survived 11
+194/194  killed 181  survived 13
 ```
 
-What the remaining 11 teach:
+What the remaining 13 teach:
 
 | Survivor | Lesson |
 |---|---|
-| `AmountError("amount must be positive")` mutated to `"XXamount must be positiveXX"` | `pytest.raises(match=...)` uses `re.search`. Anchor it (`match=r"^amount must be positive$"`) when the message is the contract. |
-| `balance < 0` mutated to `balance <= 0` in `load_wallet` | No test loads a stored wallet with a zero or negative balance. A security-relevant gap: corrupt files are not covered. |
-| `or` mutated to `and` in the same check | Same gap: no test for a file whose owner does not match its name. |
-| `10**9 <= account` mutated to `<` | Equivalent (see above). |
+| Three `encoding="utf-8"` mutants in `save_wallet` (`None`, omitted, `"UTF-8"`), and `decode("UTF-8")` in `load_wallet` | Equivalent. `json.dumps` escapes non-ASCII by default (`ensure_ascii=True`), so the file is pure ASCII under any encoding, and codec names are case-insensitive. |
+| `AmountError("amount must be positive")` mutated to `"XXamount must be positiveXX"`, the same for `"invalid account number"`, and `StoreError(...)` mutated to `StoreError(None)` in `load_wallet` | `pytest.raises(match=...)` uses `re.search`. Anchor it (`match=r"^amount must be positive$"`) when the message is the contract. |
+| `balance < 0` mutated to `balance <= 0` and to `balance < 1` in `load_wallet` | No test loads a stored wallet with a zero or negative balance. A security-relevant gap: corrupt files are not covered. |
+| Each `or` mutated to `and` in the same check | Same gap: no test for a file whose owner does not match its name, or whose balance is not finite. |
+| `10**9 <= account` mutated to `<`, and `account < 10**10` to `<=` | Equivalent (see above). |
 
 These are left in the example on purpose as exercises.
 
@@ -179,7 +188,11 @@ the text. An equivalent mutant gets a one-line note.
 
 ## In CI
 
-Mutation runs are too slow per push. `assets/github/workflows/nightly.yml` runs
+A whole-package run costs roughly mutants times suite time: under 10 s on the example,
+but long enough on a real package that it belongs in a nightly job, while
+`mutate_check.py` on the functions a change touched is cheap enough to run before
+pushing. Google's approach is per change: mutants only on the lines a changelist adds
+or changes (`papers/google-mutation-at-scale.md`). `assets/github/workflows/nightly.yml` runs
 mutmut nightly and fails if survivors exceed `MUTATION_MAX_SURVIVORS`. Set the
 limit at today's count and lower it as you add tests, the same ratchet as the
 coverage floor.

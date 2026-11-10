@@ -43,12 +43,28 @@ def test_bare_reference_names_exist(md):
 
 
 def test_frontmatter():
-    m = re.match(r"^---\nname: ([a-z0-9-]+)\ndescription: (.+?)\n---\n", SKILL, re.DOTALL)
+    m = re.match(r"^---\nname: ([a-z0-9-]+)\ndescription: (.+?)\n(?:metadata:\n(?:  .+\n)+)?---\n", SKILL, re.DOTALL)
     assert m, "SKILL.md must open with name and description frontmatter"
     assert m.group(1) == "pytest-expert"
     assert len(m.group(2)) <= 1024
     assert "<" not in m.group(2)
     assert ">" not in m.group(2)
+
+
+def test_test_command_runs_the_selftests():
+    """skill-builder's packager runs metadata.test-command in the unpacked copy; without it the zip is never tested."""
+    m = re.search(r"^metadata:\n(?:  .+\n)*?  test-command: \"(.+)\"\n", SKILL, re.M)
+    assert m, "SKILL.md frontmatter needs metadata.test-command"
+    assert "pytest selftest" in m.group(1)
+    assert "--with pytest-randomly" in m.group(1), "test_flake_hunt.py skips without pytest-randomly"
+
+
+def test_trigger_evals_have_both_kinds():
+    cases = json.loads((ROOT / "evals" / "trigger_evals.json").read_text())
+    assert all(set(c) == {"query", "should_trigger"} for c in cases)
+    assert sum(c["should_trigger"] for c in cases) >= 8
+    assert sum(not c["should_trigger"] for c in cases) >= 8
+    assert len({c["query"] for c in cases}) == len(cases)
 
 
 def test_skill_md_is_short():
@@ -104,3 +120,29 @@ def test_eval_case_well_formed(case):
 @pytest.mark.parametrize("example", sorted((ROOT / "examples" / "diagnoses").glob("0*.md")), ids=lambda p: p.name)
 def test_examples_are_marked_illustrative(example):
     assert "*Illustrative" in example.read_text()
+
+
+STEP_HEADING_RE = re.compile(r"^\*\*(\d+)\. ([^*]+)\*\*", re.MULTILINE)
+STEP_REF_RE = re.compile(r"workflow step (\d+): ([a-z ]+)")
+
+
+def test_workflow_step_references_match_skill_md():
+    """A reference that names a workflow step must name the step SKILL.md gives that number."""
+    steps = {int(n): title.lower() for n, title in STEP_HEADING_RE.findall(SKILL)}
+    wrong = []
+    for md in MD_FILES:
+        for number, phrase in STEP_REF_RE.findall(md.read_text()):
+            key = next((w for w in phrase.split() if len(w) > 4), phrase)
+            if key not in steps.get(int(number), ""):
+                wrong.append(f"{md.name}: step {number} is {steps.get(int(number))!r}, not {phrase!r}")
+    assert not wrong
+
+
+def test_mutmut_result_is_stated_the_same_everywhere():
+    """The final mutmut run on the wallet example is quoted in two files; they must agree."""
+    reference = (ROOT / "references" / "mutation-testing.md").read_text()
+    readme = (ROOT / "examples" / "wallet" / "README.md").read_text()
+    final = re.findall(r"194/194\s+killed (\d+)\s+survived (\d+)", reference)[-1]
+    assert f"{final[0]} of 194 killed" in readme
+    assert f"mutmut reports {final[1]} survivors" in readme
+    assert f"What the remaining {final[1]} teach" in reference
