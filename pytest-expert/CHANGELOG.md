@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026-11-15: evals run on the corrected version
+
+All 17 cases in `evals/evals.json`, one run each, on macOS arm64 with Claude Opus 5.5 subagents in Claude Code. With the skill: fresh subagents told to load it, kept away from `evals/`. Without: fresh subagents told not to load any skill or read the skill files. A separate fresh subagent graded each pair against the expectations without being told which reply was which (replies that name the skill's own files partly give that away).
+
+| | With the skill | Without |
+|---|---|---|
+| All 61 expectations | 58 | 32 |
+| The 47 that do not name a file or script of this skill | 45 | 28 |
+
+One run per case, so this shows direction, not rates. The with-skill misses: `green-but-bugs` did not say that a green run over a suite the audit flags is not a pass; `github-actions-ci` did not offer `security.yml`; `fuzz-config-parser` replayed the crash folder, not the corpus.
+
+The grader questioned four expectations; they are unchanged until reviewed. In `async-retry-backoff`, injecting the sleep function and using `@pytest.mark.asyncio` are required, though patching `asyncio.sleep` and auto mode also work. In `asyncio-internalerror`, setting `asyncio_default_test_loop_scope` is required, though it is not needed for the fix. In `fuzz-config-parser`, "replays the corpus" is ambiguous. In `parse-duration-tests`, "not from running the function" cannot be seen in a reply.
+
+The trigger evals in `evals/trigger_evals.json` have not been run.
+
 ## 2026-11-10: skill-builder conformance
 
 `check_skill.py --strict` gave 0 errors and 5 warnings after the 2026-11-09 fixes; it now gives 0 and 0.
