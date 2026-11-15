@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 from conftest import SOURCE_TEXT, add_source, read_jsonl, run_script, write_jsonl
 
@@ -237,6 +238,55 @@ def test_missed_item_outside_targeted_scope_at_cap_does_not_wedge_the_run(comple
     assert run_script("validate_audit.py", complete_run).returncode == 0, run_script(
         "validate_audit.py", complete_run).stdout
     assert run_script("render_report.py", complete_run).returncode == 0
+
+
+def _cap_with_missed_row(run):
+    for round_no in (1, 2, 3):
+        assert packet(run).returncode == 0
+        agreeing_verdicts(run, round_no)
+        rows = read_jsonl(run / "review" / f"round-{round_no}" / "verdicts.jsonl")
+        for row in rows:  # one open disagreement keeps the loop going to the cap
+            if row["id"] == "I001":
+                row.update({"verdict": "wrong", "problems": [{"code": "output-differs", "detail": "still wrong"}]})
+        if round_no == 3:
+            rows.append({"id": "new", "file": "SKILL.md", "line": 15, "kind": "empirical", "text": "missed claim",
+                         "problems": [{"code": "missing-item", "detail": "line 15 states a fact"}]})
+        write_jsonl(run / "review" / f"round-{round_no}" / "verdicts.jsonl", rows)
+        if round_no == 1:
+            refetch(run, round_no)
+        merge(run)
+
+
+def test_missed_item_in_scope_at_cap_is_not_checked_and_the_report_is_partial(complete_run):
+    """A claim first reported in the last round was never checked by anyone: it must not count as checked."""
+    _cap_with_missed_row(complete_run)
+    assert state(complete_run)["status"] == "capped"
+    missed = [i for i in read_jsonl(complete_run / "items.jsonl") if i["text"] == "missed claim"]
+    assert len(missed) == 1 and missed[0]["verdict"] == "not-checked" and missed[0]["in_scope"] is True
+    assert missed[0]["id"] in state(complete_run)["missed_at_cap_ids"]
+    assert missed[0]["id"] not in state(complete_run).get("disputed_ids", [])
+    validated = run_script("validate_audit.py", complete_run)
+    assert validated.returncode == 0, validated.stdout
+    rendered = run_script("render_report.py", complete_run)
+    assert rendered.returncode == 0, rendered.stdout + rendered.stderr
+    report = Path(json.loads((complete_run / "meta.json").read_text())["report"]).read_text()
+    assert report.startswith("# Partial audit of ")
+    items = read_jsonl(complete_run / "items.jsonl")
+    checked = sum(i["verdict"] != "not-checked" for i in items)
+    assert f"Checked {checked} of {len(items)} items" in report  # the missed claim is not counted as checked
+    assert "missed claim" in report.split("## Not checked", 1)[1]
+
+
+def test_unchecked_in_scope_item_not_recorded_by_merge_still_fails_validation(complete_run):
+    _cap_with_missed_row(complete_run)
+    items = read_jsonl(complete_run / "items.jsonl")
+    forged = next(i for i in items if i["id"] == "I002")
+    forged.update({"verdict": "not-checked", "evidence": [], "searches": []})
+    forged.pop("strength", None)
+    write_jsonl(complete_run / "items.jsonl", items)
+    result = run_script("validate_audit.py", complete_run)
+    assert result.returncode == 1
+    assert "AS012" in result.stdout and "I002" in result.stdout
 
 
 def test_new_row_line_must_exist_in_the_file(complete_run):

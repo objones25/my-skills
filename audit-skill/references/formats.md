@@ -123,7 +123,7 @@ When the review loop ends, `review_round.py` records hashes of every item and of
 | AS003 | `candidates.jsonl` missing | Run `find_candidates.py RUN` |
 | AS010 | A candidate is covered by no item and no dismissal | Add the item, or dismiss the line with a reason |
 | AS011 | Schema error in an item, dismissal or evidence entry, or a location not in the skill (including a dismissal's file) (unknown file, line past the end, `end_line` before `line`, a text-file item over 60 lines) | Fix the field named in the message |
-| AS012 | Scope mismatch | In-scope items need a verdict; out-of-scope items are `not-checked`; targeted scope decides by path |
+| AS012 | Scope mismatch | In-scope items need a verdict, except a claim `review_round.py` added at the cap (listed in `missed_at_cap_ids`, reported as not checked); out-of-scope items are `not-checked`; targeted scope decides by path |
 | AS013 | Definite verdict with no evidence | Add the command or source, or downgrade to `couldnt-verify` |
 | AS014 | Evidence cites a source not in `sources/` | Fetch it with `fetch_source.py` |
 | AS015 | Quote not in the saved source text | Copy the quote from `sources/S###.txt`, not from memory or WebFetch |

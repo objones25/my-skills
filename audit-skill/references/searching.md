@@ -27,6 +27,7 @@ Use Context7 for official docs (`npx ctx7@latest library NAME "question"`, then 
 5. **Scan results before opening them.** Read the snippets and the publisher of each hit first; open the most authoritative, not the first (Wineburg & McGrew 2019 call this click restraint).
 6. **Follow citations from each key paper,** backward to what it cites and forward to what cites it. Stop "once no new papers are found" (Wohlin 2014). *Adaptation:* at most 2 rounds.
 7. **Log every query as you run it,** before opening results, so `opened` records what you actually opened. List the items it serves in `item_ids`; each item with cited sources needs at least two of its own searches with different queries (AS019). Log in `search_log.jsonl` exactly as run, with engine, date, hit count, and which hits you opened (PRISMA-S items 8, 13, 15; Cochrane §4.5: strategies "should not be re-typed, because this can introduce errors").
+8. **Log only searches that ran.** A search that errored, was refused for budget or rate limit, or returned a page you could not read is not a search with 0 hits: leave it out of the log. For research questions, `scripts/search.py ENGINE "QUERY" --run RUN --worker W --purpose P --item ID` queries Crossref, Semantic Scholar or arXiv and writes the log row itself, only when the search ran (exit 2 and no row otherwise). Those engines index papers, not style guides or tool docs, so they complement WebSearch rather than replace it; never route around a search budget or a bot check with other tools.
 
 ## When to stop
 

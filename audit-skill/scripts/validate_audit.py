@@ -12,7 +12,7 @@ Codes (references/formats.md explains each and its fix):
     AS003  candidates.jsonl missing (find_candidates.py not run)
     AS010  a candidate line is covered by no item and no dismissal
     AS011  an item, dismissal or evidence entry breaks the schema, or points at a place not in the skill
-    AS012  scope mismatch: in-scope item left not-checked, or out-of-scope item given a verdict
+    AS012  scope mismatch: in-scope item left not-checked (unless review_round.py added it at the cap), or out-of-scope item given a verdict
     AS013  definite verdict (correct, wrong, stale, version-specific) with no evidence
     AS014  evidence cites a source id that is not in sources/index.jsonl, or its file is missing
     AS015  quoted passage not found in the saved source text
@@ -168,8 +168,9 @@ def check_items(run: Path, meta: dict[str, Any], items: list[dict], sources: dic
                 searches: dict[str, dict], files: dict[str, int | None]) -> list[Finding]:
     out: list[Finding] = []
     state_path = run / "review" / "state.json"
-    disputed_ids = set(json.loads(state_path.read_text(encoding="utf-8")).get("disputed_ids", [])) \
-        if state_path.is_file() else set()
+    review_state = json.loads(state_path.read_text(encoding="utf-8")) if state_path.is_file() else {}
+    disputed_ids = set(review_state.get("disputed_ids", []))
+    missed_at_cap_ids = set(review_state.get("missed_at_cap_ids", []))
     seen: set[str] = set()
     for item in items:
         where = f"{item.get('id', '?')} {item.get('file', '?')}:{item.get('line', '?')}"
@@ -185,7 +186,7 @@ def check_items(run: Path, meta: dict[str, Any], items: list[dict], sources: dic
         scoped = in_scope_by_meta(item["file"], meta)
         if scoped is not None and scoped != item["in_scope"]:
             out.append(Finding("AS012", where, f"targeted scope says in_scope={scoped}"))
-        if item["in_scope"] and verdict == "not-checked":
+        if item["in_scope"] and verdict == "not-checked" and item["id"] not in missed_at_cap_ids:
             out.append(Finding("AS012", where, "in scope but not checked"))
         if not item["in_scope"] and verdict != "not-checked":
             out.append(Finding("AS012", where, "out of scope, so the verdict must be not-checked"))
