@@ -1,5 +1,50 @@
 # Changelog
 
+## 2026-11-10: skill-builder conformance
+
+`check_skill.py --strict` gave 0 errors and 5 warnings after the 2026-11-09 fixes; it now gives 0 and 0.
+
+| Warning | Fix |
+|---|---|
+| SB006: description had no negative scope | Adds "Not for" other languages, bats tests (bash-scripting-specialist), and a skill's own claims (audit-skill) |
+| SB007: `tests/conftest.py` read as a bundled path | It meant the user's project; reworded to "into the project's `tests/`" |
+| SB010: no trigger evals | `evals/trigger_evals.json`: 10 should trigger, 10 near misses that belong to sibling skills or other languages |
+| SB022: no `metadata.test-command` | Added; it installs pytest-randomly because `test_flake_hunt.py` skips without it. skill-builder's packager now runs the selftests in the unpacked copy |
+| SB043: no "Extend this skill" section | Added, naming the structure test that catches each missed step. The Sources section was removed to stay under the 260-line cap: each of its lines repeated a row of the Reference files table |
+
+Added `test_test_command_runs_the_selftests` and `test_trigger_evals_have_both_kinds`, each watched failing first; `test_frontmatter` now accepts a `metadata` block. The trigger evals have not been run.
+
+### Test results by machine
+
+| Date | Machine | Versions | Result |
+|---|---|---|---|
+| 2026-11-10 | macOS arm64 (Apple Silicon) | Python 3.13.2, pytest 9.2.0, pytest-randomly (the `metadata.test-command` environment, without Hypothesis) | 260 passed, 0 skipped |
+
+## 2026-11-09: corrections to the mutation-testing reference
+
+Found by an `audit-skill` eval run (2026-11-07) on `references/mutation-testing.md`, then rechecked by hand: each paper claim against the paper's own text, each number by rerunning it. Details in `AUDIT.md` under 2026-11-09.
+
+### Fixed
+
+| Problem | Evidence | Fix |
+|---|---|---|
+| Chen et al. (ASE 2020) reported backwards: the reference and its digest said mutation-based selection beat coverage-based at equal size | §6.4, Fig. 5: coverage-selected sets "are as strong or stronger ... (at least until coverage is satisfied)"; §8: mutation "is most effective when employed after coverage has exhausted its usefulness" | Reference and digest rewritten; the reduction result (Fig. 7), which was right, kept |
+| mutmut result on the wallet example stated as 183 killed, 11 survived | rerun twice on 2026-11-09, macOS arm64, Python 3.13.2, mutmut 3.8.1, pytest 9.2.0: 181 killed, 13 survived | New figures with their stamp in the reference and the example README; the two extra survivors (encoding mutants) classified as equivalent, with the reason |
+| "A survivor is a behavior change no test detects" | the same file shows equivalent survivors | Reworded |
+| mutmut on a whole package takes "minutes"; mutation runs are "too slow per push" | 6 s and 9 s for the example | Cost stated as mutants times suite time, with the example figure; nightly for whole packages, `mutate_check.py` before pushing |
+| "workflow step 6" for proving tests can fail | SKILL.md numbers it step 5 | Corrected, and guarded by a new test |
+| Zhao et al. green-suite requirement cited as §3.3 | the passage is footnote 1, attached to RQ2 in §3.1 (printed on the §3.3 page) | Locator corrected in the reference and its digest |
+
+### Added
+
+- `test_workflow_step_references_match_skill_md` and `test_mutmut_result_is_stated_the_same_everywhere` in `selftest/test_skill_structure.py`.
+
+### Test results by machine
+
+| Date | Machine | Versions | Result |
+|---|---|---|---|
+| 2026-11-09 | macOS arm64 (Apple Silicon) | Python 3.13.2, pytest 9.2.0, Hypothesis, pytest-randomly | 258 passed, 0 skipped |
+
 ## 2026-11-02: re-verification, test-gaming defenses, research digests
 
 Re-verified on Python 3.13 with current releases, then expanded. Gaps, corrections,

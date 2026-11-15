@@ -1,0 +1,22 @@
+[
+  {"query": "write tests for src/billing/invoice.py, I have zero coverage on it right now", "should_trigger": true},
+  {"query": "my test suite passes locally but test_export fails about one run in five on CI, can you figure out why", "should_trigger": true},
+  {"query": "claude just told me all tests pass now but I think it changed the tests, can you check what it did", "should_trigger": true},
+  {"query": "add hypothesis property tests for my json parser", "should_trigger": true},
+  {"query": "how do I set up pytest-asyncio so my async fixtures share one event loop across the session", "should_trigger": true},
+  {"query": "we have 95% coverage and still ship bugs, how do I tell if the tests are any good", "should_trigger": true},
+  {"query": "set up a github actions workflow that runs pytest with coverage on 3.12 and 3.13", "should_trigger": true},
+  {"query": "review tests/test_models.py, a lot of these look like they assert nothing", "should_trigger": true},
+  {"query": "how should I unit test my pytorch training loop without a GPU", "should_trigger": true},
+  {"query": "set up mutmut on this package and tell me which survivors matter", "should_trigger": true},
+  {"query": "make these 200 API calls run concurrently with asyncio instead of one at a time", "should_trigger": false},
+  {"query": "add assertions and loop bounds to this data pipeline so bad input crashes instead of producing garbage", "should_trigger": false},
+  {"query": "write bats tests for my deploy.sh script", "should_trigger": false},
+  {"query": "my jest tests in the react frontend are timing out, help", "should_trigger": false},
+  {"query": "audit the pytest-expert skill and check whether its citations are accurate", "should_trigger": false},
+  {"query": "my model's loss goes NaN after 300 steps, what's wrong with my training script", "should_trigger": false},
+  {"query": "write a README for this Python library with install and usage sections", "should_trigger": false},
+  {"query": "add structured JSON logging with request ids to my FastAPI service", "should_trigger": false},
+  {"query": "shrink this Python Dockerfile, the image is 2 GB", "should_trigger": false},
+  {"query": "refactor this if/elif chain of payment providers into something pluggable", "should_trigger": false}
+]

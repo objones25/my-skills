@@ -1,3 +1,21 @@
+# Audit, 2026-11-09 (mutation-testing reference only)
+
+Scope: `references/mutation-testing.md`, the two paper digests it cites for these claims, and the wallet example's README. The rest of the skill was not re-audited.
+
+Source: an `audit-skill` eval run on 2026-11-07 audited a copy of this skill with three errors planted in this file. It caught the planted errors and flagged the items below, which were not planted. The author rechecked each one before changing anything.
+
+| Claim | How it was rechecked | Result |
+|---|---|---|
+| Chen et al.: mutation-based selection beats coverage at equal size | Read §6.4, Fig. 5 and §8 in the author PDF (cs.ubc.ca/~rtholmes/papers/ase_2020_chen.pdf), fetched raw | Wrong, reversed; fixed. The Fig. 7 reduction claim in the digest is right |
+| mutmut: 194 mutants, 183 killed, 11 survived | Ran `mutmut run --max-children 4` twice on a copy of `examples/wallet` (mutmut 3.8.1, pytest 9.2.0, Python 3.13.2, macOS arm64); `mutmut show` on all 13 survivors | Wrong for current versions: 181 and 13; fixed. The first-run figures (72 s, 175 killed) were not rerun and are now marked machine not recorded |
+| The extra survivors are harmless | `inspect.signature(json.dumps)` shows `ensure_ascii=True`; `json.dumps({"o": "Zoë"})` gives `{"o": "Zo\u00eb"}` | Equivalent mutants; documented |
+| Every survivor is a behavior change | The file's own equivalent-mutant section | Wrong; reworded |
+| mutmut takes minutes; too slow per push | Timed the two runs above: 6 s and 9 s | Overstated for the example; reworded with the cost model |
+| Workflow step 6 | `grep '^\*\*[0-9]\.' SKILL.md` | It is step 5; fixed, with a test |
+| Zhao et al. §3.3 | Read the arXiv PDF (2607.22880): the footnote mark is on RQ2 in §3.1 | Locator fixed |
+
+Not verified or not done: the rest of `mutation-testing.md` was audited by the eval run (66 items confirmed there, on a planted copy) but not rechecked by the author; the other references were not audited; `MUTATION_MAX_SURVIVORS: "25"` in the nightly workflow template is a placeholder for the user's project and was left alone; the five pre-existing `check_skill.py` warnings (SB006, SB007, SB010, SB022, SB043) were not addressed here; they were fixed on 2026-11-10 (see CHANGELOG).
+
 # Audit, 2026-11-02
 
 Previous version: 2026-10-04 (verified on Python 3.12 with pytest 9.1.1; 60 selftests,

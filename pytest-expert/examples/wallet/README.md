@@ -40,20 +40,20 @@ Measured at release, machine not recorded. Rerun on 2026-11-03 on macOS arm64 wi
 | `python fuzz/fuzz_parse_amount.py fuzz/corpus/parse_amount -max_total_time=60 -artifact_prefix=fuzz/crashes/` | Atheris | 16.5 million runs (machine not recorded) in 46 s, no crash |
 | `crosshair check --analysis_kind=PEP316 src/` | contract check on docstrings | no findings |
 | `python ../../scripts/mutate_check.py src/wallet/money.py --function transfer_fee_cents -- python -m pytest -x -q -p no:randomly --no-cov tests/unit` | targeted mutation | 32 of 34 killed; 2 equivalent |
-| `mutmut run --max-children 4` then `mutmut results` | whole-package mutation | 183 of 194 killed |
+| `mutmut run --max-children 4` then `mutmut results` | whole-package mutation | 181 of 194 killed (2026-11-09, macOS arm64, mutmut 3.8.1) |
 
 `crosshair check` needs `src` on the import path: run it with `PYTHONPATH=src` set in
 the environment.
 
 ## Exercises left on purpose
 
-mutmut reports 11 survivors. Seven are worth a test:
+mutmut reports 13 survivors. Seven are worth a test:
 
 | Survivor | Missing test |
 |---|---|
-| error messages mutated to `"XX...XX"` in `transfer_fee_cents` | anchor the `match=` pattern (`r"^amount must be positive$"`) |
-| `balance < 0` to `<= 0` in `load_wallet` | load a stored wallet with a zero balance (must succeed) and a negative one (must fail) |
-| `or` to `and` in the same check | load a file whose `owner` does not match its name |
+| error messages mutated to `"XX...XX"` in `transfer_fee_cents`, and to `None` in `load_wallet` | anchor the `match=` pattern (`r"^amount must be positive$"`) |
+| `balance < 0` to `<= 0` and to `< 1` in `load_wallet` | load a stored wallet with a zero balance (must succeed) and a negative one (must fail) |
+| each `or` to `and` in the same check | load a file whose `owner` does not match its name, and one with a non-finite balance |
 
 The rest are equivalent mutants. `references/mutation-testing.md` walks through how
 each was classified.

@@ -1,6 +1,8 @@
 ---
 name: pytest-expert
-description: Build, audit, and harden pytest suites for Python codebases. Use whenever the user writes, reviews, or fixes tests; configures pytest or coverage; hunts flaky tests; tests async (asyncio, anyio) or ML/PyTorch code; or asks for property-based testing (Hypothesis), fuzzing (Atheris), symbolic execution (CrossHair), mutation testing, snapshot tests, security tests, integration tests, CI test pipelines, pre-commit hooks, or Claude Code hooks that run tests. Also use when an AI agent wrote or changed tests, says "all tests pass now", or a suite went green suspiciously, and proactively when writing Python code that will need tests. Ships a stdlib audit that fails the build on tests that cannot fail, a diff guard that catches tests weakened to get green, a mutation checker, a flaky-test hunter, hooks, hardened workflows, templates, and worked examples.
+description: Build, audit, and harden pytest suites for Python codebases. Use whenever the user writes, reviews, or fixes tests; configures pytest or coverage; hunts flaky tests; tests async (asyncio, anyio) or ML/PyTorch code; or asks for property-based testing (Hypothesis), fuzzing (Atheris), symbolic execution (CrossHair), mutation testing, snapshot tests, security tests, integration tests, CI test pipelines, pre-commit hooks, or Claude Code hooks that run tests. Also use when an AI agent wrote or changed tests, says "all tests pass now", or a suite went green suspiciously, and proactively when writing Python code that will need tests. Ships a stdlib audit that fails the build on tests that cannot fail, a diff guard that catches tests weakened to get green, a mutation checker, a flaky-test hunter, hooks, hardened workflows, templates, and worked examples. Not for test suites in other languages, bats tests for shell scripts (use bash-scripting-specialist), or checking a skill's own claims (use audit-skill).
+metadata:
+  test-command: "uv run --no-project --with pytest --with pytest-randomly python -m pytest selftest -q"
 ---
 
 # pytest Expert
@@ -44,7 +46,7 @@ boundaries, and look at the existing layout (`tests/`, `conftest.py`,
 *Done when* you can list the functions to test and the boundary each one crosses.
 
 **2. Install the gates.** Merge `assets/pytest-config.toml` into `pyproject.toml`,
-copy `assets/conftest.py` to `tests/conftest.py` (add `assets/conftest_ml.py` for
+copy `assets/conftest.py` into the project's `tests/` (add `assets/conftest_ml.py` for
 PyTorch), and adopt `assets/ruff-pytest.toml`. Copy `scripts/audit_tests.py` into the
 project's `scripts/`. *Done when* `pytest --collect-only -q` succeeds under strict
 config.
@@ -237,23 +239,22 @@ Not worth testing: getters, third-party behavior, `__repr__`, pure configuration
 | `scripts/flake_hunt.py` | reruns under many random orders; labels order-dependent vs nondeterministic |
 
 Each prints usage with `--help`; the audit and the guard take `--list-codes` and
-`--format json|github`. `selftest/` tests the scripts, the hooks, and the skill's own structure (`pytest selftest -q`).
+`--format json|github`. `selftest/` tests the scripts, the hooks, and the skill's own
+structure; `metadata.test-command` runs it.
 
 ## Worked example
 
 `examples/wallet/` is a small package tested at every layer: unit, property
 (including a stateful model), security, integration, symbolic, and a fuzz target with
 corpus replay. `examples/wallet/demo/` holds v0 versions with planted bugs and the
-tests that find them. Start with `examples/wallet/README.md`.
+tests that find them. Start with `examples/wallet/README.md`. `examples/diagnoses/`
+holds five diagnoses with real script output (a bug behind a green suite, a gamed
+suite, a CI-only flake, a hanging async suite, 100% coverage at 38% mutation score);
+index: `examples/diagnoses/README.md`.
 
-`examples/diagnoses/` holds five worked diagnoses with real script output (production
-bug behind a green suite, a gamed suite, a CI-only flake, a hanging async suite, 100%
-coverage at 38% mutation score). Index: `examples/diagnoses/README.md`.
+## Extend this skill
 
-## Sources
-
-Research (mutation testing, coverage, LLM-written tests, ImpossibleBench, PBT, flaky
-tests, smells): `references/sources.md`, with digests in `references/papers/`.
-Per-rule sources: `references/rules.md`. Tool docs (pytest, ruff, Hypothesis,
-CrossHair, Atheris, GitHub Actions, Claude Code hooks) are cited in the reference that
-uses them. What changed and how it was verified: `CHANGELOG.md`, `AUDIT.md`.
+1. New audit or guard code: a failing fixture in `selftest/test_audit_tests.py` or `selftest/test_diff_guard.py` first, then the code, its row in `references/rules.md`, and the gate count in `INSTALL.md`.
+2. New reference: a row in the Reference files table. New paper: a digest in `references/papers/`, a line in its README, and an entry in `references/sources.md`.
+3. New script: a matching `test_*.py` in `selftest/` and a row in the Scripts table. New quoted output: rerun it and stamp it with date, machine and versions.
+4. Run `metadata.test-command` (`selftest/test_skill_structure.py` catches a missed table row, index line or count), skill-builder's `check_skill.py --strict`, and add a CHANGELOG entry.
