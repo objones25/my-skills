@@ -20,7 +20,7 @@ The scripts enforce that the reviewer returned a definite verdict or `couldnt-ve
 3. When it finishes: `python3 <this-skill>/scripts/review_round.py merge RUN`.
    - Exit 2: the reviewer skipped a command, a source or an item. Send it back with the message.
    - Exit 1: open problems in `review/round-N/feedback.jsonl`. For each, the auditor does one of three things: fixes the item with evidence that survives the problem; downgrades it to `couldnt-verify` (strength E); or, when the problem is not real, leaves the verdict and adds the counter-evidence to the note. An item that was not accepted goes back to a fresh blind reviewer next round either way, so a rejected problem is settled by evidence, not by the auditor's say-so. Missed items get added to `items.jsonl`. Then validate and go to step 1.
-   - Exit 0: clean, or capped with items marked `disputed`. Go on to the report.
+   - Exit 0: clean, or capped with items marked `disputed`. A claim the reviewer reports missing in the last round is added as `not-checked`, since nobody checked it; the report counts it as unchecked and cannot read "(full)". Go on to the report.
 
 ## Reviewer brief (copy, fill in the paths)
 

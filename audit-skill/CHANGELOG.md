@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.1.1, 2026-11-15
+
+Found by the first real full audit (documentation-expert, 2026-11-15; report in the repository's gitignored `audits/` folder).
+
+| Problem | Evidence | Fix |
+|---|---|---|
+| A claim the reviewer reported missing in the last round was added as `disputed` with no verdict and no evidence, so the report counted it as checked and read "(full)" | documentation-expert run: "Checked 823 of 823 items", with item R3-0823 (revive's `exported` rule, `evals/evals.json:33`) never checked by anyone | `merge` adds it as `not-checked` and lists it in `missed_at_cap_ids`; AS012 accepts an unchecked in-scope item only if it is on that list; the report counts it as unchecked and titles itself "Partial audit". Tests `test_missed_item_in_scope_at_cap_is_not_checked_and_the_report_is_partial` (watched failing first) and `test_unchecked_in_scope_item_not_recorded_by_merge_still_fails_validation` (watched failing against a mutant that disables the AS012 check) |
+| Workers logged searches that never ran (budget refusals) as searches with 0 hits, twice in one run | Rows Q-B11-020..022 and Q-B04-016..018 in that run, removed by the lead | New `scripts/search.py`: queries Crossref, Semantic Scholar or arXiv and writes the log row itself, only when the search ran; a 429 is retried at most 3 times honouring Retry-After; exit 2 and no row otherwise. 11 tests in `tests/test_search.py`, run against a local server; a mutant that logs failed searches is caught by 4 of them. `searching.md` (new step 8) and the worker brief say a refused search is not "0 hits" and that no tool may route around a search budget or a bot check |
+
+### Test results by machine
+
+| Date | Machine | Versions | Result |
+|---|---|---|---|
+| 2026-11-15 | macOS arm64 (Apple Silicon) | Python 3.13.2, pytest 9.2.0, pdftotext 26.02.0 | 215 passed, 0 skipped |
+| 2026-11-15 | macOS arm64 (Apple Silicon) | Python 3.11.18, pytest 9.2.0, pdftotext 26.02.0 (run with `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1`) | 215 passed, 0 skipped |
+
+Not done: no independent review of this change, no eval rerun, and audit-skill was not audited by itself (skill-builder Update step 2) for this targeted fix.
+
 ## 0.1.0, 2026-11-07
 
 First version, built from the design in `docs/superpowers/specs/2026-11-07-audit-skill-design.md` of the `my-skills` repository, with skill-builder's Create mode. The method is grounded in four research passes (systematic-review search methods, fact-checking and source credibility, evidence grading, LLM citation failures); see `references/sources.md`. The quotes this skill uses from those sources were string-matched against raw fetches with its own `fetch_source.py` and `quote_match.py`.

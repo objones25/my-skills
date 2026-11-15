@@ -2,7 +2,7 @@
 name: audit-skill
 description: "Read-only fact-check of a Claude Code skill: inventories every claim, script, example and test, verifies each in-scope item against code, official docs and peer-reviewed research (no hype or vendor sources), machine-checks every quote, passes a blind 3-round independent review, and writes a cited report that states exactly what was and was not checked. Use when the user asks to audit, fact-check, verify or review a skill, asks whether a skill's claims, citations or numbers are still true, suspects a skill is stale, or wants evidence before updating a skill. Not for editing or fixing the skill (skill-builder's Update mode does that from this report), tuning a description (skill-creator), or reviewing application code."
 metadata:
-  version: 0.1.0
+  version: 0.1.1
   test-command: "uv run --no-project --with pytest python -m pytest tests"
 ---
 
@@ -70,6 +70,7 @@ Produce an audit report that someone else could rerun and get the same verdicts.
 | `scripts/start_audit.py` | Create the run folder, workspace copy and `meta.json` (tree hash, scope, report path) |
 | `scripts/find_candidates.py` | List every line and file the inventory must cover |
 | `scripts/fetch_source.py` | Save a source's raw text (HTML, PDF via `pdftotext`) for quote matching |
+| `scripts/search.py` | Search Crossref, Semantic Scholar or arXiv and log the search only if it ran |
 | `scripts/quote_match.py` | Check one quote against one saved source |
 | `scripts/validate_audit.py` | The rules a script can check, codes AS002 to AS027 |
 | `scripts/review_round.py` | Blind reviewer packet, mechanical merge, 3-round cap |

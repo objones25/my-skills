@@ -20,8 +20,9 @@ merge   Reads review/round-N/verdicts.jsonl (one row per packet item, plus rows 
         apart, the item takes the weaker strength (noted in review_note) and is accepted.
         Items with no problems are accepted. Problems go to review/round-N/feedback.jsonl for the auditor (exit 1).
         No problems: status clean (exit 0). After round 3, open items become "disputed"
-        with both positions recorded, missed items are added as disputed (or not-checked
-        when outside the targeted paths), and the status is capped (exit 0). Only this
+        with both positions recorded, missed items are added as not-checked (in scope ones
+        are listed in state "missed_at_cap_ids", so the report counts them as unchecked and
+        cannot read "(full)"), and the status is capped (exit 0). Only this
         script marks items disputed. An item once sent to the reviewer may be fixed or
         downgraded but never deleted or taken out of scope; packet refuses if it is.
 
@@ -259,13 +260,13 @@ def cmd_merge(run: Path) -> int:
             new = {"id": new_id, "file": fb["file"], "line": fb["line"],
                    "kind": fb.get("kind") if fb.get("kind") in KINDS else "recommendation", "text": fb["text"],
                    "in_scope": in_scope is not False, "evidence": [], "searches": []}
-            if in_scope is False:
-                new.update({"verdict": "not-checked", "note": "reported missing by the reviewer in round "
-                                                              f"{round_no}; outside the targeted paths"})
-            else:
-                new.update({"verdict": "disputed",
-                            "dispute": {"auditor": {"verdict": "not inventoried"}, "reviewer": reviewer}})
-                state.setdefault("disputed_ids", []).append(new_id)
+            # Nobody has checked a claim first reported in the last round, so it is not-checked:
+            # recording it as disputed would count it as checked and let the report read "(full)".
+            where = "outside the targeted paths" if in_scope is False else "after the last round, so never checked"
+            new.update({"verdict": "not-checked",
+                        "note": f"reported missing by the reviewer in round {round_no}; {where}"})
+            if in_scope is not False:
+                state.setdefault("missed_at_cap_ids", []).append(new_id)
             all_items.append(new)
             continue
         item = by_id[fb["id"]]

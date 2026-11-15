@@ -1,5 +1,9 @@
 # Audit of audit-skill
 
+## 2026-11-15: defects found in use (0.1.1)
+
+Two defects surfaced during the first full audit run (documentation-expert); both are fixed test-first, details in CHANGELOG 0.1.1. A final-round missed claim was counted as checked, so a partial audit could read "(full)": the exact failure this skill exists to prevent. And agents hand-logged refused searches as "0 hits". Not verified: no fresh-agent review of the fix; the skill was not re-audited.
+
 Date: 2026-11-07. Reviewer: a fresh general-purpose subagent that wrote none of this skill, asked to break its claims and its trust mechanisms. It worked on copies in scratch space and reproduced each finding below with a script unless marked otherwise. A control-skill eval run (see CHANGELOG) found further problems, listed separately.
 
 ## Errors found by the independent review

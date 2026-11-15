@@ -40,7 +40,10 @@ For each item:
   inspect the code. Record command and exact output as evidence. Add the tool and version
   to your report so the lead can put it in meta.json.
 - Anything else: search as searching.md says, logging every query to
-  RUN/parts/search-WORKER.jsonl with ids Q-WORKER-001 and up. Each item with a cited
+  RUN/parts/search-WORKER.jsonl with ids Q-WORKER-001 and up. Log only searches that ran:
+  a refused or failed search is not "0 hits". For papers, prefer
+  python3 <this-skill>/scripts/search.py ENGINE "QUERY" --run RUN --worker WORKER --purpose P --item ID
+  which writes the row itself only on success. Each item with a cited
   source, and each couldnt-verify item without a command, needs at least two of its own
   searches with different queries, listing the item id in item_ids, one of them
   disconfirming. Fetch each source you cite with
