@@ -12,7 +12,7 @@ Contents:
 
 ## The completeness test
 
-standard-readme opens its Background with Ken Williams's bar: *"Your
+standard-readme's Background quotes Ken Williams's bar: *"Your
 documentation is complete when someone can use your module without ever having
 to look at its code."*
 
@@ -152,7 +152,7 @@ cannot show: which of these you actually need, and when.
 ### Configuration
 
 Every environment variable and config key the program reads, with its type,
-default, and effect. `scripts/scan_repo.py` lists the ones the source reads that no
+default, and effect. `scripts/scan_repo.py` lists the environment variables the source reads that no
 document mentions, which is usually where this section comes from.
 
 A table works better than prose here because readers scan it for one row.

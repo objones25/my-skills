@@ -7,8 +7,10 @@ already owns the API reference, what the public surface is, and how far the
 docs have fallen behind the code.
 
 The most useful output is usually the last section: public names the source
-exports that no document mentions, and documented commands that no longer
-exist. That is the gap list. Everything above it is context for reading it.
+exports that no document mentions, plus the environment variables, entrypoints
+and npm scripts that no document mentions. That is the gap list. Everything
+above it is context for reading it. Checking that documented commands still
+exist is verify_claims.py's job, not this script's.
 
 Usage:
     python3 scan_repo.py                 # scan the current directory
@@ -28,6 +30,7 @@ from __future__ import annotations
 import argparse
 import ast
 import json
+import os
 import re
 import subprocess
 import sys
@@ -185,6 +188,19 @@ def python_surface(repo: Repo) -> list[dict]:
     return surface
 
 
+def _export_entry(node, depth: int = 0) -> str | None:
+    """First file path in a package.json exports value, following nested conditions."""
+    if isinstance(node, str):
+        return node
+    if not isinstance(node, dict) or depth > 8:
+        return None
+    for condition in ("import", "default", "require"):
+        found = _export_entry(node.get(condition), depth + 1)
+        if found:
+            return found
+    return None
+
+
 def js_surface(repo: Repo) -> list[dict]:
     entry = None
     pkg = repo.root / "package.json"
@@ -194,15 +210,9 @@ def js_surface(repo: Repo) -> list[dict]:
         except (json.JSONDecodeError, OSError):
             return []
         exports = data.get("exports")
-        if isinstance(exports, str):
-            entry = exports
-        elif isinstance(exports, dict):
-            root_export = exports.get(".", exports)
-            entry = root_export if isinstance(root_export, str) else (
-                root_export.get("import") or root_export.get("default")
-                or root_export.get("require") if isinstance(root_export, dict) else None
-            )
-        entry = entry or data.get("main") or data.get("module")
+        if isinstance(exports, dict):
+            exports = exports.get(".", exports)
+        entry = _export_entry(exports) or data.get("main") or data.get("module")
     if not entry:
         return []
     rel = entry.lstrip("./")
@@ -248,8 +258,8 @@ def source_env_vars(repo: Repo) -> dict[str, str]:
     # found only under a test directory is not project configuration.
     test_roots = {"tests", "test", "spec", "__tests__", "e2e", "fixtures", "benchmarks"}
     for rel, lines in repo.text_index.items():
-        head = rel.split("/")[0]
-        if head in SKIP_DIRS or head in test_roots:
+        parts = rel.split("/")
+        if parts[0] in SKIP_DIRS or test_roots.intersection(parts[:-1]):
             continue
         for i, line in enumerate(lines, 1):
             for rx in compiled:
@@ -394,7 +404,7 @@ def main(argv: list[str] | None = None) -> int:
     args = ap.parse_args(argv)
 
     root = Path(args.root).resolve()
-    if not root.is_dir():
+    if not root.is_dir() or not os.access(root, os.R_OK | os.X_OK):
         print(f"error: {root} is not a directory", file=sys.stderr)
         return 2
     data = scan(root)

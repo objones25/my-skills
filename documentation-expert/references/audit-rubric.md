@@ -26,7 +26,7 @@ something, score it as unverified and say so rather than guessing.
 ## The rubric
 
 Weights reflect what developers report actually blocking them: respondents
-prioritized every content problem over every presentation problem, and named
+prioritized five content-related problems over any presentation problem, and named
 incompleteness, incorrectness, and ambiguity as most in need of attention
 (Uddin and Robillard 2015). The point values themselves are this skill's
 choice, not the paper's.
@@ -166,13 +166,13 @@ shape. From `pallets/click` at commit `2247b35` (2026-10-04):
 $ python3 scripts/lint_prose.py click/README.md --min-severity warn
 ERROR L1    RM002  README has no section matching install
 ERROR L1    RM002  README has no section matching license
-WARN  L21   TONE001  'simple' judges the reader's experience; state the step count instead
+WARN  L21   TONE001  'simple' judges the reader's experience; state the step count or the time instead
 WARN  L38   CODE001  Fenced code block has no language tag
 ```
 
 The first two are where judgement starts rather than ends: click's README
-deliberately routes install and license to its docs site and `LICENSE.txt`, so
-a maintainer may reasonably decline them.
+has no install or license section, so a maintainer may reasonably decline
+them.
 
 Each of those is a specific edit rather than a judgement, which is the point:
 the maintainer can act on all four without agreeing with your taste.

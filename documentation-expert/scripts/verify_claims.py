@@ -5,9 +5,11 @@ A "claim" is anything the doc asserts about the code that can be mechanically
 checked: a file path, a link, a heading anchor, an environment variable, a CLI
 flag, a command, an imported symbol, or a code block that should parse.
 
-Every claim comes back with a verdict and, when verified, a `file:line`
-citation. That citation ledger is the point: it turns "the README looks fine"
-into evidence a reviewer can spot-check.
+Every claim comes back with a verdict and the evidence behind it: a file for
+verified paths, links, commands and symbols, and a `file:line` for verified
+environment variables, CLI flags and JavaScript exports. That ledger is the
+point: it turns "the README looks fine" into evidence a reviewer can
+spot-check.
 
 Usage:
     python3 verify_claims.py README.md
@@ -470,10 +472,9 @@ def slugify(heading: str) -> str:
     """
     text = re.sub(r"`([^`]*)`", r"\1", heading)
     text = LINK_RE.sub(r"\2", text)
-    # Emphasis markers vanish when the heading renders. An underscore inside a
-    # word (snake_case) is literal text in GFM, so only strip delimiter runs.
+    # github-slugger works on the heading text and keeps every underscore
+    # (`_private` stays `_private`), so only strip `*` and `~` markers here.
     text = re.sub(r"[*~]+", "", text)
-    text = re.sub(r"(?<![^\W_])_+|_+(?![^\W_])", "", text)
     text = text.strip().lower()
     kept = "".join(
         ch for ch in text
@@ -595,10 +596,11 @@ def check_links(repo: Repo, doc: Path, text: str, prose: list[tuple[int, str]]) 
         targets.append((lineno, url, ""))
 
     for lineno, target, label in targets:
-        if target.startswith(("http://", "https://")):
+        # URI schemes are case-insensitive (RFC 3986 section 3.1).
+        if re.match(r"(?i)(?:https?:)?//", target):
             claims.append(Claim("link", target, lineno, "external", "not fetched (no network calls)"))
             continue
-        if target.startswith(("mailto:", "tel:", "data:")):
+        if re.match(r"(?i)(?:mailto:|tel:|data:|[a-z][a-z0-9+.-]*://)", target):
             claims.append(Claim("link", target, lineno, "skipped", "non-filesystem scheme"))
             continue
         if target.startswith("#"):
@@ -681,6 +683,27 @@ def check_env_vars(repo: Repo, prose: list[tuple[int, str]], blocks: list[Block]
     return claims
 
 
+# make options that take their value as the next token.
+MAKE_VALUE_OPTS = {"-f", "-C", "-I", "-o", "-W", "-E", "-l", "--file", "--makefile",
+                   "--directory", "--include-dir", "--old-file", "--what-if"}
+
+
+def make_target(args: list[str]) -> str:
+    """First target in `make` arguments, skipping options and VAR=value."""
+    i = 0
+    while i < len(args):
+        tok = args[i]
+        if tok in MAKE_VALUE_OPTS:
+            i += 2
+        elif tok in {"-j", "--jobs"} and i + 1 < len(args) and args[i + 1].isdigit():
+            i += 2
+        elif tok.startswith("-") or "=" in tok:
+            i += 1
+        else:
+            return tok
+    return ""
+
+
 def check_commands(repo: Repo, blocks: list[Block]) -> list[Claim]:
     claims: list[Claim] = []
     seen: set[str] = set()
@@ -690,7 +713,8 @@ def check_commands(repo: Repo, blocks: list[Block]) -> list[Claim]:
         raw_lines = b.body.splitlines()
         # A block that shows a prompt is a transcript: the unprompted lines are
         # program output, not commands. Checking them produces pure noise.
-        prompted = any(re.match(r"^\s*[$>#]\s+\S", ln) for ln in raw_lines)
+        # A leading `#` is a comment in an unprompted block, not a root prompt.
+        prompted = any(re.match(r"^\s*[$>]\s+\S", ln) for ln in raw_lines)
         for offset, raw in enumerate(raw_lines, 1):
             line = raw.strip()
             lineno = b.line + offset
@@ -748,7 +772,7 @@ def check_commands(repo: Repo, blocks: list[Block]) -> list[Claim]:
                 continue
 
             if prog == "make":
-                target = next((t for t in tokens[1:] if not t.startswith("-")), "")
+                target = make_target(tokens[1:])
                 if not target:
                     claims.append(Claim("command", key, lineno, "skipped", "default make target"))
                 elif target in repo.make_targets:
