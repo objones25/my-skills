@@ -295,7 +295,7 @@ Reference material is the easiest kind to check mechanically, so check it.
 |---|---|---|
 | Python | `python -m doctest -v path/to/module.py` or `pytest --doctest-modules` | Runs `>>>` examples in docstrings |
 | TypeScript | `npx tsc --noEmit` | Type-checks source only; `@example` blocks in comments are not compiled, so keep runnable examples in `.ts` files that `tsc` covers |
-| Rust | `cargo test --doc` | Compiles and runs every doc example |
+| Rust | `cargo test --doc` | Compiles and runs doc examples; `ignore` blocks are skipped and `no_run` blocks are only compiled |
 | Go | `go test ./...` | Runs `Example` functions and compares their `// Output:` comments |
 | Go | `staticcheck -checks ST1020,ST1021,ST1022 ./...` | Doc comments start with the declared name (these checks are off by default; `go vet` has no doc-comment check) |
 | OpenAPI | `npx @redocly/cli lint openapi.yaml` | Spec validity and lint rules |

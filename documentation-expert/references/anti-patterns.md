@@ -13,7 +13,7 @@ Contents:
 ## How to use this file
 
 Read the group that matches the section you are about to write. Each entry names
-the failure, what it costs the reader, and the fix.
+the failure and the fix, and most name what it costs the reader.
 
 The ordering is deliberate. The empirical work on this puts content problems
 firmly ahead of presentation problems: developers named incompleteness,

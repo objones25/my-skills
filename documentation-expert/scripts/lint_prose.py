@@ -52,7 +52,7 @@ RULES = {
     "DOC006": ("info", "Duplicate heading text makes anchors ambiguous",
                "Google style: headings"),
     "CODE001": ("warn", "Fenced code block has no language tag",
-                "Google style: code samples"),
+                "markdownlint MD040: fenced code blocks should have a language"),
     "CODE002": ("warn", "Elision uses '...' or an ellipsis; use a comment in the block's language",
                 "Google style: code samples"),
     "CODE003": ("info", "Code line is {n} characters; wrap at 80",
@@ -88,7 +88,7 @@ RULES = {
     "RM002": ("error", "README has no section matching {want}", "standard-readme spec"),
     "RM003": ("warn", "{n} badges above the first heading of substance; badge soup buries the description",
               "standard-readme: badges are optional and unlabelled"),
-    "RM004": ("info", "Opening description is {n} characters; standard-readme caps the short description at 120",
+    "RM004": ("info", "Opening description is {n} characters; standard-readme requires the short description to be under 120",
               "standard-readme spec"),
 }
 
@@ -155,9 +155,10 @@ FENCE_RE = re.compile(r"^(\s*)(`{3,}|~{3,})\s*([^\s`]*)")
 HEADING_RE = re.compile(r"^(#{1,6})\s+(.*?)\s*#*\s*$")
 LINK_RE = re.compile(r"(!?)\[([^\]\n]*)\]\(\s*<?([^)\s>]+)>?(?:\s+\"[^\"]*\")?\s*\)")
 CODESPAN_RE = re.compile(r"`[^`\n]+`")
-# Only flag "above"/"below" when they refer to a position in the document.
-# "Put a line below the text" describes rendering, not navigation, and flagging
-# it would train the reader to ignore this rule.
+# Flag "above"/"below" only in phrases that point at another part of the
+# document ("the table below", "see above"). The match is by pattern, so it
+# cannot tell document position from rendering position: "Place the list below
+# the header" is flagged, while "a line below the text" is not.
 DOC_NOUNS = (r"diagram|table|image|figure|example|snippet|command|section|output|"
              r"list|code|screenshot|block|steps?|instructions?|paragraph|chapter")
 DIRECTIONAL_RE = re.compile(
@@ -234,7 +235,9 @@ def check_structure(text: str, out: list[Finding]) -> None:
 
     h1s = [h for h in headings if h[1] == 1]
     # Some projects set the title with raw HTML for centering. It still counts.
-    html_h1 = len(re.findall(r"<h1[\s>]", text, re.I))
+    # Examples that show <h1> inside a fence or a code span are not titles.
+    prose = "\n".join(strip_code(ln) for _, ln, in_fence, _ in parse(text) if not in_fence)
+    html_h1 = len(re.findall(r"<h1[\s>]", prose, re.I))
     total_h1 = len(h1s) + html_h1
     if total_h1 != 1:
         emit(out, "DOC001", h1s[1][0] if len(h1s) > 1 else 1, n=total_h1)
@@ -404,7 +407,11 @@ def check_readme(text: str, out: list[Finding]) -> None:
 
     badge_count = 0
     for line in lines[:40]:
-        badge_count += len(re.findall(r"\[!\[[^\]]*\]\([^)]*\)\]\([^)]*\)", line))
+        # A linked badge contains an image badge; count it once.
+        linked = re.findall(r"\[!\[[^\]]*\]\([^)]*\)\]\([^)]*\)", line)
+        badge_count += len(linked)
+        for chunk in linked:
+            line = line.replace(chunk, "")
         badge_count += len(re.findall(r"!\[[^\]]*\]\(https://(?:img\.shields\.io|badgen\.net|badge\.fury\.io)[^)]*\)", line))
     if badge_count > 6:
         emit(out, "RM003", 1, n=badge_count)
@@ -420,7 +427,7 @@ def check_readme(text: str, out: list[Finding]) -> None:
                 elif body:
                     break
             para = " ".join(body)
-            if len(para) > 120:
+            if len(para) >= 120:
                 emit(out, "RM004", i + 1, para[:80], n=len(para))
             break
 

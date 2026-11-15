@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Regression tests for the three bundled scripts. Stdlib unittest only.
 
-Run from anywhere:
-    python3 -m unittest discover -s scripts -p "test_*.py"
-    python3 scripts/test_scripts.py
+Run from anywhere. Paths inside the tests resolve from this file, so the
+commands work from any directory when given the skill's absolute path:
+    python3 -m unittest discover -s /path/to/documentation-expert/scripts -p "test_*.py"
+    python3 /path/to/documentation-expert/scripts/test_scripts.py
 
 Each test builds a throwaway repository in a temporary directory, runs a script
 as a subprocess, and checks its output or exit code.
@@ -13,6 +14,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -274,6 +276,84 @@ class VerifyClaims(unittest.TestCase):
         self.assertEqual(verdict(claims, "--size"), "verified")
         self.assertEqual(verdict(claims, "--nope"), "missing")
 
+    def test_slug_keeps_leading_and_trailing_underscores(self):
+        doc = write(self.root, "README.md", """
+            # W
+
+            ## _private
+
+            ## trailing_
+
+            See [a](#_private), [b](#trailing_), [c](#private).
+        """)
+        claims = ledger(self.root, doc)
+        anchors = {c["value"]: c["verdict"] for c in claims if c["kind"] == "anchor"}
+        self.assertEqual(anchors.get("#_private"), "verified", anchors)
+        self.assertEqual(anchors.get("#trailing_"), "verified", anchors)
+        self.assertEqual(anchors.get("#private"), "missing", anchors)
+
+    def test_link_schemes_are_case_insensitive(self):
+        doc = write(self.root, "README.md", """
+            # W
+
+            See [a](HTTPS://example.com), [b](ftp://host/file), [c](//cdn.example/x.js),
+            [d](MAILTO:a@b.c).
+        """)
+        claims = {c["value"]: c["verdict"] for c in ledger(self.root, doc) if c["kind"] == "link"}
+        self.assertEqual(claims.get("HTTPS://example.com"), "external", claims)
+        self.assertEqual(claims.get("ftp://host/file"), "skipped", claims)
+        self.assertEqual(claims.get("//cdn.example/x.js"), "external", claims)
+        self.assertEqual(claims.get("MAILTO:a@b.c"), "skipped", claims)
+
+    def test_comment_line_does_not_make_a_shell_block_a_transcript(self):
+        doc = write(self.root, "README.md", """
+            # W
+
+            ```bash
+            # build it
+            widgetkit --dry-run
+            nosuchtool --run
+            ```
+        """)
+        claims = ledger(self.root, doc)
+        self.assertEqual(verdict(claims, "nosuchtool --run"), "unresolved", claims)
+
+    def test_make_options_and_variables_are_not_targets(self):
+        write(self.root, "Makefile", "test:\n\techo hi\n")
+        doc = write(self.root, "README.md", """
+            # W
+
+            ```bash
+            make VAR=1 test
+            make -C . test
+            make -f Makefile test
+            make -j 4 test
+            make nope
+            ```
+        """)
+        cmds = {c["value"]: c["verdict"] for c in ledger(self.root, doc) if c["kind"] == "command"}
+        for key in ("make VAR=1 test", "make -C .", "make -f Makefile", "make -j 4"):
+            self.assertEqual(cmds.get(key), "verified", cmds)
+        self.assertEqual(cmds.get("make nope"), "missing", cmds)
+
+    def test_setup_cfg_extras_requirement_is_not_an_entrypoint(self):
+        # The extras entry carries "=" so only the end-of-section guard keeps it
+        # out of the entrypoints; an extras line without "=" would pass either way.
+        (self.root / "pyproject.toml").unlink()
+        write(self.root, "setup.cfg", """
+            [options.entry_points]
+            console_scripts =
+                widgetkit = widgetkit.cli:main
+
+            [options.extras_require]
+            dev =
+                pytest==8.0
+        """)
+        doc = write(self.root, "README.md", "# W\n\n```bash\npytest --size 2\n```\n")
+        cmds = {c["value"]: c["verdict"] for c in ledger(self.root, doc) if c["kind"] == "command"}
+        self.assertIn("pytest --size 2", cmds)
+        self.assertNotEqual(cmds["pytest --size 2"], "verified", cmds)
+
 
 class LintProse(unittest.TestCase):
     def setUp(self) -> None:
@@ -344,6 +424,61 @@ class LintProse(unittest.TestCase):
         self.assertEqual(res.returncode, 0, res.stdout)
         self.assertIn("Totals: clean", res.stdout)
 
+    def lint_rules(self, text: str, *extra: str) -> list[str]:
+        doc = write(self.root, "README.md", text)
+        res = run(LINT, str(doc), "--json", *extra)
+        return [f["rule"] for f in json.loads(res.stdout)[0]["findings"]]
+
+    def test_h1_in_code_fence_or_span_is_not_a_second_title(self):
+        rules = self.lint_rules("# T\n\n```html\n<h1>Demo</h1>\n```\n\nUse `<h1>` for titles.\n")
+        self.assertNotIn("DOC001", rules)
+
+    def test_raw_html_h1_still_counts(self):
+        rules = self.lint_rules("# T\n\n<h1>Second</h1>\n")
+        self.assertIn("DOC001", rules)
+
+    def test_linked_badges_are_counted_once(self):
+        def badges(n: int) -> str:
+            one = "[![b](https://img.shields.io/x.svg)](https://ci.example/x) "
+            return "# T\n\n" + one * n + "\n\nText.\n"
+        self.assertNotIn("RM003", self.lint_rules(badges(6), "--readme"))
+        self.assertIn("RM003", self.lint_rules(badges(7), "--readme"))
+
+    def test_plain_badges_still_count(self):
+        one = "![b](https://img.shields.io/x.svg) "
+        self.assertNotIn("RM003", self.lint_rules("# T\n\n" + one * 6 + "\n", "--readme"))
+        self.assertIn("RM003", self.lint_rules("# T\n\n" + one * 7 + "\n", "--readme"))
+
+    def test_description_of_exactly_120_characters_is_flagged(self):
+        def para(n: int) -> str:
+            return "# T\n\n" + "a" * n + "\n"
+        self.assertIn("RM004", self.lint_rules(para(120), "--readme"))
+        self.assertNotIn("RM004", self.lint_rules(para(119), "--readme"))
+
+    def test_code001_source_is_not_attributed_to_google_code_samples(self):
+        res = run(LINT, "--list-rules")
+        block = res.stdout.split("CODE001", 1)[1].split("CODE002", 1)[0]
+        self.assertNotIn("Google style: code samples", block)
+
+    def test_style_rules_word_table_matches_linter(self):
+        table = (HERE.parent / "references" / "style-rules.md").read_text(encoding="utf-8")
+        section = table.split("## Words to cut or replace", 1)[1]
+        words = []
+        for row in section.splitlines():
+            cells = [c.strip() for c in row.strip().strip("|").split("|")]
+            if not row.startswith("|") or len(cells) < 4 or cells[0] in {"Word or phrase", "---"}:
+                continue
+            if cells[0].startswith("---") or "not flagged" in cells[0]:
+                continue
+            for w in cells[0].split(", "):
+                words.append(re.sub(r"\s*\(.*?\)", "", w).strip())
+        self.assertGreater(len(words), 30, words)
+        doc = write(self.root, "w.md", "# T\n\n" + "".join(f"This is {w} here.\n\n" for w in words))
+        res = run(LINT, str(doc), "--json")
+        flagged = {f["excerpt"] for f in json.loads(res.stdout)[0]["findings"]}
+        missing = [w for w in words if not any(f"This is {w} here." == e for e in flagged)]
+        self.assertEqual(missing, [])
+
 
 class NoWrites(unittest.TestCase):
     def test_scripts_leave_no_bytecode_cache(self):
@@ -391,6 +526,64 @@ class ScanRepo(unittest.TestCase):
         data = json.loads(run(SCAN, str(self.root), "--json").stdout)
         readme = next(d for d in data["docs"] if d["path"] == "README.md")
         self.assertEqual(readme.get("source_commits_since_doc_touched"), 1, readme)
+
+    def test_unreadable_directory_exits_2(self):
+        if os.geteuid() == 0:
+            self.skipTest("root can read any directory")
+        locked = self.root / "locked"
+        locked.mkdir()
+        locked.chmod(0o000)
+        try:
+            res = run(SCAN, str(locked))
+        finally:
+            locked.chmod(0o755)
+        self.assertEqual(res.returncode, 2, res.stderr)
+        self.assertNotIn("Traceback", res.stderr)
+
+    def test_nested_conditional_exports_do_not_crash(self):
+        write(self.root, "package.json", json.dumps(
+            {"name": "j7", "exports": {".": {"import": {"types": "./dist/index.d.ts",
+                                                          "default": "./dist/index.js"}}}}))
+        write(self.root, "dist/index.js", "export function alpha() {}\n")
+        res = run(SCAN, str(self.root), "--json")
+        self.assertEqual(res.returncode, 0, res.stderr)
+        self.assertEqual(json.loads(res.stdout)["public_surface_count"], 1)
+
+    def test_env_var_read_only_under_nested_test_dir_is_ignored(self):
+        write(self.root, "src/pkg/tests/t.py", "import os\nos.environ.get('ONLY_NESTED_TEST')\n")
+        write(self.root, "src/pkg/a.py", "import os\nos.environ.get('REAL_CONFIG_VAR')\n")
+        data = json.loads(run(SCAN, str(self.root), "--json").stdout)
+        envs = " ".join(data["gaps"]["undocumented_env_vars"])
+        self.assertIn("REAL_CONFIG_VAR", envs)
+        self.assertNotIn("ONLY_NESTED_TEST", envs)
+
+    def test_docstring_does_not_promise_stale_commands_or_config_keys(self):
+        doc = " ".join(SCAN.read_text(encoding="utf-8").split('"""', 2)[1].split())
+        self.assertNotIn("commands that no longer exist", doc)
+        self.assertNotIn("config key", doc)
+
+
+class Meta(unittest.TestCase):
+    def test_verify_claims_docstring_does_not_promise_a_line_for_every_claim(self):
+        doc = " ".join(VERIFY.read_text(encoding="utf-8").split('"""', 2)[1].split())
+        self.assertNotIn("when verified, a `file:line` citation", doc)
+
+    def test_run_from_anywhere_commands_do_not_use_relative_paths(self):
+        doc = __doc__.split("Run from anywhere", 1)[1].split("Each test", 1)[0]
+        commands = [ln.strip() for ln in doc.splitlines() if ln.strip().startswith("python3")]
+        self.assertTrue(commands)
+        for cmd in commands:
+            self.assertNotRegex(cmd, r"(?<![\w/.-])scripts/", cmd)
+            self.assertNotRegex(cmd, r"-s scripts\b", cmd)
+
+    def test_suite_runs_from_another_working_directory(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            res = subprocess.run(
+                [sys.executable, "-I", str(HERE / "test_scripts.py"),
+                 "LintProse.test_list_rules_needs_no_document"],
+                capture_output=True, text=True, cwd=tmp, check=False,
+                env=dict(os.environ, PYTHONDONTWRITEBYTECODE="1"))
+        self.assertEqual(res.returncode, 0, res.stderr)
 
 
 if __name__ == "__main__":

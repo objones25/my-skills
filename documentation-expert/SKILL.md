@@ -3,17 +3,19 @@ name: documentation-expert
 description: Write, audit, and fix codebase documentation grounded in the source - READMEs, CONTRIBUTING guides, API reference, docstrings, and docs sites. Use when the user asks to write, improve, review, or fix any of these, mentions doc drift or stale docs, undocumented functions, or onboarding that fails, and before writing any documentation for a codebase even when the request sounds small, because the bundled scripts catch invented paths, flags, commands, and symbols. Not for changelogs, ADRs, RFCs, incident runbooks, marketing copy, or prose unrelated to a codebase.
 license: MIT
 metadata:
-  version: "1.0"
+  version: "1.1"
+  test-command: "python3 scripts/test_scripts.py"
 ---
 
 # Documentation expert
 
-Documentation fails on content, not on presentation. In a survey of 323 IBM
-developers, ambiguity, incompleteness, and incorrectness were the problems most
-in need of attention, and respondents prioritized every content problem over
-every presentation problem; no one ranked excess structural information or
-tangled information as a top priority (Uddin and Robillard, *How API
-Documentation Fails*, IEEE Software 2015). That finding shapes everything here:
+Documentation fails on content, not on presentation. Uddin and Robillard (*How API
+Documentation Fails*, IEEE Software 2015) ran two surveys of 323 IBM software
+professionals. Ambiguity, incompleteness, and incorrectness were the problems most
+in need of attention. The 254 respondents to the second survey (203 developers,
+51 architects) prioritized five content-related problems over any presentation
+problem, and no one ranked excess structural information or tangled information
+as a top priority. That finding shapes everything here:
 restating a signature gains the reader nothing, and a confidently wrong example
 costs them an hour.
 
@@ -55,8 +57,8 @@ variables, entrypoints, and scripts that no document mentions.
 Then read:
 
 - The manifest, in full. It is the source of truth for the package name, the
-  entrypoints, the supported runtime versions, and the dependencies.
-- The package's public entry file (`__init__.py`, `index.ts`, `lib.rs`, `main.go`).
+  any entrypoints it declares, the supported runtime versions, and the dependencies.
+- The package's public entry file (`__init__.py`, `index.ts`, `lib.rs`).
 - The integration and end-to-end tests, plus anything in `examples/`. These are
   the best available record of what users actually do with the project, and
   they beat any use case you would otherwise invent.
@@ -84,8 +86,9 @@ python3 scripts/lint_prose.py README.md               # is it readable?
 ```
 
 `scripts/verify_claims.py` resolves links, anchors, file paths, environment variables,
-CLI flags, commands, and imported symbols against the source tree, and prints a
-`file:line` citation for each one that checks out. `scripts/lint_prose.py` applies
+CLI flags, commands, and imported symbols against the source tree, and prints the
+evidence for each one that checks out. That evidence is a `file:line` for
+environment variables, flags and JavaScript exports, and a file for the rest. `scripts/lint_prose.py` applies
 mechanical style and structure rules, each with an ID you can cite. Both read
 Markdown only; for a `.rst` or other format, check claims by hand.
 
@@ -167,7 +170,7 @@ exists now; an empty heading promises something the project does not have.
 
 ## 4. Finalize
 
-Three gates. The third is the only one that tests the document rather than the
+Three gates. The third tests the document as a reader meets it, not only the
 facts inside it, so it runs every time.
 
 **Gate 1: the scripts pass.** Re-run `scripts/verify_claims.py` and `scripts/lint_prose.py` on
@@ -216,7 +219,7 @@ quoting it anywhere.
 ## Script reference
 
 All three are stdlib-only, make no network calls, and write nothing to disk.
-`scripts/test_scripts.py`: 21 passed on each of Python 3.10, 3.11, 3.12, 3.13 and 3.14 (2026-11-03, macOS arm64, Apple Silicon). Run them with
+`scripts/test_scripts.py`: 40 passed on each of Python 3.10, 3.11, 3.12, 3.13, 3.14 and 3.15 (2026-11-15, macOS arm64, Apple Silicon); results by date are in `CHANGELOG.md`. Run them with
 `python3 -I` when the repository is untrusted.
 
 | Script | Arguments | Exit codes |

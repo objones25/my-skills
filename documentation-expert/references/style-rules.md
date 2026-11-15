@@ -15,7 +15,8 @@ Contents:
 - [Sources](#sources)
 
 Everything here is from the Google developer documentation style guide unless
-marked otherwise. The word table in [Words to cut or replace](#words-to-cut-or-replace)
+marked otherwise; the fence-language and credential rules under code blocks are
+this skill's own. The word table in [Words to cut or replace](#words-to-cut-or-replace)
 is the exception: it mixes Google's word list with this skill's own choices,
 and its last column says which. Where `scripts/lint_prose.py` checks a rule, the rule ID is named so
 an audit can cite it.
@@ -24,7 +25,7 @@ an audit can cite it.
 
 **Second person.** Address the reader as "you", not "we" or "us". "The following
 sections describe how you can create a website", not "how we can create a
-website". Reserve "we" for the authoring organization, and use it rarely.
+website". Reserve "we" for the authoring organization, and use it carefully.
 
 **Imperative for instructions.** "Click **Submit**." "Run `npm test`." Not "You
 should click Submit" and not "The user clicks Submit".
@@ -91,7 +92,7 @@ Do not inflect code as English: "Call the `close` method", not "`Close` the file
 
 For code blocks:
 
-- Every fence declares its language. (`CODE001`) A fence without one loses
+- Every fence declares its language (this skill's own rule). (`CODE001`) A fence without one loses
   syntax highlighting and tells the reader nothing about what they are looking
   at.
 - Mark elisions with a comment in the sample's own language, not with `...` or
@@ -99,7 +100,7 @@ For code blocks:
   makes the ambiguity worse than cosmetic.
 - Wrap at 80 characters where the language allows it. (`CODE003`)
 - Precede every sample with a sentence saying what it does.
-- Never paste a real credential, token, or key. Use an obvious placeholder and
+- Never paste a real credential, token, or key (this skill's own rule). Use an obvious placeholder and
   say where the real value comes from.
 
 ## Link text
@@ -127,8 +128,9 @@ For code blocks:
 
 ## Words to cut or replace
 
-`scripts/lint_prose.py` flags these. The point is not word policing: each one either
-makes a claim the document cannot support, or replaces a fact with a feeling.
+`scripts/lint_prose.py` flags these, except the rows marked "not flagged", which
+it cannot check mechanically. The point is not word policing: each word is
+listed for the reason in its Why column.
 "Google" in the last column means the word has its own entry in Google's word
 list or tone page; "skill" means this skill added it.
 
@@ -137,7 +139,8 @@ list or tone page; "skill" means this skill added it.
 | easy, simple, simply | Judges the reader's experience | Give the step count or the time | Google |
 | trivial, straightforward, obviously, of course | Same; tells a stuck reader they are slow | Delete | skill |
 | blazing fast, lightning fast | Unmeasured | Give the benchmark and its date | skill |
-| seamless, effortless, powerful, robust | Marketing | Name the specific property | skill |
+| seamless, effortless | Marketing | Name the specific property | skill |
+| powerful, robust (not flagged) | Marketing when unsupported; the linter leaves them to the reviewer | Name the specific property | skill |
 | cutting-edge, state-of-the-art, revolutionary | Marketing | Delete | skill |
 | just | Filler | Delete | Google |
 | really, very, basically | Filler | Delete | skill |
@@ -148,10 +151,11 @@ list or tone page; "skill" means this skill added it.
 | e.g., i.e. | Often confused | for example, that is | Google |
 | click on | Non-standard | click | Google |
 | allows you to | Roundabout | lets you | Google |
-| enables you to | Roundabout | lets you | skill |
+| enables you to | Roundabout | lets you | Google |
 | currently | Implied | Delete | Google |
 | please | Not used in instructions | Delete | Google |
-| terminate, abort, kill | Harsh and imprecise | stop, cancel, exit | Google |
+| terminate, abort | Harsh and imprecise | stop, cancel, exit | Google |
+| kill (not flagged) | Harsh and imprecise as prose; `kill` is also a real command, so the linter leaves it | stop, cancel, exit | Google |
 | whitelist, blacklist | Exclusionary | allowlist, denylist | Google |
 | master, slave | Exclusionary | primary, replica | Google |
 | dummy (variable) | Exclusionary when it means placeholder | placeholder | Google |
