@@ -1,6 +1,9 @@
 ---
 name: "building-effective-agents"
 description: Diagnose and design AI agents and their harnesses, covering agent vs workflow, tool and MCP server design, context engineering and compaction, long-term memory, verification, security and prompt injection, multi-agent orchestration, long-running state, testing and evals (including Inspect AI), framework choice, and cost. Framework-agnostic (Claude Agent SDK, OpenAI Agents SDK, LangGraph, CrewAI, Google ADK, Pydantic AI, MCP, hand-rolled), with runnable scripts. Use when the user describes an LLM that calls tools, loops, or orchestrates other LLM calls, even without saying "agent." Trigger on "should this be an agent or a script", "my agent says it succeeded but didn't", "it runs out of context", "it forgets", "it picks the wrong tool", "how many agents", "it followed instructions in a web page", "how do I resume a long run", "how do I eval or test this", "why is it slow and expensive", "which framework". For writing an MCP server's code, use mcp-builder.
+metadata:
+  version: "1.1"
+  test-command: "python3 -m pytest tests -q"
 ---
 
 # Building Effective Agents
@@ -19,7 +22,7 @@ The answer is done when it names the surface, the candidate causes, the bet, and
 
 **Use the user's facts, not this skill's examples.** The tool names, numbers, and scenarios here are illustrations. Don't restate them as though they describe the user's system, and don't invent specifics they didn't give, such as a count of cases, a tool name, or a failure rate. Ask, or say "assuming X," instead. When inventing an example to illustrate a point, mark it as one so it can't be mistaken for a finding about their system.
 
-**Keep numbers and quotes attached to their source.** Every figure here comes from a named, dated publication listed in `references/sources.md` and reflects one team's workload, not a spec. Cite it as a starting point to measure against. Never invent a figure, reword a quoted phrase while still framing it as a quotation, or point a measurement at a comparison its source didn't make. A multiplier measured against chat usage says nothing directly about the marginal cost of a change to a system that is already an agent.
+**Keep numbers and quotes attached to their source.** Every research or vendor figure here names its source, and each source is listed in `references/sources.md` with its date or version (a year only, or "no date on page", where the page gives nothing finer). Numbers in examples and format samples (a 1,483-line file, $0.40 per run) are invented illustrations and are marked as such. A cited figure reflects one team's workload, not a spec. Cite it as a starting point to measure against. Never invent a figure, reword a quoted phrase while still framing it as a quotation, or point a measurement at a comparison its source didn't make. A multiplier measured against chat usage says nothing directly about the marginal cost of a change to a system that is already an agent.
 
 ## Reference files
 
@@ -105,7 +108,7 @@ Every harness component encodes an assumption about what the model can't do, and
 
 ## Capability is not reliability
 
-Capability is "it can do this sometimes" (pass@k). Reliability is "it does this every time" (pass^k). Agents demo on capability and fail in production on reliability, and closing that gap is engineering around a stochastic component rather than a modeling problem. A one-in-five failure rate is not "80% working"; for anything user-facing it's a broken product. When a user reports a working demo and a failing deployment, go to verification and evals, not to the prompt. Pass^k covers consistency only; `evals.md` lists the other reliability axes.
+Capability is "it can do this sometimes" (pass@k). Reliability is "it does this every time" (pass^k). Agents demo on capability and fail in production on reliability, and closing that gap is engineering around a stochastic component rather than a modeling problem. A one-in-five failure rate (an illustration, not a measurement) is not "80% working"; for anything user-facing it's a broken product. When a user reports a working demo and a failing deployment, go to verification and evals, not to the prompt. Pass^k covers consistency only; `evals.md` lists the other reliability axes.
 
 ## Red flags
 
@@ -125,7 +128,7 @@ Capability is "it can do this sometimes" (pass@k). Reliability is "it does this 
 
 ## Scripts, examples, and tests
 
-Run scripts from the skill root; each prints usage with `--help` or no arguments. They use only the standard library except the Inspect template.
+Run scripts from the skill root; each prints usage with `--help` or no arguments. They use only the standard library, with two exceptions: the Inspect template needs `inspect_ai`, and `agent_loop.py`'s optional `AnthropicModel` adapter imports `anthropic` (`--demo` does not need it).
 
 | Script | Use it to |
 |---|---|
@@ -138,10 +141,19 @@ Run scripts from the skill root; each prints usage with `--help` or no arguments
 | `scripts/cache_prefix_check.py` | Find what breaks prompt-cache reuse between consecutive requests |
 | `scripts/inspect_eval_template.py` | Inspect AI task with outcome-plus-evidence scoring and pass@k / pass^k; `--smoke` runs offline |
 
-`examples/` holds worked diagnoses (inputs, the reasoning, the script output, the fix). They are illustrations with invented systems; never present them as findings about the user's system. `tests/test_scripts.py` covers every script (`python -m pytest tests -q`); its fixtures double as example inputs.
+`examples/` holds worked diagnoses (inputs, the reasoning, the fix; examples 01-04 also show real script output, which a test reruns). They are illustrations with invented systems; never present them as findings about the user's system. `tests/test_scripts.py` covers every script (`python -m pytest tests -q`); its fixtures double as example inputs.
 
 When a script would answer the user's question faster than prose (sizing an eval, checking a manifest, sorting transcripts), run it on their data or offer it. Don't paste script output the user didn't ask for.
 
+## Extend this skill
+
+1. A new or upgraded framework: update its row in `references/frameworks.md` and its row in `references/sources.md` with the version and release date from PyPI. Confirm any default you state (loop caps especially) in the released package, and put the check date in the row.
+2. A new cited figure: add the source to `references/sources.md` with its date and how deeply it was read. `tests/test_skill_integrity.py` fails if a reference cites an arXiv id that `sources.md` does not list.
+3. A new script: add tests in `tests/test_scripts.py`. If it imports a third-party package, add it to `OPTIONAL_IMPORTS` in `tests/test_skill_integrity.py` and name the package in the Scripts section above; the test fails otherwise.
+4. A new example that shows script output: paste the real output (mark omissions with `...`). The integrity test reruns every `$ python` block in `examples/` and compares it.
+5. A new eval: add it to `evals/evals.json` with at least three `expectations`, and turn each bug you fix into a case.
+6. After any change: run `python3 -m pytest tests -q`, then add a line to `CHANGELOG.md`.
+
 ## Sources
 
-Every source, with its date, URL, how it was checked, and the claims it supports, is in `references/sources.md` (last verified 2026-11-02).
+Every source, with its date, URL, how it was checked, and the claims it supports, is in `references/sources.md` (last verified 2026-11-02; corrected after the 2026-11-15 audit, see `AUDIT.md`).

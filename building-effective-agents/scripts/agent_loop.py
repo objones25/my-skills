@@ -5,7 +5,9 @@ Read this to see the parts a framework hides; copy pieces into your own loop.
 Everything that must not fail is in code here, not in the prompt.
 
   loop          model call -> tool dispatch -> append result -> repeat, capped by max_steps
-  finish tool   the only way to end: status "done" or "could_not_complete" (sanctioned failure)
+  finish tool   the only way the model chooses to end: status "done" or "could_not_complete"
+                (sanctioned failure); the harness also stops a run with "step_limit",
+                "budget_limit" or "verify_failed"
   budgets       every tool result passes through tool_budget.budget_text
   errors        tool exceptions come back as short, instructive text, not tracebacks
   approval      tools marked needs_approval call an approver before running

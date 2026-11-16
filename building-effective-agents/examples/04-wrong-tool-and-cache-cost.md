@@ -32,6 +32,7 @@ ok  call 0->1: 100% shared
 LOW call 1->2: 36% shared; diverges in system: timestamp in system prompt: move it to the end or drop it
      ...'nt. Today is 2026-11-02 10:05:13.' -> ...'nt. Today is 2026-11-02 10:05:41.'
 LOW call 2->3: 4% shared; diverges in tools: tool order changed: list tools in a fixed order
+     ...'[{"name": "search"}, {"name": "read"}]' -> ...'[{"name": "read"}, {"name": "search"}]'
 ```
 
 A timestamp with seconds near the top changes every call, so nothing after it is reused. Tool lists built from a dict or set can reorder between calls with the same effect; MCP's 2026-07-28 spec asks servers to list tools in a deterministic order for this reason. Fix both, then measure hit rate from the provider's usage fields before and after.

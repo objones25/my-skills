@@ -6,9 +6,9 @@
 
 Either can do it. The deciding requirement is that a run must pause for a day and resume in another process, so pick on how each serializes paused state and lets you put it in your own database, then on whether you want vendor lock-in for hosted tools.
 
-## How the requirement maps (versions as of 2026-11-02, `frameworks.md`)
+## How the requirement maps (versions as of 2026-11-16, `frameworks.md`)
 
-| Need | LangGraph 1.2 / LangChain 1.4 | OpenAI Agents SDK 0.24 |
+| Need | LangGraph 1.2 / LangChain 1.5 | OpenAI Agents SDK 0.24 |
 |---|---|---|
 | Pause for approval | `interrupt()` in a node, or `HumanInTheLoopMiddleware` | `needs_approval` on the tool; run returns `interruptions` |
 | Survive a day and a restart | Checkpointer (e.g. Postgres) keyed by `thread_id`; resume with `Command(resume=...)` | `result.to_state().to_json()` stored by you; `RunState.from_json()`, `approve(i)`, `Runner.run(agent, state)` |

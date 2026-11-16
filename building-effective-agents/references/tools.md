@@ -22,7 +22,7 @@ Group related tools under a common prefix: `asana_search`, `jira_search`, or `as
 
 Tool results are the main way context fills. Build in pagination, range selection, filtering, and truncation with sensible defaults.
 
-- Claude Code caps MCP tool output at 25,000 tokens by default, warns above 10,000, and saves text results over 50,000 characters to a file; a tool can raise its own limit (Claude Code MCP docs). Adopt an explicit cap; make truncation visible and recoverable (`[showing 20 of 1,483 lines; call with offset=20 for more]`).
+- Claude Code caps MCP tool output at 25,000 tokens by default, warns above 10,000, and saves text results over 50,000 characters to a file; a tool can raise its own limit (Claude Code MCP docs). Adopt an explicit cap; make truncation visible and recoverable (an illustrative hint, in `scripts/tool_budget.py`'s format: `[showing lines 1-20 of 1,483; call again with offset=20]`).
 - Offer a response-format parameter (`concise` / `detailed`). In Anthropic's Slack example the same thread rendered 206 tokens detailed versus 72 concise, about a third.
 - Return the fields that carry meaning and drop the plumbing: prefer `name`, `file_type`, `image_url` over `uuid`, `mime_type`, `256px_image_url`. "Merely resolving arbitrary alphanumeric UUIDs to more semantically meaningful and interpretable language ... significantly improves Claude's precision in retrieval tasks by reducing hallucinations."
 
@@ -38,7 +38,7 @@ Tool results are the main way context fills. Build in pagination, range selectio
 
 ## When the tool definitions themselves are the problem
 
-Large tool catalogs consume context before the agent reads the request. Anthropic's Tool Search loads definitions on demand (API tools `tool_search_tool_regex_20251119` and `tool_search_tool_bm25_20251119`, with other tools marked `defer_loading`; see `frameworks.md`): in its benchmark, definition tokens fell 85% and Opus 4 tool-selection accuracy rose from 49% to 74% (*Introducing advanced tool use*, Nov 2025). The same post advises keeping the three to five most-used tools always loaded. Two related mitigations come from *Code execution with MCP* (Nov 2025), where presenting MCP servers as code APIs cut one example task from 150,000 tokens to 2,000 (98.7%):
+Large tool catalogs consume context before the agent reads the request. Anthropic's Tool Search loads definitions on demand (API tools `tool_search_tool_regex_20251119` and `tool_search_tool_bm25_20251119`, with other tools marked `defer_loading`; see `frameworks.md`): in the post's illustrative setup with 50+ MCP tools, total context use fell from about 77K to 8.7K tokens (85%), and in Anthropic's internal testing Opus 4 accuracy on MCP evaluations rose from 49% to 74% (*Introducing advanced tool use*, Nov 2025). The same post advises keeping the three to five most-used tools always loaded. Two related mitigations come from *Code execution with MCP* (Nov 2025), where presenting MCP servers as code APIs cut one example task from 150,000 tokens to 2,000 (98.7%):
 
 - **Progressive tool disclosure**: expose servers and tools as files the agent lists and reads on demand, or provide a `search_tools` call with a detail-level parameter (name only / name + description / full schema).
 - **Filter results in an execution environment** rather than through the model: a 10,000-row spreadsheet becomes the five rows that matter, and intermediate results and PII can stay out of the model's context entirely. Anthropic's programmatic tool calling packages this pattern and cut average token use 37% on complex research tasks.
@@ -53,7 +53,7 @@ Protocol-specific design (stateless handles, Tasks, `input_required`, deprecatio
 
 - **Descriptions and schemas are most of the interface.** Most published MCP tool descriptions have defects, and parameter schemas move selection more than names do (details and caveats in `mcp.md`). Treat a description rewrite as a change to be evaluated, since it can also add steps or make some cases worse.
 - **Retrieval is the bottleneck in large catalogs.** With hundreds of tools, picking the right one fails more often than calling it correctly; on-demand loading with a few always-loaded tools is the usual fix.
-- **Verification pays.** Across 21,730 rollouts on its leaderboard, HAL found agents that verified their own work were 13 to 87% more likely to succeed (Kapoor et al., arXiv 2510.11977). A tool that lets the agent check an outcome (read back the record, run the test) is often worth more than another action tool.
+- **Verification pays.** In log analysis of 1,634 transcripts on three of its benchmarks, HAL found agents that verified their own work were 13 to 87% more likely to succeed (an observational finding) (Kapoor et al., arXiv 2510.11977). A tool that lets the agent check an outcome (read back the record, run the test) is often worth more than another action tool.
 
 ## Scripts
 

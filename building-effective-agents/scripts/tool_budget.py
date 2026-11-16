@@ -5,7 +5,7 @@ Wrap any tool that can return large text or record lists. The wrapper:
   1. caps the result at a token budget (rough estimate, see estimate_tokens),
   2. pages by line or record with an explicit offset,
   3. appends a visible, actionable hint so the agent knows it saw a slice and
-     how to get the rest: "[showing 1-200 of 1,483 lines; call again with offset=200]".
+     how to get the rest: "[showing lines 1-200 of 1,483; call again with offset=200]".
 
 Truncation the agent can't see is worse than none: the model treats the slice
 as the whole and reports that later data "doesn't exist".

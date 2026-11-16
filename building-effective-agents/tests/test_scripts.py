@@ -62,6 +62,86 @@ class TestReliability:
         noisy_new = {f"t{i}": (5, 3 if i % 2 else 1) for i in range(30)}
         assert not rel.compare(old, noisy_new).distinguishable
 
+    def test_suite_metric_means_the_chosen_per_task_metric(self):
+        results = {"a": (4, 2), "b": (4, 4)}
+        # pass^2: a = C(2,2)/C(4,2) = 1/6, b = 1. pass@2: a = 1 - C(2,2)/C(4,2) = 5/6, b = 1.
+        assert rel.suite_metric(results, 2) == pytest.approx((1 / 6 + 1) / 2)
+        assert rel.suite_metric(results, 2, "pass@k") == pytest.approx((5 / 6 + 1) / 2)
+
+    def test_compare_needs_two_shared_tasks(self):
+        two = {"a": (4, 1), "b": (4, 2)}
+        assert rel.compare(two, two).n_tasks == 2
+        with pytest.raises(ValueError, match="at least two tasks"):
+            rel.compare({"a": (4, 1), "x": (4, 1)}, {"a": (4, 3), "y": (4, 3)})
+
+    def test_compare_constant_difference_gives_exact_delta_and_interval(self):
+        old = {f"t{i}": (4, 1) for i in range(3)}
+        new = {f"t{i}": (4, 3) for i in range(3)}
+        r = rel.compare(old, new)
+        assert (r.delta, r.ci_low, r.ci_high, r.n_tasks) == (0.5, 0.5, 0.5, 3)
+
+    def test_compare_interval_is_the_central_95_percent(self):
+        # 20 tasks with per-task differences alternating 0 and 1: the bootstrap mean
+        # is Binomial(20, 0.5) / 20, whose 2.5th and 97.5th percentiles are 0.3 and 0.7.
+        old = {f"t{i}": (2, 0) for i in range(20)}
+        new = {f"t{i}": (2, 2 * (i % 2)) for i in range(20)}
+        r = rel.compare(old, new)
+        assert r.delta == pytest.approx(0.5)
+        assert r.ci_low == pytest.approx(0.3, abs=0.051)
+        assert r.ci_high == pytest.approx(0.7, abs=0.051)
+
+    def test_compare_small_iteration_count_stays_in_range(self):
+        old = {f"t{i}": (2, 0) for i in range(20)}
+        new = {f"t{i}": (2, 2 * (i % 2)) for i in range(20)}
+        r = rel.compare(old, new, iters=40)
+        assert 0.0 <= r.ci_low <= r.delta <= r.ci_high <= 1.0
+
+    def test_cli_passk(self, capsys):
+        rel.main(["passk", "--n", "8", "--c", "7", "--k", "4"])
+        assert json.loads(capsys.readouterr().out) == {"pass@k": 1.0, "pass^k": 0.5}
+
+    def test_cli_budget(self, capsys):
+        rel.main(["budget", "--tasks", "40", "--trials", "5", "--cost", "0.30"])
+        assert json.loads(capsys.readouterr().out) == {"runs": 400, "cost": 120.0}
+
+    def test_cli_compare_reads_counts_and_boolean_trials(self, tmp_path, capsys):
+        old = tmp_path / "old.json"
+        new = tmp_path / "new.json"
+        old.write_text(json.dumps({"a": [4, 1], "b": [4, 1], "c": [4, 1]}))
+        new.write_text(json.dumps({"a": [True, True, True, False], "b": [True, True, True, False],
+                                   "c": [True, True, True, False]}))
+        rel.main(["compare", str(old), str(new)])
+        out = json.loads(capsys.readouterr().out)
+        assert out == {"delta": 0.5, "ci_low": 0.5, "ci_high": 0.5, "n_tasks": 3, "distinguishable": True}
+
+    def test_cli_with_no_arguments_prints_the_worked_example(self, capsys):
+        rel.main([])
+        assert capsys.readouterr().out == (
+            "One task, 8 trials, 7 passed:\n"
+            "  k=1: pass@k=0.875  pass^k=0.875\n"
+            "  k=2: pass@k=1.000  pass^k=0.750\n"
+            "  k=4: pass@k=1.000  pass^k=0.500\n"
+            "  k=8: pass@k=1.000  pass^k=0.000\n"
+            "\nPer-attempt success needed for pass^k = 0.90:\n"
+            "  k=1: p >= 0.900\n"
+            "  k=3: p >= 0.965\n"
+            "  k=8: p >= 0.987\n"
+            "\nBudget, 40 tasks x 5 trials x 2 versions at $0.30/run: {'runs': 400, 'cost': 120.0}\n"
+        )
+
+    def test_identical_runs_are_not_distinguishable(self):
+        same = {f"t{i}": (4, 2) for i in range(5)}
+        r = rel.compare(same, same)
+        assert (r.ci_low, r.ci_high) == (0.0, 0.0) and not r.distinguishable
+
+    def test_budget_cost_rounds_to_cents(self):
+        assert rel.run_budget(1, 1, 1, 0.123) == {"runs": 1, "cost": 0.12}
+
+    def test_load_reads_a_single_boolean_trial(self, tmp_path):
+        f = tmp_path / "one.json"
+        f.write_text(json.dumps({"a": [True], "b": [3, 2]}))
+        assert rel._load(str(f)) == {"a": (1, 1), "b": (3, 2)}
+
     def test_budget(self):
         assert rel.run_budget(40, 5, 2, 0.30) == {"runs": 400, "cost": 120.0}
 
@@ -72,6 +152,15 @@ class TestReliability:
 # ---------------------------------------------------------------- tool budget
 class TestToolBudget:
     TEXT = "\n".join(f"line {i} " + "x" * 36 for i in range(1000))
+
+    def test_docstring_hint_matches_real_output(self):
+        import re
+        quoted = re.search(r'"(\[showing [^"]+\])"', tb.__doc__).group(1)
+        text = "\n".join(f"row {i}" for i in range(1483))
+        real = tb.budget_text(text, max_tokens=400).text.splitlines()[-1]
+        shape = r"\[showing lines \d+-\d+ of [\d,]+; call again with offset=\d+\]"
+        assert re.fullmatch(shape, real), real
+        assert re.fullmatch(shape, quoted), quoted
 
     def test_small_text_untouched(self):
         b = tb.budget_text("a\nb", max_tokens=100)
@@ -189,6 +278,12 @@ C = al.ToolCall
 
 
 class TestAgentLoop:
+    def test_docstring_does_not_call_finish_the_only_way_to_end(self):
+        # The loop also ends on step_limit, budget_limit and verify_failed.
+        assert "the only way to end" not in al.__doc__
+        for status in ("step_limit", "budget_limit", "verify_failed"):
+            assert status in al.__doc__, status
+
     def test_verified_done(self, tmp_path):
         m = al.ScriptedModel([T("", [C("c1", "get_order", {"order_id": "A1"})]),
                               T("", [C("c2", "finish", {"status": "done", "summary": "shipped",

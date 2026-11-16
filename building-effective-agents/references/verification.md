@@ -25,7 +25,7 @@ Rules first (Anthropic, *Building agents with the Claude Agent SDK*, Sep 2025):
 
 ## Design rules that matter in practice
 
-Verification is among the best-supported interventions. Across HAL's 21,730 rollouts, agents that checked their own work were 13 to 87% more likely to succeed (Kapoor et al., arXiv 2510.11977), and MAST found verification failures common across every framework and model it studied (Cemri et al., arXiv 2503.13657). The checks below are cheap compared with either finding.
+Verification is among the best-supported interventions. In HAL's log analysis of 1,634 transcripts on three benchmarks, agents that checked their own work were 13 to 87% more likely to succeed (Kapoor et al., arXiv 2510.11977; observational), and in MAST task-verification failures were 21.3% of all failures, with both models it compared showing many of them (Cemri et al., arXiv 2503.13657). The checks below are cheap compared with either finding.
 
 - **The agent doing the work shouldn't be the one grading it.** Use a fresh context: a verification subagent, a separate evaluator pass, or a hook that refuses to end the turn until a check script passes. Self-review inherits the same wrong assumptions.
 - **Agree on "done" before the work starts.** In Anthropic's long-running harness, generator and evaluator negotiated a sprint contract of testable behaviors before any code was written. A separate evaluator earns its cost only when the task is beyond what the model does reliably alone. Out of the box Claude was a poor QA agent; tuning it meant reading its logs where its judgment diverged from a human's.

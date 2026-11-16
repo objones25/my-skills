@@ -63,7 +63,7 @@ Before trusting a suite: run a do-nothing agent and a trivial agent against it, 
 
 ## Running evals with Inspect AI
 
-Inspect AI (UK AI Security Institute; `inspect_ai` 0.3.287 as of 2026-11-02) is an open-source harness that covers most of this file's advice in code:
+Inspect AI (UK AI Security Institute; `inspect_ai` 0.3.290 as of 2026-11-16) is an open-source harness that covers most of this file's advice in code:
 
 - `Task(dataset, solver, scorer, sandbox, epochs, message_limit, token_limit, time_limit, ...)`; the built-in `react()` agent loops until the model calls `submit()`.
 - `epochs=Epochs(n, [...])` repeats each sample n times and reduces with `pass_at(k)` (at least one of k) or `pass_k(k)` (all k, the pass^k estimator), alongside `mean`, `at_least(k)`, and others.
