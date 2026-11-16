@@ -16,7 +16,7 @@ Every wrong and stale item was fixed on 2026-11-16 (`CHANGELOG.md`, by item id).
 - The 754 items the audit did not check: most recommendations and reference prose, `evals/evals.json`, `scripts/cache_prefix_check.py`, `scripts/triage_transcripts.py`, and the tests beyond running them and mutation-testing `reliability.py`. Nothing here vouches for them.
 - The 16 claims the audit's reviewers found missing from its inventory (added, not checked).
 - Framework API names in `frameworks.md` other than the loop-cap defaults, on the 2026-11-16 versions.
-- The new evals (21-23) and the trigger evals have not been run.
+- Evals were run once per case on 2026-11-16 (results in `CHANGELOG.md`); a single run per case does not establish an improvement.
 - No independent review of the 1.1 changes themselves.
 
 ## Mechanical checks, 2026-11-16
