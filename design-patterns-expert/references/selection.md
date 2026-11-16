@@ -141,7 +141,7 @@ If your "observers" have to fire in a specific order, you have a chain or a pipe
 ### Protocol vs ABC vs plain Callable
 - **Callable + type alias**: one method, no state. The default.
 - **Protocol**: several methods, several implementations, no shared code, and implementations shouldn't have to import your interface.
-- **ABC**: you need shared implementation in the base, enforcement at instantiation, `register()` for types you don't own, or an expressed relationship between hierarchies.
+- **ABC**: you need shared implementation in the base, enforcement at instantiation, or an expressed relationship between hierarchies.
 
 See `python-idioms.md` for what `@runtime_checkable` actually verifies (less than you think).
 

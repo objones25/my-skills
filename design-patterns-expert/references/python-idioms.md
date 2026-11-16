@@ -1,6 +1,6 @@
 # Python mechanics for pattern implementation
 
-The language features patterns are built from, and the documented behavior that contradicts common folklore. Every claim here is from the official docs or a primary source; where a fact was verified by execution it says so.
+The language features patterns are built from, and the documented behavior that contradicts common folklore. Most claims cite the official docs or a primary source; the timings are this skill's own measurements and say so. A check id such as P7 marks a claim that `scripts/verify_python_claims.py` executes; the script also runs checks the text does not name, so run it to see all 20.
 
 Contents: [Protocol vs ABC](#protocol-vs-abc) · [singledispatch](#functoolssingledispatch-the-pythonic-dispatch-by-type) · [cache traps](#functoolscache-and-cached_property-traps) · [dataclasses](#dataclass-gotchas) · [closures & partial](#closures-and-partial) · [module-level state](#module-level-state-and-lazy-attributes) · [context managers](#context-managers) · [the folklore table](#folklore-vs-the-docs)
 
@@ -29,7 +29,7 @@ Impl()        # succeeds
 Impl().m()    # returns None at runtime; mypy and pyright reject Impl() itself
 ```
 
-That is only the runtime half. Two things close the gap without leaving Protocol. First, mypy and pyright both reject `Impl()` with `Cannot instantiate abstract class "Impl"`. Second, marking `m` with `@abstractmethod` makes `Impl()` raise `TypeError` at runtime, exactly like an ABC (`scripts/verify_python_claims.py`, check P2); the typing spec's own example does this. Use an ABC instead only when you also want nominal typing or `register()`.
+That is only the runtime half. Two things close the gap without leaving Protocol. First, mypy and pyright both reject `Impl()` with `Cannot instantiate abstract class "Impl"`. Second, marking `m` with `@abstractmethod` makes `Impl()` raise `TypeError` at runtime, exactly like an ABC (`scripts/verify_python_claims.py`, check P2); the typing spec's own example does this. Use an ABC instead only when you also want nominal typing (Protocol classes have `register()` too).
 
 **`@runtime_checkable` checks much less than it appears to.** The docs: it *"will check only the presence of the required methods or attributes, not their type signatures or types."* A method taking four extra required parameters still passes `isinstance`. The docs' own example: `ssl.SSLObject` passes an `issubclass` check against `Callable` despite an `__init__` that does nothing but raise `TypeError`.
 
@@ -37,15 +37,15 @@ It also sees whatever the object happens to have *at that instant*: an attribute
 
 **`issubclass()` doesn't work with data protocols at all.** A protocol with any non-method member (`name: str`) raises `TypeError: Protocols with non-method members don't support issubclass()`. PEP 544's reason: instance attributes set in `__init__` aren't visible on the class.
 
-**`isinstance` against a runtime-checkable protocol is slow.** The docs say it *"can be surprisingly slow compared to an isinstance() check against a non-protocol class"* and recommend `hasattr` for structural checks in performance-sensitive code. Measured by check P7 across several runs and machines: 65 to 86x a plain class check on CPython 3.11 and 5.6 to 9x on 3.12 to 3.14, roughly 0.15 to 0.4 µs per call depending on the machine. That matters inside a tight loop; next to a network call it is noise.
+**`isinstance` against a runtime-checkable protocol is slow.** The docs say it *"can be surprisingly slow compared to an isinstance() check against a non-protocol class"* and recommend `hasattr` for structural checks in performance-sensitive code. Measured by check P7: 65 to 86x a plain class check on CPython 3.11 (about 1.4 µs per call on an Apple M4 Pro) and about 5 to 9x on 3.12 to 3.15 (about 0.12 to 0.14 µs per call on the same machine, 2026-11-16). That matters inside a tight loop; next to a network call it is noise.
 
-**Decorate every sub-protocol you check against.** Type checkers treat runtime-checkability as not inherited: mypy and pyright both reject `isinstance(x, B)` when `B` extends a runtime-checkable `A` without its own decorator. CPython 3.11 to 3.14 accept it at runtime and check all of `B`'s members (check P6), so the code runs but fails type checking.
+**Decorate every sub-protocol you check against.** Type checkers treat runtime-checkability as not inherited: mypy and pyright both reject `isinstance(x, B)` when `B` extends a runtime-checkable `A` without its own decorator. CPython 3.11 to 3.15 accept it at runtime and check all of `B`'s members (check P6), so the code runs but fails type checking. 3.15 adds a `DeprecationWarning`, and the 3.15 docs say it will raise `TypeError` in 3.20.
 
 ### When ABC is the right call
 
 - **You need enforcement.** Abstract methods must be overridden before instantiation succeeds.
 - **You need shared state.** An ABC can be a dataclass whose fields and `__init__` every subclass inherits. Shared *methods* alone do not force an ABC: explicit Protocol subclasses inherit default method bodies (check P3). Shared *fields* do, because a Protocol's annotated attributes are interface members, not storage. This is why **Bridge** with a device list is ABC territory.
-- **You need to retrofit types you don't own.** `MyABC.register(tuple)` makes `issubclass(tuple, MyABC)` true. Caveat from the docs: a registered class *"won't show up in their MRO... nor will method implementations defined by the registering ABC be callable (not even via `super()`)."* And `@abstractmethod` *"only affects subclasses derived using regular inheritance"*: registering asserts conformance without checking it, which makes `register()` exactly as unsafe as a runtime protocol check.
+- **You need to retrofit types you don't own** (weak on its own: Protocol classes inherit `register()` from `ABCMeta` too). `MyABC.register(tuple)` makes `issubclass(tuple, MyABC)` true. Caveat from the docs: a registered class *"won't show up in their MRO... nor will method implementations defined by the registering ABC be callable (not even via `super()`)."* And `@abstractmethod` *"only affects subclasses derived using regular inheritance"*: registering asserts conformance without checking it, which makes `register()` exactly as unsafe as a runtime protocol check.
 - **You want custom structural rules.** `__subclasshook__` lets you customize `issubclass` without registering every class.
 
 Decorator ordering is documented, not folklore: `@abstractmethod` goes **innermost**, under `@classmethod` / `@staticmethod` / `@property`.
@@ -54,7 +54,7 @@ Decorator ordering is documented, not folklore: `@abstractmethod` goes **innermo
 
 Use Protocol as an *interface*: define the contract, type your parameters with it, and let implementations satisfy it structurally without inheriting. That is the case where it is unambiguously better than an ABC.
 
-Explicitly subclassing a Protocol, with `@abstractmethod` on the members that have no sensible default, is the typing spec's documented pattern. Implementations you own get definition-site signature checks and runtime enforcement; outside implementations still satisfy the Protocol structurally, without importing it. Reach for an ABC only for `register()`, shared fields, or when structural implementations should be refused.
+Explicitly subclassing a Protocol, with `@abstractmethod` on the members that have no sensible default, is the typing spec's documented pattern. Implementations you own get definition-site signature checks and runtime enforcement; outside implementations still satisfy the Protocol structurally, without importing it. Reach for an ABC only for shared fields, or when structural implementations should be refused.
 
 One real cost of not inheriting: type checkers can't tell you that your implementation's signature drifted from the interface until something calls it through the protocol-typed parameter. Explicit inheritance, from an ABC or from the Protocol itself, catches it at the definition site (mypy: `Signature of "export" incompatible with supertype "Exporter"`).
 
@@ -223,7 +223,7 @@ Two documented traps:
 | Dataclasses ban `list`/`dict`/`set` defaults | Since 3.11 the check is unhashability, so a mutable-but-hashable default passes |
 | Immutable class + Builder class is the safe pattern | Rhodes ([Builder](https://python-patterns.guide/gang-of-four/builder/)): *"never necessary in Python since the language itself provides built-in syntactic support for optional constructor arguments"* |
 | You need a Singleton for canonical instances | `Enum` members already are; CPython flyweights small ints, interned strings, and booleans |
-| Runtime Protocol `isinstance` is around 100x slower | 65 to 86x on 3.11; 5.6 to 9x on 3.12 to 3.14 (check P7) |
+| Runtime Protocol `isinstance` is around 100x slower | 65 to 86x on 3.11; about 5 to 9x on 3.12 to 3.15 (check P7) |
 | Protocols cannot share code, so use an ABC | Explicit subclasses inherit default bodies; the typing spec's own example puts `@abstractmethod` in a Protocol |
 | PEP 562 `__getattr__` makes lazy init safe | Same race as `@cache`: the loader can run once per thread (check C2) |
-| A `NamedTuple` is faster than a dataclass | Not on 3.11 to 3.14: a dataclass, slotted or not, reads about twice as fast, and a slotted one is smaller (check D4) |
+| A `NamedTuple` is faster than a dataclass | Not on 3.11 to 3.15: a dataclass reads about 1.7 to 1.9x as fast on 3.11 to 3.14 and about 1.4x on 3.15, and a slotted one is smaller (check D4) |

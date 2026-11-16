@@ -79,3 +79,25 @@ def test_every_eval_has_auto_checks_and_matches_evals_json() -> None:
     for e in data["evals"]:
         for f in e["files"]:
             assert (Path(grade.__file__).parent.parent / f).exists(), f
+
+
+def test_auto_expectations_in_evals_json_are_exactly_the_grader_checks() -> None:
+    import json
+    from pathlib import Path
+    data = json.loads((Path(grade.__file__).parent / "evals.json").read_text())
+    for e in data["evals"]:
+        listed = [x for x in e["expectations"] if x.startswith("[auto]")]
+        assert listed == [text for text, _ in grade.CHECKS[e["id"]]], e["id"]
+
+
+def test_control_eval_fails_an_answer_that_adds_a_protocol() -> None:
+    bad = "```python\nclass UnitConverter(Protocol):\n    def convert(self, v: float) -> float: ...\n```"
+    assert not by_text(grade.grade(1, bad))["[auto] Adds no Protocol or ABC"]
+    assert all(by_text(grade.grade(1, "Leave it: the three units are fixed.")).values())
+
+
+def test_layers_eval_rejects_the_transitive_overclaim() -> None:
+    bad = "Run check_layers.py; it catches transitive imports through shop.utils too."
+    good = "check_layers.py sees direct imports only; add an import-linter forbidden contract."
+    assert not by_text(grade.grade(5, bad))["[auto] Does not claim check_layers.py catches transitive imports"]
+    assert all(by_text(grade.grade(5, good)).values())

@@ -193,7 +193,7 @@ def create_order(body: OrderRequestDTO, db: Session = Depends(get_db)) -> OrderR
 ```
 
 ### Practical notes
-- **The layering relapse.** Cockburn's own warning: organizations add a layer and find *"a few years later that the new layer is cluttered with business logic and the old problem has reappeared."* A layer without an enforced import direction buys nothing. Enforce it rather than trusting discipline: `scripts/check_layers.py` checks direct imports with the stdlib, and `examples/ports_adapters/pyproject.toml` holds a working import-linter `forbidden` contract (run `PYTHONPATH=. lint-imports` from that folder) that also catches transitive chains. Injecting `import sqlite3` into the example's domain package fails both.
+- **The layering relapse.** Cockburn's own warning: organizations add a layer and find *"a few years later that the new layer is cluttered with business logic and the old problem has reappeared."* A layer without an enforced import direction buys nothing. Enforce it rather than trusting discipline: `scripts/check_layers.py` checks direct imports with the stdlib, and `examples/ports_adapters/pyproject.toml` holds a working import-linter `forbidden` contract (run `PYTHONPATH=. lint-imports` from that folder) that also catches transitive chains. Injecting `import sqlite3` into the example's domain package fails both (`check_layers.py` needs `--forbid-infra` or `--forbid sqlite3` to see it).
 - **The hexagon shape means nothing.** Six sides were chosen for drawing room. There is no correct number of ports; a port per use case is too many, two ports for everything is too few, and *"neither extreme appears optimal."*
 - **Primary vs secondary actors.** Primary actors drive the application (HTTP, CLI, tests); secondary actors are driven by it (database, email, payment API). The port shapes differ accordingly.
 - **When not to.** Cockburn gives no overkill warning, but the cosmicpython authors do, for the same family of patterns: *"If your app is just a simple CRUD (create-read-update-delete) wrapper around a database, then you don't need a domain model or a repository."* If the "domain logic" is field validation and a save, the layers are ceremony.
@@ -208,13 +208,13 @@ A translation region between two systems with genuinely different *models*, so t
 
 Use it when integrating a legacy system or an external service whose schema, vocabulary, and invariants differ from yours: *"When you maintain access between new and legacy systems, you force the new system to adhere to at least some of the legacy system's APIs or other semantics. When these legacy features have quality problems, this support corrupts what might otherwise be a cleanly designed modern application."*
 
-Costs and constraints, all documented:
+Costs and constraints (from the Azure guidance unless marked as this skill's view):
 - Adds latency and an extra deployable to operate, monitor, scale and release.
 - **Keep business rules and orchestration out of it.** Microsoft's guidance: *"Avoid placing business rules or orchestration in the layer."* The ACL translates and nothing else.
 - Validate and sanitize at this boundary: the two sides have different trust levels.
 - Plan observability: correlation IDs and structured logging, because translation failures are otherwise invisible.
-- **Decide its lifecycle up front.** Permanent, or retired when the migration completes? An ACL with no retirement decision becomes permanent by default.
-- **Don't build one when the models aren't actually different.** If the shapes basically match, a plain adapter is enough.
+- **Decide its lifecycle up front.** Azure: *"consider whether it's permanent or whether you plan to retire it after you migrate all legacy functionality."* This skill's view: one nobody decides about tends to stay.
+- **Don't build one when the models aren't actually different.** Azure lists, among the cases where the pattern *"might not be suitable"*, systems that have *"no significant semantic differences"*. This skill's view: a plain adapter is enough then.
 
 > Source: [Azure, Anti-corruption Layer](https://learn.microsoft.com/en-us/azure/architecture/patterns/anti-corruption-layer)
 

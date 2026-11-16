@@ -1,6 +1,9 @@
 ---
 name: "design-patterns-expert"
-description: Python-first design patterns for extensible production systems. Use whenever the user is deciding how code should be STRUCTURED rather than just writing it - choosing between patterns, refactoring a growing if/elif or flag-driven function, making a component swappable or pluggable (a new provider, backend or exporter without touching core logic), untangling coupling, separating logic from I/O, deciding Protocol vs ABC vs plain function, wiring dependencies, or hardening a service boundary with retry, circuit breaker, idempotency or hedging. Also use when the user names a pattern for their own code (strategy, policy, factory, observer, command, state machine, registry, adapter, bridge, builder, repository, ports and adapters, hexagonal, CQRS, event sourcing, saga, dependency injection, value object, null object, functional core), or asks "what pattern should I use" or "this class is doing too much". Use it even when the user never says "design pattern" - the trigger is a structural decision, not the words.
+description: Python-first design patterns for extensible production systems. Use whenever the user is deciding how code should be STRUCTURED rather than just writing it - choosing between patterns, refactoring a growing if/elif or flag-driven function, making a component swappable (a new provider, backend or exporter, no core edits), untangling coupling, separating logic from I/O, Protocol vs ABC vs plain function, wiring dependencies, or hardening a service boundary with retry, circuit breaker, idempotency or hedging. Also use when the user names a pattern for their own code (strategy, factory, observer, command, state machine, registry, adapter, repository, hexagonal, CQRS, event sourcing, saga, dependency injection, value object, null object, functional core) or asks "what pattern should I use" or "this class is doing too much". Not for a single function or a bug fix with no structural decision; for async retry and timeout mechanics use async-expert, for runtime assertions use negative-space-programming.
+metadata:
+  version: 1.0.0
+  test-command: "uv run --no-project --with pytest --with mypy --with import-linter python -m pytest tests"
 ---
 
 # Design Patterns for Extensible Production Systems
@@ -31,7 +34,7 @@ Answer these before naming any pattern. Answer them out loud in the response, br
 
 When the axis is speculative, say so plainly and recommend the simple version, then name the seam that would let them adopt the pattern later without rework. That last part is what makes the advice actionable rather than merely conservative.
 
-Fowler's four costs of building for a presumptive need are worth stating to a user who is over-reaching: cost of build, cost of delay (the real feature you didn't ship), **cost of carry** (*"adds some complexity to the software, this complexity makes it harder to modify and debug"*), and cost of repair when the guess was wrong.
+Fowler's four costs of building for a presumptive need are worth stating to a user who is over-reaching: cost of build, cost of delay (the real feature you didn't ship), **cost of carry** (*"adds some complexity to the software, this complexity makes it harder to modify and debug"*), and cost of repair, which Fowler ties to a feature that was needed but was built the wrong way because it was written before anyone understood it.
 
 The countervailing rule matters just as much, and applies when a user uses YAGNI to justify a mess: *"Yagni is not a justification for neglecting the health of your code base. Yagni requires (and enables) malleable code."* Declining a pattern is never a reason to accept a 200-line function.
 
@@ -95,10 +98,10 @@ Every recommendation carries three parts. Omitting the second and third is the m
 
 Recommend a **single** pattern unless the problem genuinely has two axes. Combinations are legitimate: a trading bot can use Template Method for the fixed process and Bridge for the exchange dependency, and the two are orthogonal. Stacking three patterns on a 100-line module is how this skill fails.
 
-Guard against the strongest published warnings when the conversation reaches for the heavy architectural patterns. These are not hedges; they are the consensus of the people who named the patterns:
+Guard against the strongest published warnings when the conversation reaches for the heavy architectural patterns. These are not hedges; each one is quoted from a published source:
 
 - **CQRS**. Fowler: *"For most systems CQRS adds risky complexity"*, and it *"should only be used on specific portions of a system... and not the system as a whole."*
-- **Event Sourcing**: adopt early if you may need Parallel Models or Retroactive Events, which Fowler says are *"very hard to retrofit"* onto a system not built with Event Sourcing; replay against external systems is a genuine engineering problem, and *bug fixes* (not just features) break replay semantics.
+- **Event Sourcing**: adopt early if you may need Parallel Models or Retroactive Events, which Fowler says are *"very hard to retrofit"* onto a system not built with Event Sourcing; replay against external systems is the genuine engineering problem. A bug in internal state is the easy case (Fowler: *"make the fix and reprocess the events"*), but *"external gateways bring the complexity"*.
 - **Repository / Service Layer / Unit of Work**. Cosmicpython: *"If your app is just a simple CRUD (create-read-update-delete) wrapper around a database, then you don't need a domain model or a repository."* Introduce a service layer *"after you spot orchestration logic creeping into your controllers"*, not before.
 - **DI containers**. Manual wiring in a composition root is the default; a container earns its place only when dependency chains are deep. cosmicpython ch. 13 takes the same line: wire by hand first, and consider a real DI framework once dependency chains appear.
 - **Singleton**: in Python this is a module. See `references/python-idioms.md`; the pattern's real cost is that it destroys test isolation, which a module-level object does not.
@@ -131,9 +134,9 @@ This decision comes up in nearly every recommendation, and the folklore around i
 - **At runtime a Protocol enforces nothing unless you ask.** An explicit subclass that implements nothing instantiates, and its method returns `None`. Both fixes keep the Protocol: mypy and pyright already report `Cannot instantiate abstract class` for that subclass, and marking the members `@abstractmethod` makes instantiation raise `TypeError` at runtime, as the typing spec's own example does.
 - **Explicit subclasses inherit a Protocol's default method bodies**, and the checker verifies their signatures where they are defined. Code reuse alone is not a reason to switch to an ABC.
 - `@runtime_checkable` checks *"only the presence of the required methods or attributes, not their type signatures or types."* An `isinstance` pass proves almost nothing about compatibility.
-- `isinstance` against a runtime-checkable Protocol is *"surprisingly slow"* according to the docs, which suggest `hasattr()` instead and give no numbers. `scripts/verify_python_claims.py` measured 65 to 86x a plain class check on CPython 3.11 and 5.6 to 9x on 3.12 to 3.14, roughly 0.15 to 0.4 µs per call depending on the machine (check P7 prints the ratio on yours). That matters in a tight loop, not next to a network call.
+- `isinstance` against a runtime-checkable Protocol is *"surprisingly slow"* according to the docs, which suggest `hasattr()` instead and give no numbers. `scripts/verify_python_claims.py` measured 65 to 86x a plain class check on CPython 3.11 (about 1.4 µs per call on an Apple M4 Pro) and about 5 to 9x on 3.12 to 3.15 (about 0.12 to 0.14 µs per call on the same machine). Check P7 prints the ratio on yours. That matters in a tight loop, not next to a network call.
 - `issubclass()` does not work at all with protocols that have non-method members.
-- ABCs still win for: `register()` to retrofit types you don't own, nominal typing where implementations must inherit, and a base that holds *fields* shared by a hierarchy (this is why **Bridge** with shared state is usually ABC territory).
+- ABCs still win for: nominal typing where implementations must inherit, and a base that holds *fields* shared by a hierarchy (this is why **Bridge** with shared state is usually ABC territory). `register()` is not a reason on its own: Protocol classes have it too, and after `Proto.register(cls)` a runtime-checkable Protocol's `isinstance` returns True for `cls`.
 
 These facts are version-sensitive. `python scripts/verify_python_claims.py` executes these and the other version-dependent claims in the references (20 checks) on the current interpreter; run it before asserting one to a user on a different Python.
 
@@ -195,8 +198,9 @@ Load the file that matches the problem; do not read them all.
 | `references/architectural.md` | Event Sourcing, CQRS, Repository / Unit of Work / Service Layer, Domain Events & message bus, Transactional Outbox, Saga, Strangler Fig |
 | `references/resilience.md` | Timeout & deadline propagation, Retry with backoff and jitter, Circuit Breaker, Bulkhead, Throttling & rate limiting, Idempotency keys, Idempotent Consumer, Cache-Aside, Feature Flags, with the amplification math that explains why they belong together |
 | `references/python-idioms.md` | Protocol vs ABC in depth, `singledispatch`, `functools.cache` / `cached_property` traps, dataclass gotchas, closures, module-as-singleton, PEP 562 lazy attributes |
-| `references/antipatterns.md` | How each pattern fails in practice; the over-engineering checklist; smells that look like pattern problems but aren't |
+| `references/antipatterns.md` | How the most-used patterns fail in practice (not every pattern has an entry); the over-engineering checklist; smells that look like pattern problems but aren't |
 | `references/more-patterns.md` | Functional Core / Imperative Shell, Parse don't validate, Value Object, Sentinel and Null Object, exhaustive `match` dispatch, Pipeline vs Chain of Responsibility |
+| `references/sources.md` | Every cited URL, the files that cite it, and whether the 2026-11-16 audit re-checked it |
 
 ### Bundled tools
 
@@ -205,9 +209,18 @@ Run these instead of describing what they would show.
 | Path | Use it to |
 |---|---|
 | `scripts/design_smells.py` | find structural leads in code the user provided (`--list-kinds`, `--json`, `--fail-on-findings`) |
-| `scripts/check_layers.py` | prove or disprove that an inner package imports nothing it shouldn't |
+| `scripts/check_layers.py` | check that no inner module directly imports something it shouldn't; transitive chains (domain -> utils -> sqlalchemy) and `importlib` calls need import-linter's contract |
 | `scripts/verify_python_claims.py` | re-check the version-dependent Python facts before citing them |
-| `examples/` | runnable implementations (the type-check and import-contract tests skip unless mypy and import-linter are installed; 76 passed, 1 skipped (`evals/` not shipped) on 2026-11-03, macOS arm64, Python 3.13, mypy 2.4.1, import-linter 2.15) on one order-shop domain: strategy ladder, state machine, ports and adapters (with an import-linter contract), retry budget, idempotency keys, parse don't validate, functional core, `match` dispatch, chain vs pipeline, hedged requests, sentinel and null object. Adapt one to the user's nouns rather than writing from scratch |
+| `examples/` | runnable implementations (the type-check and import-contract tests skip unless mypy and import-linter are on PATH; dated results are in `CHANGELOG.md`) on one order-shop domain: strategy ladder, state machine, ports and adapters (with an import-linter contract), retry budget, idempotency keys, parse don't validate, functional core, `match` dispatch, chain vs pipeline, hedged requests, sentinel and null object. Adapt one to the user's nouns rather than writing from scratch |
+
+---
+
+## Extend this skill
+
+1. A new pattern: add it to the reference file for its family, with its published warning quoted from the source, a row in `references/selection.md`, and the URL in `references/sources.md`.
+2. A new version-dependent Python fact: add a check to `scripts/verify_python_claims.py` and name its id next to the claim; `tests/test_skill_structure.py` keeps the stated check count in step.
+3. A new smell kind: add it to `KINDS` in `scripts/design_smells.py` with a positive and a negative test; the structure test fails until the count in Step 1 matches.
+4. A misclaim found in use: add an eval to `evals/evals.json` (and an `[auto]` check in `evals/grade.py` when a regex can catch it) before fixing the text, then log it in `CHANGELOG.md`.
 
 ---
 

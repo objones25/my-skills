@@ -96,7 +96,7 @@ def revenue_delta(event: OrderEvent) -> int:
         case _:                                 assert_never(event)
 ```
 
-Add `OrderCancelled` to the Union without a `case`, and both checkers fail the build (real output from `examples/match_dispatch.py` with one case removed):
+Add `OrderCancelled` to the Union without a `case`, and both checkers fail the build (output from a copy of `examples/match_dispatch.py` with `OrderCancelled` added to the Union and no `case` for it):
 
 ```
 mypy:    error: Argument 1 to "assert_never" has incompatible type "OrderCancelled"; expected "Never"

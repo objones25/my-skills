@@ -268,6 +268,15 @@ def test_unknown_only_kind_is_an_error_not_a_clean_report(write, capsys) -> None
     assert "unknown kind" in capsys.readouterr().err
 
 
+def test_missing_path_is_an_error_not_a_clean_report(write, tmp_path: Path, capsys) -> None:
+    path = write("m.py", POSITIVES["dispatch_chain"])
+    missing = tmp_path / "does_not_exist.py"
+    assert ds.main([str(path), str(missing)]) == 2
+    captured = capsys.readouterr()
+    assert "does_not_exist.py" in captured.err
+    assert "recommend no pattern" not in captured.out
+
+
 def test_filtered_empty_report_does_not_claim_no_pattern(write, capsys) -> None:
     path = write("m.py", POSITIVES["dispatch_chain"])
     assert ds.main([str(path), "--only", "god_class"]) == 0
