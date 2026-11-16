@@ -96,7 +96,7 @@ Retrieved with Firecrawl's paper tools. "Full text" means in-body passages were 
 | [Kang et al., ACON](https://arxiv.org/abs/2510.00615) | v3 | Full text | 26-54% peak-token cut, small loss; added latency |
 | [Zhang et al., Agentic Context Engineering (ACE)](https://arxiv.org/abs/2510.04618) | v3 | Full text | Context collapse from full rewrites; incremental delta updates |
 | [Sun et al., Compact-Bench](https://arxiv.org/abs/2610.31710) | Oct 2026 | Abstract | Summaries keep ≤16% of recurring details vs 79.1% extraction; 5-64% of successes broken |
-| [Cemri et al., MAST](https://arxiv.org/abs/2503.13657) | v3, Oct 2025 | Full text | 14 failure modes, 1,642 traces, 7 frameworks; top modes and rates; modest gains from prompt/topology fixes |
+| [Cemri et al., MAST](https://arxiv.org/abs/2503.13657) | v3, Oct 2025 | Full text | 14 failure modes, 1,642 traces, 7 frameworks; top modes and rates; task verification 21.3% of failures; modest gains from prompt/topology fixes (ChatDev on ProgramDev 25.0, 34.4, 40.6) |
 | [Tran and Kiela, Single-agent vs multi-agent at equal budget](https://arxiv.org/abs/2604.02460) | v2, Apr 2026 | Full text (abstract re-checked) | Single agent matches or beats MAS at equal thinking tokens on multi-hop QA; budget-control artifacts |
 | [At Equal Inference Cost, Multi-Agent Structure Does Not Beat a Single Frozen Agent](https://arxiv.org/abs/2609.04217) | Jun 2026 | Abstract | ALFWorld team 0.769 vs single 0.754, p=0.80, 1.8x calls |
 | [Wu et al., MCPMark](https://arxiv.org/abs/2509.24002) | 2025 | Abstract | Best model 52.56% pass@1, 33.86% pass^4 on 127 tasks |
@@ -108,6 +108,6 @@ Retrieved with Firecrawl's paper tools. "Full text" means in-body passages were 
 | [Beurer-Kellner et al., Design Patterns for Securing LLM Agents](https://arxiv.org/abs/2506.08837) | v3 | Full text | Six patterns; plan-then-execute still lets data alter arguments |
 | [Nasr, Carlini et al., The Attacker Moves Second](https://arxiv.org/abs/2510.09023) | Oct 2025 | Full text (abstract re-checked) | 12 defenses bypassed, most >90%; spotlighting/sandwiching ~1% to >95% |
 | [Zhu et al., ABC checklist](https://arxiv.org/abs/2507.02825) | v5 | Full text | 7/10 task-validity and outcome-validity flaws; do-nothing agent 38% on τ-bench airline |
-| [Kapoor et al., HAL](https://arxiv.org/abs/2510.11977) | 2025 | Full text | 21,730 rollouts; effort not monotonic; 9x cost for 2 pts; verifying agents 13-87% more likely to succeed (log analysis of 1,634 transcripts on three benchmarks, not all 21,730 rollouts) |
+| [Kapoor et al., HAL](https://arxiv.org/abs/2510.11977) | 2025 | Full text | 21,730 rollouts (about $40,000); effort not monotonic (no accuracy gain in 21 of 36 runs); 9x cost for 2 pts; verifying agents 13-87% more likely to succeed (log analysis of 1,634 transcripts on three benchmarks, not all 21,730 rollouts) |
 | [Wang et al., BenchJack](https://arxiv.org/abs/2605.12673) | May 2026 | Abstract | Near-perfect scores without solving tasks; 219 flaws |
 | [Hardy et al., Agent Evaluation Reliability](https://arxiv.org/abs/2610.00651) | Submitted Sep 30, 2026 (arXiv 2610) | Abstract | System rankings reliable (0.935-0.994), model rankings not (0.148-0.841) |

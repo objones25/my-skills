@@ -40,7 +40,10 @@ claude-agent-sdk 0.2.182, langgraph 1.2.22, langchain 1.5.0, google-adk 2.14.1, 
 
 - Tests: 58 passed, 0 skipped, on 2026-11-16 on macOS arm64 with Python 3.13.2, pytest 9.2.0 and inspect-ai 0.3.290 installed (`anthropic` not installed; no test needs it).
 - `check_skill.py --strict`: 0 errors, 0 warnings; `package_skill.py`: tests passed in the unpacked copy (2026-11-16).
-- Evals (`evals.json`, `trigger_evals.json`): not run for this version.
+- Evals, on 2026-11-16 on macOS arm64 with Claude Code 2.1.325, model claude-opus-5-5. One run per case per condition: this shows direction, not proof.
+  - `evals.json`, with the skill vs without: 92/94 expectations passed with it (98%), 76/94 without (81%). Each run was a fresh subagent given only the prompt; neither condition could search the web, and the without-skill runs could not read the skill. Answers were graded by three fresh subagents, blind to condition (A/B labels shuffled per case), against the expectations, with only `references/sources.md` available for checking figures. With-skill scored higher on 10 cases, equal on 13, lower on none; the largest gaps were case 21 (memory primitives, 4 vs 0), 17 (Inspect pass^k, 4 vs 2), 18 (harness tests, 4 vs 2) and 04 (MCP spec, 4 vs 2). Control case 23 passed 4/4 in both conditions.
+  - The two with-skill fails (cases 03 and 22) were both on "no statistic absent from the sources": the answers cited HAL's ~$40k and "21 of 36 runs" (`evals.md`) and MAST's 21.3% and ChatDev 25.0 to 34.4 and 40.6 (`multi-agent.md`, `verification.md`). These figures are in the references with citations but missing from the matching `sources.md` rows, which was a gap in `sources.md`. Fixed the same day: the MAST and HAL rows now list them, each confirmed in the papers' full text (MAST v3 and HAL as saved by the 2026-11-15 audit run).
+  - `trigger_evals.json` with skill-creator's `run_eval.py` on 2026-11-16 on macOS arm64 (3 runs per query, 1 worker, installed copy moved aside): 19/19 passed. Should-trigger cases fired 29/30 runs (the pass^k sizing query fired 2/3); near misses fired 0/27.
 
 ## 1.0, 2026-11-02
 
