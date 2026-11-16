@@ -80,6 +80,45 @@ def test_load_reads_safetensors_natively(tmp_path):
     assert torch.equal(torch.load(tmp_path / "t.safetensors")["w"], torch.ones(2))
 
 
+def test_linear_cross_entropy_chunks_only_when_options_are_passed():
+    import torch.nn.modules.linear_cross_entropy_options as lce
+
+    assert inspect.signature(F.linear_cross_entropy).parameters["options"].default is None
+    assert "processes the batch dimension" in " ".join(lce.LinearCrossEntropyOptions.__doc__.split())
+    h, w = torch.randn(8, 32), torch.randn(1000, 32) * 0.02
+    t = torch.randint(0, 1000, (8,))
+    chunked = F.linear_cross_entropy(h, w, t, options=nn.LinearCrossEntropyOptions())
+    assert chunked.item() == pytest.approx(F.cross_entropy(h @ w.T, t).item(), abs=1e-5)
+
+
+def test_load_of_safetensors_needs_the_safetensors_package(tmp_path, monkeypatch):
+    import sys
+
+    path = tmp_path / "t.safetensors"
+    path.write_bytes(b"\x00" * 16)
+    monkeypatch.setitem(sys.modules, "safetensors", None)
+    monkeypatch.setitem(sys.modules, "safetensors.torch", None)
+    with pytest.raises(RuntimeError, match="safetensors"):
+        torch.load(path)
+
+
+@pytest.mark.parametrize("dtype", [torch.float32, torch.bfloat16, torch.float16])
+def test_rmsnorm_default_eps_is_float32_eps_for_half_inputs(dtype):
+    x = torch.full((1, 4), 1e-4).to(dtype)
+    got = nn.RMSNorm(4, elementwise_affine=False)(x)
+    expected = F.rms_norm(x, (4,), eps=torch.finfo(torch.float32).eps)
+    assert torch.equal(got, expected)
+    if dtype != torch.float32:
+        assert not torch.equal(got, F.rms_norm(x, (4,), eps=torch.finfo(dtype).eps))
+
+
+def test_densenet_classifier_is_a_linear_not_a_sequential():
+    models = pytest.importorskip("torchvision.models")
+    assert type(models.densenet121(weights=None).classifier) is nn.Linear
+    assert type(models.vgg11(weights=None).classifier) is nn.Sequential
+    assert type(models.efficientnet_b0(weights=None).classifier) is nn.Sequential
+
+
 def test_named_tensors_are_gone():
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
@@ -127,3 +166,17 @@ def test_ddp_finalize_backward_requires_the_opt_in_flag(one_rank_group):
 def test_accelerator_rng_state_all_returns_a_list_without_an_accelerator():
     pytest.importorskip("torch.accelerator.random")
     assert torch.accelerator.random.get_rng_state_all() == []
+
+
+@pytest.mark.skipif(_torch_minor() < (2, 15), reason="2.15 took nested tensors off the weights_only allowlist")
+def test_jagged_nested_checkpoint_needs_rebuild_njt_and_nested_tensor(tmp_path):
+    from torch.nested._internal.nested_tensor import NestedTensor, _rebuild_njt
+
+    path = tmp_path / "nt.pt"
+    nt = torch.nested.nested_tensor([torch.ones(2), torch.ones(3)], layout=torch.jagged)
+    torch.save({"x": nt}, path)
+    with torch.serialization.safe_globals([_rebuild_njt]), pytest.raises(Exception, match="NestedTensor"):
+        torch.load(path, weights_only=True)
+    with torch.serialization.safe_globals([_rebuild_njt, NestedTensor]):
+        loaded = torch.load(path, weights_only=True)["x"]
+    assert [t.numel() for t in loaded.unbind()] == [2, 3]

@@ -193,8 +193,10 @@ why FlexAttention beats SDPA on sparse patterns while dense patterns still favor
   legitimately attends to all past keys.
 - **Call FlexAttention under `torch.compile`.** Eager `flex_attention` warns and is
   slow; `torch.compile(flex_attention)` is the intended path.
-- **`score_mod` and `mask_mod` must be pure functions.** Since 2.15 they must not mutate
-  their inputs or return an alias of one (release notes); compute a new tensor instead.
+- **`score_mod` and `mask_mod` must be pure functions.** Since 2.15 higher-order op bodies
+  reject input mutation (under `torch.compile` an in-place `score_mod` raises `Unsupported` on
+  2.15.0 and runs on 2.14.1), and the release notes say a `mask_mod` must not return an alias of an input;
+  compute a new tensor instead.
 - **Recreate `block_mask` when the sequence length changes**, and reuse it across
   steps otherwise - building it every iteration wastes real time.
 - **`.transpose` then `.view` usually errors** when the new shape needs contiguous memory. Add `.contiguous()` or use
@@ -257,9 +259,9 @@ RoPE gives relative position because rotating `q` by `m*theta` and `k` by `n*the
 makes the score a function of the offset `n - m` alone - rotations compose by adding
 angles. Learned absolute embeddings cannot run past their table at all; RoPE can, but quality
 degrades past the training length without explicit scaling such as YaRN (Su et al.,
-2021, for the relative-position property). RMSNorm drops the mean subtraction because ablations found the
-re-scaling, not the centering, is what stabilizes transformer training - halving the
-reductions and parameters at no quality cost. GQA shrinks the KV cache because its
+2021, for the relative-position property). RMSNorm drops the mean subtraction: Zhang and Sennrich (2019)
+hypothesize that LayerNorm's re-scaling, not its centering, is what matters, and report
+quality comparable to LayerNorm with less computation (no ablation isolates the two). GQA shrinks the KV cache because its
 size and per-token memory bandwidth scale with the number of KV heads: sharing 8
 query heads over 2 KV heads quarters it. MQA (1 KV head) is the extreme.
 

@@ -1,3 +1,42 @@
+# Audit, 2026-11-16
+
+Version audited: 1.2.1. Audit report (read-only fact-check by the `audit-skill` skill, risk
+scope): `audits/pytorch/2026-11-16.md` in this repository (gitignored, kept locally). It
+checked 162 of 1547 inventoried items (10%): 132 confirmed, 18 wrong, 12 disputed after a
+3-round blind review. The other 1385 items were not checked and are not vouched for here.
+
+## Errors fixed in 1.2.2
+
+| Item | Claim | Evidence | Fix |
+|---|---|---|---|
+| I-E-0019 | `diagnose.py`'s label-smoothing floor | took classes from `out.shape[-1]`, so `(N, C, d1)` logits got the wrong floor (0.1985 instead of 0.8507 at C=200) and a memorized batch was called "stuck" | classes from dim 1; regression test |
+| I-R1-0002 | overfit thresholds and the no-trainable guard were tested | `mutate_check`: 12 of 46 `overfit` mutants killed | thresholds moved into `judge()`, 14 boundary cases, a frozen-model test; `judge` 15/15 mutants killed |
+| I-R1-0003 | `memory_budget.py` bf16 branch and `muon_split` were tested | 6 bf16 and 2 `muon_split` mutants survived | three tests for the pure-bf16 layout and the embedding / non-2-D split |
+| I-A-0157, I-B-0089, I-C-0366 | linear cross entropy chunks the vocab and cuts memory ~4x | the chunked path processes the batch dimension, and the default `options=None` saves nothing (6.11 vs 6.18 GB on CPU); only `LinearCrossEntropyOptions()` cuts it (0.38 GB) | `00`, `04`, `13` say chunking is opt-in, the `04` example passes `options`, the ~4x is attributed to the release blog as not reproduced; pinned in `tests/test_claims.py` |
+| I-B-0137 | `torch.load("x.safetensors")` needs no extra library | it calls `safetensors.torch.load_file`; without the package it raises `RuntimeError` | `00`, `05` corrected; pinned |
+| I-B-0165, I-D-0258 | allowing `_rebuild_njt` loads a nested checkpoint on 2.15 | still fails, naming `NestedTensor`; strided nested tensors need `torch._utils._rebuild_nested_tensor` | `05` and example 04 corrected; pinned |
+| I-B-0037 | `nn.RMSNorm(eps=None)` uses the input dtype's epsilon | fp16 and bf16 use `torch.finfo(torch.float32).eps` (docstring and run) | `03` and the linter message corrected; pinned for three dtypes |
+| I-B-0221 | DenseNet's `classifier` is a `Sequential` | it is a `Linear`; `classifier[-1]` raises `TypeError` | `07` corrected; pinned |
+| I-B-0017 | LSTM/GRU documented args list | skipped `bias`, the 4th positional argument | `bias=True` added; pass `batch_first` by keyword |
+| I-A-0008 | AdamW's `weight_decay` as a default that moved | 0.01 on 1.13 through 2.15 | example removed from `SKILL.md` |
+| I-A-0017, I-A-0069 | `--docs` resolves every / ~190 names | 217 distinct names, and only the listed prefixes | `SKILL.md` names the prefixes; this file corrected |
+| I-C-0103 | `diagnose.py ... --model file.py:factory` | no such flag; a positional file with `make_model()`/`make_batch()` | `10` corrected |
+| I-C-0138 | deprecated collectives warn as `UserWarning` | `FutureWarning` on 2.13/2.14, silent on 2.15 | `10` corrected; the unverified SDPA-fallback part removed |
+| I-C-0408, I-C-0409 | bf16 7B "needs two 80 GiB cards"; decoding "about 2 FLOPs per byte" | 13.0 GiB fits one card; one multiply-add per 2-byte weight is 1 FLOP/byte | `14` corrected |
+| I-D-0111 | the `once_differentiable` sentence is in `Function.backward`'s docstring | it is in `FunctionCtx.save_for_backward`'s | `15` corrected |
+| I-E-0057 | 2.14 added `preserve_rng_state` | 2.13.0 already accepted it through `**kwargs` | `verify_api.py` note corrected |
+| I-B-0228, I-B-0235, I-B-0237, I-C-0059 | LoRA works because the change is low rank; LoRA learning rate; forgetting; RMSNorm "ablations found" | Hu et al. hypothesize; Biderman et al. find full fine-tuning changes 10-100x higher rank and a task-dependent forgetting tradeoff; Zhang and Sennrich hypothesize, with no ablation | `07`, `09` reworded to what the papers say; Biderman et al. cited for the LoRA LR |
+| I-C-0044 | `score_mod` must not return an alias | the release notes say this for `mask_mod`; an aliasing `score_mod` compiled fine | `09` narrowed |
+| I-D-0246 | example 04 header | the script prints a torchvision line, and the macOS wheel has no `+cpu` tag | header matches the script |
+| I-R1-0008, I-R1-0009, I-A-0069 | claims in this file | see the corrections marked 2026-11-16 below | corrected in place |
+
+## Known, not fixed
+
+- `tests/test_ddp_template.py`'s disjoint-shards test checks only that the two ranks' sample
+  sums add up, which is necessary but does not prove disjointness. Strengthening it means
+  changing what `assets/ddp_template.py` prints, an asset users copy; left for a later change.
+- The fixes above were not re-audited by a fresh reviewer; the tests listed are their evidence.
+
 # Audit, 2026-11-02
 
 Previous version: 1.1.0 (verified against torch 2.13.0 and re-checked on 2.14.1). SKILL.md,
@@ -14,7 +53,7 @@ sources file, or structural tests. Its 32 tests still passed on torch 2.15.0, an
 | "`@dynamic_spec` / `ShapesSpec` ... prefer it over per-call `Dim` dicts", listed next to `torch.export` | `torch.export.dynamic_spec` does not exist on 2.14.1 or 2.15.0; both live in `torch.fx.experimental.dynamic_spec` | location stated in `00` and `11`; pinned absent in PRESENCE |
 | `RandomErasing` "needs a **float** tensor - place after `ToDtype`" (`08`, three places) | `v2.RandomErasing(p=1.0)` erased a uint8 image without error on torchvision 0.29.2 | reworded: works on either; placing it after `ToDtype` is a convention about fill units |
 | Muon's 1-D parameters "stay on AdamW in a separate param group" (`04`) | `torch.optim.Muon([1-D param])` raises `ValueError: Muon only supports 2D parameters`; a param group inside Muon would raise. It must be a separate `AdamW` optimizer | rewritten; the `ValueError` is in the `10` symptom table and in an eval |
-| "Muon (in `torch.optim` as of 2.13)" | no 2.13 install was available to confirm the version it arrived in | now "present in 2.14.1 and 2.15.0" |
+| "Muon (in `torch.optim` as of 2.13)" | no 2.13 install was available to confirm the version it arrived in (corrected 2026-11-16: torch 2.13.0 installs from PyPI and has `torch.optim.Muon`, as does 2.12.1, so the original wording was true) | now "present in 2.12.1 through 2.15.0" |
 | Signature tables omitted parameters the skill's own `verify_api.py` listed: `AdamW` without `differentiable`, `SGD` without `maximize` and `differentiable`, `F.linear_cross_entropy` without `options`, `BatchNorm2d` without `track_running_stats` | `inspect.signature` on 2.14.1 and 2.15.0 | tables completed; `verify_api.py --docs` now checks table rows against the install |
 | `nn.LSTM` / `nn.GRU` row presented as an introspected signature | the Python signature is `(*args, **kwargs)`; `inspect` cannot read the documented parameters | row says so |
 | `checkpoint(use_reentrant=...)`: "`None` - must be passed explicitly" | omitting it warns and falls back to the reentrant path on 2.13 through 2.15; the 2.14 docs say "In version 2.9 we will raise an exception", which 2.15.0 does not do | rewritten as the docs-versus-code disagreement, following the code |
@@ -43,7 +82,8 @@ sources file, or structural tests. Its 32 tests still passed on torch 2.15.0, an
 - `scripts/lint_pytorch.py`: stdlib AST linter with 24 codes; every code has a triggering and
   a near-miss test (133 tests). Its runtime claims (set-of-params `FutureWarning`, checkpoint
   warning, deprecated AMP names, `batch_first` and `eps` defaults) were reproduced on 2.15.0
-  and 2.14.1.
+  and 2.14.1 (corrected 2026-11-16: the set-of-params `FutureWarning` is 2.15 only; 2.14.1
+  accepts a set silently).
 - `scripts/diagnose.py`: `overfit`, `grads`, `nan` on any file defining `make_model()` and
   `make_batch()`. It classifies all five planted-bug models in `examples/models/` correctly,
   including a stray `.detach()` that the linter cannot see.
@@ -52,7 +92,9 @@ sources file, or structural tests. Its 32 tests still passed on torch 2.15.0, an
   with momentum, Muon (with AdamW for 1-D params and embeddings), and Adafactor, including
   conv weights and frozen layers (after the fact-check fixes below).
 - `scripts/verify_api.py`: rebased on 2.15.0; 68 defaults, 20 presence checks, 39 full
-  signatures; `--docs` resolves all ~190 API names in `references/` and checks signature claims;
+  signatures; `--docs` resolves the API names in `references/` (corrected 2026-11-16: 217 distinct names
+  with a `torch.`, `nn.`, `F.`, `v2.`, `dist.`, `dcp.`, `torchvision.` or `torchao.` prefix, not
+  ~190, and `optim.`/`Tensor.` shorthand is not resolved) and checks signature claims;
   `--json`; known-change notes so a 2.14 user sees which drift is expected.
 - `assets/ddp_template.py` (DDP or FSDP2 under `torchrun`, runs on CPU gloo; the test launches 2
   ranks and checks identical replicas and disjoint shards), `assets/test_model_template.py` and

@@ -525,8 +525,8 @@ symmetric: True | class: ParametrizedLinear
   docs.pytorch.org/docs/2.15 - `notes/extending.html`, `notes/extending.func.html`,
   `library.html`, `generated/torch.autograd.gradcheck.gradcheck.html`, `func.html`,
   `generated/torch.nn.Module.html`, `generated/torch.nn.utils.parametrize.register_parametrization.html`.
-- The `Function.backward` docstring in torch 2.15.0 (`torch/autograd/function.py`) says
-  `@once_differentiable` makes double backward raise; walkthrough step 3 shows the case
+- The `FunctionCtx.save_for_backward` docstring in torch 2.15.0 (`torch/autograd/function.py`)
+  says `@once_differentiable` makes double backward raise; walkthrough step 3 shows the case
   where it does not.
 - docs.pytorch.org/tutorials - `advanced/custom_ops_landing_page.html`,
   `intermediate/custom_function_double_backward_tutorial.html`.

@@ -82,7 +82,7 @@ Diagnostic tools:
 | Live vs cached | `memory_allocated()` versus `memory_reserved()` | leak versus allocator cache |
 | Save memory | `torch.utils.checkpoint.checkpoint` | recompute activations |
 | Compile diagnostics | `TORCH_LOGS="graph_breaks,recompiles"` | why compile is slow |
-| Scripted triage | `python scripts/diagnose.py overfit\|grads\|nan --model file.py:factory` | overfit test, per-parameter gradient table, first module to emit a non-finite value |
+| Scripted triage | `python scripts/diagnose.py overfit\|grads\|nan\|all model.py` (the file defines `make_model()` and `make_batch()`) | overfit test, per-parameter gradient table, first module to emit a non-finite value |
 | Static check | `python scripts/lint_pytorch.py src/` | dropped `.to()`, softmax before CrossEntropy, plain list of layers, and 20 more |
 
 ### dtypes
@@ -187,8 +187,9 @@ When a loss looks wrong but nothing raises, suspect broadcasting first:
   accumulation, AMP, or checkpointing. `empty_cache()` does not free live tensors.
 - **Low GPU utilization means data-bound or sync-bound** - more workers, `pin_memory`,
   fewer `.item()` calls, AMP, `torch.compile`.
-- **A `UserWarning` during training is worth reading.** Broadcasting, deprecated
-  collectives, and silent SDPA fallbacks all announce themselves that way.
+- **Warnings during training are worth reading.** Loss broadcasting announces itself as
+  a `UserWarning`; deprecations as a `FutureWarning` (the old collective names did on 2.13
+  and 2.14, and are silent aliases on 2.15).
 
 ## Alternatives
 

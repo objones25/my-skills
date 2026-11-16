@@ -81,3 +81,31 @@ def test_frozen_parameters_get_no_gradient_bytes(skill_root, tmp_path):
     path.write_text(EDGE_SOURCE.format(expr="_frozen()"))
     r = run(skill_root, "--model", str(path))
     assert r["trainable"] == 650
+
+
+@pytest.fixture(scope="module")
+def mb(skill_root):
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("mb", skill_root / "scripts" / "memory_budget.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def test_pure_bf16_adamw_is_eight_bytes_per_param(mb):
+    assert mb.bytes_per_param("bf16", 2) == {"weights": 2, "grads": 2, "master": 0, "optimizer": 4}
+
+
+def test_pure_bf16_cli_reports_the_same_layout(skill_root):
+    r = run(skill_root, "--params", "1e9", "--precision", "bf16", "--optimizer", "adamw")
+    assert r["bytes_per_param"] == {"weights": 2, "grads": 2, "master": 0, "optimizer": 4}
+
+
+def test_muon_split_sends_only_non_embedding_matrices_to_muon(mb):
+    import torch.nn as nn
+
+    model = nn.Sequential(nn.Embedding(10, 4), nn.Linear(4, 3), nn.LayerNorm(3))
+    muon, adamw = mb.muon_split(model, None)
+    assert [tuple(p.shape) for p in muon] == [(3, 4)]
+    assert sorted(tuple(p.shape) for p in adamw) == [(3,), (3,), (3,), (10, 4)]

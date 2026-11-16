@@ -131,3 +131,98 @@ def test_label_smoothing_floor_is_computed(skill_root, tmp_path):
 
 def test_model_that_only_learns_the_mean_is_not_memorized(skill_root, tmp_path):
     assert run_source(skill_root, tmp_path, MEAN_ONLY)["verdict"] == "stuck"
+
+
+# --------------------------------------------------------------------------- #
+# In-process checks of the overfit arithmetic (fast, and each one can fail on its own)
+# --------------------------------------------------------------------------- #
+@pytest.fixture(scope="module")
+def diag(skill_root):
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("diag", skill_root / "scripts" / "diagnose.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def _smoothed_entropy(c: int, eps: float) -> float:
+    import math
+
+    hi, lo = 1 - eps + eps / c, eps / c
+    return -(hi * math.log(hi) + (c - 1) * lo * math.log(lo))
+
+
+def test_loss_floor_reads_classes_from_dim_1_for_k_dimensional_logits(diag):
+    import torch
+    import torch.nn as nn
+
+    out = torch.zeros(4, 200, 2)                     # (N, C, d1): CrossEntropyLoss's layout
+    y = torch.zeros(4, 2, dtype=torch.long)
+    floor = diag.loss_floor(nn.CrossEntropyLoss(label_smoothing=0.1), out, y)
+    assert floor == pytest.approx(_smoothed_entropy(200, 0.1), abs=1e-6)
+
+
+def test_loss_floor_for_plain_logits_uses_the_last_dim(diag):
+    import torch
+    import torch.nn as nn
+
+    floor = diag.loss_floor(nn.CrossEntropyLoss(label_smoothing=0.1),
+                            torch.zeros(32, 10), torch.zeros(32, dtype=torch.long))
+    assert floor == pytest.approx(_smoothed_entropy(10, 0.1), abs=1e-6)
+
+
+def test_loss_floor_for_unbatched_logits_uses_dim_0(diag):
+    import torch
+    import torch.nn as nn
+
+    floor = diag.loss_floor(nn.CrossEntropyLoss(label_smoothing=0.1),
+                            torch.zeros(10), torch.tensor(3))
+    assert floor == pytest.approx(_smoothed_entropy(10, 0.1), abs=1e-6)
+
+
+@pytest.mark.parametrize("case", ["no-smoothing", "soft-targets", "mse"])
+def test_loss_floor_is_zero_when_no_floor_is_known(diag, case):
+    import torch
+    import torch.nn as nn
+
+    out = torch.zeros(4, 10)
+    loss_fn, y = {
+        "no-smoothing": (nn.CrossEntropyLoss(), torch.zeros(4, dtype=torch.long)),
+        "soft-targets": (nn.CrossEntropyLoss(label_smoothing=0.1), torch.full((4, 10), 0.1)),
+        "mse": (nn.MSELoss(), torch.zeros(4, 10)),
+    }[case]
+    floor = diag.loss_floor(loss_fn, out, y)
+    assert floor == 0.0 and isinstance(floor, float)
+
+
+def test_overfit_with_no_trainable_parameter_is_stuck_without_training(diag):
+    import torch
+    import torch.nn as nn
+
+    model = nn.Linear(4, 3).requires_grad_(False)
+    batch = (torch.randn(8, 4), torch.randint(0, 3, (8,)))
+    report = diag.overfit(model, batch, nn.CrossEntropyLoss(), steps=5, lr=1e-3)
+    assert (report["verdict"], report["reason"]) == ("stuck", "no parameter requires grad")
+
+
+# judge(first, last, floor, baseline) -> verdict, at the exact thresholds:
+# near the floor means last - floor < 0.1 * (first - floor) or < 1e-2;
+# beating the baseline means last < baseline - 0.5 * (baseline - floor).
+@pytest.mark.parametrize("first, last, floor, baseline, verdict", [
+    (2.0, 0.05, 0.0, None, "memorized"),        # below 10% of the drop and no baseline
+    (2.0, 0.2, 0.0, None, "stuck"),             # exactly 10%: not strictly below
+    (2.0, 0.19, 0.0, None, "memorized"),        # just under 10%
+    (0.05, 0.0099, 0.0, None, "memorized"),     # absolute 1e-2 rule
+    (0.05, 0.01, 0.0, None, "stuck"),           # exactly 1e-2: not strictly below
+    (1.05, 1.009, 1.0, None, "memorized"),      # 1e-2 rule measured from the floor
+    (3.0, 1.19, 1.0, None, "memorized"),        # floor subtracted: 0.19 < 0.1 * (3.0 - 1.0)
+    (3.0, 1.3, 1.0, None, "stuck"),             # 0.3 is not within 10% of a 2.0 gap
+    (2.0, 0.05, 0.0, 1.0, "memorized"),         # beats baseline: 0.05 < 1.0 - 0.5
+    (2.0, 0.009, 0.0, 0.018, "stuck"),          # near floor but 0.009 is not < 0.018 - 0.009
+    (2.0, 0.0089, 0.0, 0.018, "memorized"),     # just beats it
+    (2.0, 1.05, 1.0, 1.1, "stuck"),             # 1.05 is not < 1.1 - 0.05
+    (2.0, 1.04, 1.0, 1.1, "memorized"),         # floor-relative baseline margin
+])
+def test_judge_applies_the_documented_thresholds(diag, first, last, floor, baseline, verdict):
+    assert diag.judge(first, last, floor, baseline) == verdict

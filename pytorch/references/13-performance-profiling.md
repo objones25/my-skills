@@ -179,7 +179,7 @@ legacy reentrant path (the 2.14 docs and 2.14.1's warning said 2.9 would raise; 
 | Gradient accumulation | enables a larger effective batch | proportional slowdown |
 | Activation checkpointing | large memory saving | roughly +30% compute |
 | Fused optimizer (`AdamW(..., fused=True)`) | small, real | mps, cuda, xpu, hpu, cpu, mtia, privateuseone on 2.15.0 (`torch.utils._foreach_utils._get_fused_kernels_supported_devices()`) |
-| `nn.LinearCrossEntropyLoss` for large vocab | up to ~4x peak memory | none |
+| `nn.LinearCrossEntropyLoss(..., options=nn.LinearCrossEntropyOptions())` for large vocab | large peak-memory cut (none with the default `options=None`) | none |
 | FSDP2 / tensor parallel | fits what did not fit | coordination, bandwidth |
 
 **Memory reduction, in order:** smaller batch plus accumulation -> AMP -> log

@@ -51,8 +51,9 @@ that double-normalizes.
 | LoRA / PEFT | `peft.get_peft_model(base, LoraConfig(...))` | freeze base, train adapters |
 | Partial state load | `model.load_state_dict(sd, strict=False)` | returns missing/unexpected key lists - check them |
 
-Head attribute name by architecture: `fc` (ResNet), `classifier` (VGG, DenseNet,
-EfficientNet - a `Sequential`, so replace `classifier[-1]`), `heads.head` (ViT). Read
+Head attribute name by architecture: `fc` (ResNet), `classifier` (VGG and EfficientNet -
+a `Sequential`, so replace `classifier[-1]`; DenseNet - a plain `Linear`, so replace
+`classifier` itself), `heads.head` (ViT). Read
 `in_features` off the existing layer rather than hard-coding it.
 
 Strategy by data size and task similarity:
@@ -105,11 +106,13 @@ print(f"full {full:,} | lora r=8 {lora:,} | {100*lora/full:.2f}% | {full/lora:.0
 full 16,777,216 | lora r=8 65,536 | 0.39% | 256x fewer
 ```
 
-You train 0.39% of the layer and still capture most of the adaptation, because the
-*change* a model needs for a new task has low intrinsic rank - it lives in a
-low-dimensional subspace even though the weights are high-dimensional (Hu et al.,
-2021). Since the base stays frozen, one base model serves many swappable per-task
-adapters. QLoRA pushes further by quantizing the frozen base to 4-bit.
+You train 0.39% of the layer. Hu et al. (2021) motivate LoRA with a hypothesis: the
+*change* a model needs for a new task has low intrinsic rank. That is not settled -
+Biderman et al. (TMLR 2024) measure full fine-tuning weight changes with rank 10-100x
+higher than typical LoRA settings, and find that in standard low-rank settings LoRA
+substantially underperforms full fine-tuning on code and math, while forgetting less.
+Since the base stays frozen, one base model serves many swappable per-task adapters.
+QLoRA pushes further by quantizing the frozen base to 4-bit.
 
 In practice use Hugging Face PEFT rather than hand-rolling:
 
@@ -132,12 +135,13 @@ model.print_trainable_parameters()               # e.g. "trainable: 0.2% of all 
 - **Head LR much greater than backbone LR** (10-100x) via param groups, or you either
   wreck pretrained features or starve the new head.
 - **Full fine-tuning LRs are small** - `1e-5` to `5e-5` is typical. LoRA wants roughly
-  10x the full fine-tuning LR ("LoRA Without Regret", Thinking Machines 2025, a vendor
-  blog; the vendor's Tinker docs say 20-100x for some model sizes).
+  10x the full fine-tuning LR: Biderman et al. (TMLR 2024) say one order of magnitude
+  higher, and "LoRA Without Regret" (Thinking Machines 2025, a vendor blog) reports the same; the vendor's Tinker docs say 20-100x for some model sizes).
 - **Catastrophic forgetting** from too-high LR or too many epochs on small data.
   Defend with freezing, low LR, gradual unfreeze, or LoRA, which forgets less than
-  full fine-tuning but is not immune: LoRA runs that learn as much forget about as much
-  (Biderman et al., TMLR 2024).
+  full fine-tuning but is not immune. Biderman et al. (TMLR 2024) find the tradeoff
+  depends on the task: on code instruction tuning LoRA r=256 matched full fine-tuning
+  while forgetting less, while for math continued pretraining the curves overlapped.
 - **Newly unfrozen layers need `optimizer.add_param_group`** to actually be optimized.
 - **BatchNorm keeps updating its running stats even when frozen**, because those are
   buffers, not parameters. If the backbone must stay fixed, put its BN layers in

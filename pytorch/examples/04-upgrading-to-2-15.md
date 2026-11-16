@@ -31,7 +31,8 @@ On the 2.14.1 install, the skill's signature check lists exactly what 2.15 adds:
 
 ```
 $ python scripts/verify_api.py
-installed: torch 2.14.1+cpu
+installed: torch 2.14.1
+           torchvision 0.29.1
 reference: torch 2.15.0 / torchvision 0.29.2
 
 checked 68 defaults + 20 symbols + 39 full signatures
@@ -55,8 +56,9 @@ breaking changes: `torch.compiler.precompile` was a callable on 2.14.1 and is a 
 with no alias. Beyond what a signature check can see:
 
 - `torch.load(weights_only=True)` refuses checkpoints containing nested tensors on 2.15
-  (reproduced); allow `torch.nested._internal.nested_tensor._rebuild_njt` with
-  `torch.serialization.safe_globals`.
+  (reproduced); for a jagged tensor allow both `_rebuild_njt` and `NestedTensor` from
+  `torch.nested._internal.nested_tensor` with `torch.serialization.safe_globals` (the first
+  alone still fails, naming `NestedTensor`).
 - The old collective names (`all_gather_into_tensor`, `reduce_scatter_tensor`) stop warning
   on 2.15; nothing to change, but a warning you were tracking disappears.
 - The rewritten `nccl` binds each process group to one device: pass

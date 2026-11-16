@@ -68,6 +68,8 @@ re-read in this audit. None of these claims is about an API that changed between
   `reduce_dtype` change, FlashAttention backend selection, fp16 `GradScaler` on MPS, int4
   CUDA kernels, CUDA graph capture. These are from release notes or docs and say so.
 - Speedup and memory-saving figures quoted from release blogs (FlexAttention on MPS,
-  `LinearCrossEntropyLoss`'s ~4x) were not measured.
+  `LinearCrossEntropyLoss`'s ~4x on GPU) were not reproduced. On CPU (2026-11-16) the
+  default `options=None` saved nothing and `LinearCrossEntropyOptions()` cut peak memory
+  about 16x; GPU peak memory was not measured.
 - The official 2.15 blog post on pytorch.org could not be fetched; the GitHub release notes
   and the PyTorchKR summary were used instead.

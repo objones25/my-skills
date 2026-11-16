@@ -73,8 +73,8 @@ Verified from the 2.13 release notes and by introspection.
 
 | API | What it does |
 |-----|--------------|
-| `nn.LinearCrossEntropyLoss` / `F.linear_cross_entropy` | fuses the output projection with cross-entropy, chunking over the vocab dim; up to ~4x lower peak memory for large-vocabulary LMs |
-| `torch.load("x.safetensors")` | reads safetensors natively, no extra library |
+| `nn.LinearCrossEntropyLoss` / `F.linear_cross_entropy` | fuses the output projection with cross-entropy; with `options=nn.LinearCrossEntropyOptions()` it processes the batch in chunks and never materializes the full logits, cutting peak memory for large-vocabulary LMs. The default `options=None` is the reference path and saves nothing |
+| `torch.load("x.safetensors")` | dispatches on the extension to `safetensors.torch.load_file`, so the `safetensors` package must be installed |
 | `torch.compiler.set_default_backend` | process-wide default backend, like `set_default_dtype` |
 | `FSDPModule.set_separate_reduce_scatter_group(True)` | dedicated communicator so reduce-scatter overlaps all-gather |
 | FlexAttention on MPS | up to ~12x over SDPA on sparse masks; dense still favors SDPA |
