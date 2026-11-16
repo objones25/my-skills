@@ -1,13 +1,18 @@
 """Minimal PPO for continuous control, written to be read next to concepts/policy-gradient.md.
 
 Pendulum-v1 never terminates; every episode is truncated at 200 steps, so it is the smallest
-real test of time-out bootstrapping. Measured Nov 2, 2026 (80k steps, gamma 0.99, seeds 0-2,
-deterministic eval): correct bootstrapping -135.4 / -135.0 / -122.1 (mean -130.8);
---timeout-as-terminal -124.9 / -167.2 / -148.0 (mean -146.7). A small, noisy edge with 3 seeds,
-consistent with Andrychowicz et al. finding little difference at long time limits; the bias is
-larger when episodes are short relative to 1/(1-gamma) (scripts/rl_math.py truncation_bias).
+real test of time-out bootstrapping. Measured 2026-11-16 on macOS arm64 (Apple M4 Pro), Python 3.13,
+torch 2.15.0, gymnasium 1.4.0, numpy 2.5.5 (80k steps, gamma 0.99, seeds 0-2, deterministic eval):
+correct bootstrapping -110.4 / -137.2 / -124.3 (mean -124.0); --timeout-as-terminal
+-1117.1 / -762.6 / -150.6 (mean -676.8). A large gap: two of three seeds never learn. Runs are not
+bitwise repeatable (a rerun of terminal-treated seed 0 gave -1045.5), so compare means over seeds.
+Andrychowicz et al. (2021) found no special handling needed for large step limits; Pendulum's
+200-step limit is only twice 1/(1-gamma) = 100, which is why the bug bites here [inference].
+The bias grows as episodes shorten relative to 1/(1-gamma) (scripts/rl_math.py truncation_bias).
+An earlier record (Nov 2, 2026, machine and versions not recorded) gave means -130.8 and -146.7;
+it was not reproduced.
 
-    python examples/ppo_pendulum.py                         # about 75 s on 2 CPU cores, eval near -130
+    python examples/ppo_pendulum.py                         # 23 s with 2 torch threads, 28 s on all cores (M4 Pro, 2026-11-16); eval near -125
     python examples/ppo_pendulum.py --timeout-as-terminal   # the classic bug
     python examples/ppo_pendulum.py --steps 50000 --seed 1  # quick smoke run
 

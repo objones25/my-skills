@@ -27,7 +27,7 @@ RL code is numerical and randomized, so a wrong implementation often runs, print
 
 ## Deep RL debugging ladder `[practice]`
 
-1. Known answer first: LQR (`scripts/lqr.py` gives the optimal cost), a tabular MDP through a one-hot encoder (compare to `mdp_tools` Q⋆), Pendulum or CartPole. `examples/ppo_pendulum.py` is a 200-line PPO that reaches a deterministic eval return near −130 on Pendulum-v1 in about 75 s of CPU (measured over 3 seeds: −122 to −135); if yours does not, compare against it.
+1. Known answer first: LQR (`scripts/lqr.py` gives the optimal cost), a tabular MDP through a one-hot encoder (compare to `mdp_tools` Q⋆), Pendulum or CartPole. `examples/ppo_pendulum.py` is a 200-line PPO that reaches a deterministic eval return near −125 on Pendulum-v1 in 23 to 28 s of CPU (measured 2026-11-16 on an Apple M4 Pro over 3 seeds: −110 to −137; versions in its docstring); if yours does not, compare against it.
 2. Overfit a tiny problem (one state, one episode) to confirm the update can drive its loss to zero.
 3. Unit-test the math that silently biases results: GAE with terminated vs truncated, returns, KL estimators, explained variance (`scripts/rl_math.py` and its tests are the reference).
 4. Change one thing at a time; several seeds before believing a difference (`evaluation.md`).

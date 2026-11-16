@@ -44,6 +44,6 @@ The critic is only used during training, so it may see privileged simulator stat
 | Symptom | Likely cause |
 |---|---|
 | Q values climb without bound | overestimation feedback; check the min over critics, target network τ, reward scale vs 1/(1−γ) |
-| SAC entropy collapses immediately | target entropy too low or α learning rate too high; target is usually −dim(A) (SAC v2) |
+| SAC entropy collapses immediately | target entropy too low; target is usually −dim(A) (SAC v2). A too-high α learning rate is a plausible second cause that no source checked here states [inference] |
 | Actor improves then crashes | actor updating faster than the critic tracks; TD3's delayed actor updates exist for this |
 | Explained variance near 0 (PPO critic) | critic not learning: reward scale, observation normalization off, value lr too low |
