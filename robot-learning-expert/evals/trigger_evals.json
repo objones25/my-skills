@@ -1,0 +1,21 @@
+[
+  {"query": "can you derive why policy iteration converges in finitely many steps for a finite MDP", "should_trigger": true},
+  {"query": "my PPO run on mjlab G1 has KL around 0.05 and clip fraction 0.4, is that healthy?", "should_trigger": true},
+  {"query": "explain GAE and why rsl_rl adds gamma*V(s) on time-outs instead of treating them as terminal", "should_trigger": true},
+  {"query": "should I use 4096 or 16384 envs for humanoid walking in Isaac Lab, same wall clock budget", "should_trigger": true},
+  {"query": "I have 3 seeds per method, how do I tell whether my new reward actually helps? IQM? bootstrap?", "should_trigger": true},
+  {"query": "walk me through the LQR Riccati recursion and how to check my implementation", "should_trigger": true},
+  {"query": "domain randomization for sim-to-real on a quadruped: which parameters matter and how wide", "should_trigger": true},
+  {"query": "summarize the FastTD3 paper and compare it with PPO for locomotion", "should_trigger": true},
+  {"query": "what does LSVI-UCB's bonus beta depend on and why is there a d factor", "should_trigger": true},
+  {"query": "my SAC entropy collapses in the first few thousand steps on a robot arm task", "should_trigger": true},
+  {"query": "fit a compute-optimal scaling law for model size vs env steps from my isoFLOP sweep in JAX", "should_trigger": false},
+  {"query": "write a PureJaxRL-style vmapped PPO scaffold for gymnax with a million envs", "should_trigger": false},
+  {"query": "torch.compile gives a graph break in my transformer, how do I find it", "should_trigger": false},
+  {"query": "CUDA out of memory when fine-tuning a 7B model with FSDP2", "should_trigger": false},
+  {"query": "add pytest tests and a coverage gate to my data loading package", "should_trigger": false},
+  {"query": "write a Dockerfile for my training script with CUDA 12", "should_trigger": false},
+  {"query": "build123d: model a mounting bracket for a servo motor", "should_trigger": false},
+  {"query": "set up wandb logging and structured JSON logs for my web service", "should_trigger": false},
+  {"query": "explain how transformers' attention scales with sequence length", "should_trigger": false}
+]

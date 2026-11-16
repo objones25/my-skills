@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
-MD_FILES = [ROOT / "SKILL.md", *sorted((ROOT / "references").rglob("*.md"))]
+MD_FILES = [ROOT / "SKILL.md", ROOT / "CHANGELOG.md", ROOT / "AUDIT.md", *sorted((ROOT / "references").rglob("*.md"))]
 # Paths that live outside the skill (installed packages, other repos).
 EXTERNAL = re.compile(
     r"^(CS291K|mprl|mjlab|rsl_rl|modules/|algorithms/|massively-parallel-rl|results-main|student\.py|"
@@ -36,11 +36,21 @@ def test_backticked_paths_exist(md):
 
 def test_frontmatter():
     text = (ROOT / "SKILL.md").read_text()
-    m = re.match(r"^---\nname: ([a-z0-9-]+)\ndescription: (.+?)\n---\n", text, re.S)
-    assert m, "SKILL.md needs name and description frontmatter"
+    m = re.match(r"^---\nname: ([a-z0-9-]+)\ndescription: ([^\n]+)\nmetadata:\n((?:  [^\n]+\n)+)---\n", text)
+    assert m, "SKILL.md needs name, one-line description and a metadata block"
     assert m.group(1) == "robot-learning-expert" == ROOT.name
     assert len(m.group(2)) <= 1024
     assert "<" not in m.group(2) and ">" not in m.group(2)
+    assert "Not for" in m.group(2), "description needs negative scope"
+    assert '  test-command: "uv run --no-project --with numpy --with pytest python -m pytest tests"' in m.group(3).splitlines()
+
+
+def test_trigger_evals_have_both_kinds():
+    cases = json.loads((ROOT / "evals" / "trigger_evals.json").read_text())
+    assert all(set(c) == {"query", "should_trigger"} and c["query"].strip() for c in cases)
+    assert sum(c["should_trigger"] for c in cases) >= 8
+    assert sum(not c["should_trigger"] for c in cases) >= 8
+    assert len({c["query"] for c in cases}) == len(cases)
 
 
 def test_skill_md_is_short():
@@ -78,3 +88,14 @@ def test_skill_is_not_framed_around_one_course(path):
         pytest.skip("history may mention the old course framing")
     hits = COURSE_FRAMING.findall(path.read_text())
     assert not hits, f"{path.name} still has course-specific framing: {sorted(set(hits))}"
+
+
+@pytest.mark.parametrize("script", sorted((ROOT / "scripts").glob("*.py")), ids=lambda p: p.name)
+def test_every_script_runs_standalone(script):
+    # SKILL.md promises that `python scripts/<name>.py` runs a self-check or prints a table.
+    import subprocess
+    import sys
+
+    res = subprocess.run([sys.executable, str(script)], capture_output=True, text=True, timeout=120, cwd=ROOT, check=False)
+    assert res.returncode == 0, f"{script.name} exited {res.returncode}: {res.stderr[-400:]}"
+    assert res.stdout.strip(), f"{script.name} printed nothing"

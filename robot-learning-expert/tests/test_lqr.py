@@ -50,3 +50,59 @@ def test_rejects_indefinite_R():
     A, B, Q, _ = _system()
     with pytest.raises(ValueError, match="positive definite"):
         lqr.dare(A, B, Q, np.zeros((2, 2)))
+
+
+def test_rollout_cost_matches_hand_computation():
+    # a = -1.5 s on s' = 2 s + a: states 1, 0.5, 0.25; costs 3.25 + 0.8125 + 0.203125
+    A, B, Q, R = (np.array([[v]]) for v in (2.0, 1.0, 1.0, 1.0))
+    K = np.array([[-1.5]])
+    assert lqr.rollout_cost(A, B, Q, R, K, np.array([1.0]), H=3) == pytest.approx(4.265625)
+    K_tv = np.stack([K, K, K])  # time-varying gains, shape (H, m, n)
+    assert lqr.rollout_cost(A, B, Q, R, K_tv, np.array([1.0]), H=3) == pytest.approx(4.265625)
+
+
+def test_rollout_cost_under_dare_gain_is_quadratic_value():
+    A, B, Q, R = _system(2)
+    P, K = lqr.dare(A, B, Q, R)
+    s0 = np.array([0.3, -1.0, 2.0])
+    assert lqr.rollout_cost(A, B, Q, R, K, s0, H=3000) == pytest.approx(s0 @ P @ s0, rel=1e-8)
+
+
+def test_rollout_cost_noise_is_seeded_and_adds_cost():
+    A, B, Q, R = _system(2)
+    _, K = lqr.dare(A, B, Q, R)
+    s0 = np.zeros(3)
+    noisy = lqr.rollout_cost(A, B, Q, R, K, s0, H=50, noise_cov=0.1 * np.eye(3), seed=4)
+    assert noisy == lqr.rollout_cost(A, B, Q, R, K, s0, H=50, noise_cov=0.1 * np.eye(3), seed=4)
+    assert noisy > 0.0 == lqr.rollout_cost(A, B, Q, R, K, s0, H=50)
+
+
+def test_estimate_AB_recovers_noiseless_system_exactly():
+    A, B, _, _ = _system(3)
+    rng = np.random.default_rng(3)
+    S, U = rng.normal(size=(40, 3)), rng.normal(size=(40, 2))
+    A_hat, B_hat = lqr.estimate_AB(S, U, S @ A.T + U @ B.T)
+    assert A_hat.shape == (3, 3) and B_hat.shape == (3, 2)
+    assert np.allclose(A_hat, A, atol=1e-10) and np.allclose(B_hat, B, atol=1e-10)
+
+
+def test_rollout_cost_adds_noise_to_the_next_state():
+    # s' = 0.5 s + w with a = 0: cost = s0^2 + (0.5 s0 + w0)^2, w0 from the same seeded generator
+    A, B, Q, R = (np.array([[v]]) for v in (0.5, 0.0, 1.0, 1.0))
+    cov = np.array([[0.2]])
+    w0 = np.random.default_rng(9).multivariate_normal(np.zeros(1), cov)[0]
+    got = lqr.rollout_cost(A, B, Q, R, np.zeros((1, 1)), np.array([1.0]), H=2, noise_cov=cov, seed=9)
+    assert got == pytest.approx(1.0 + (0.5 + w0) ** 2)
+
+
+def test_dare_residual_is_zero_only_at_the_solution():
+    A, B, Q, R = _system(5)
+    P, _ = lqr.dare(A, B, Q, R)
+    assert lqr.dare_residual(A, B, Q, R, P) < 1e-8
+    assert lqr.dare_residual(A, B, Q, R, P + 0.1 * np.eye(3)) > 1e-3
+
+
+def test_is_stable_uses_spectral_radius():
+    assert lqr.is_stable(np.diag([0.9, -0.5]))
+    assert not lqr.is_stable(np.diag([0.9, -1.0]))
+    assert not lqr.is_stable(np.array([[0.0, 2.0], [-2.0, 0.0]]))  # complex pair with |lambda| = 2

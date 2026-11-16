@@ -1,7 +1,8 @@
 """Analyze a num_envs sweep the way evaluation.md recommends, on the G1 project's real results.
 
 Input: assets/g1_sweep_results.csv (a Unitree G1 velocity-tracking sweep on mjlab 1.6.0 + rsl_rl 5.4.2,
-Oct 29 2026, one A100). Columns: mark_minutes, num_envs, seed, run_id, iteration,
+Oct 29 2026, one A100, as reported by the run's author; the CSV itself records no versions,
+date or hardware, and no run logs ship with the skill). Columns: mark_minutes, num_envs, seed, run_id, iteration,
 train_minutes, vel_error_xy, vel_error_yaw, no_fall_fraction, mean_time_to_fall_s,
 mean_tracking_reward. One row per run and evaluation mark.
 

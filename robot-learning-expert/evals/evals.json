@@ -108,6 +108,27 @@
         "Proposes additions grounded in sim-to-real literature (e.g. actuator latency or gains, mass, motor strength) with a paper named",
         "Says library details were read from the installed mjlab version or should be checked there"
       ]
+    },
+    {
+      "id": "control-correct-gae",
+      "type": "control",
+      "prompt": "Can you check my GAE? For each step: delta = r + gamma * V(s_next) * (1 - terminated) - V(s); adv = delta + gamma * lam * (1 - terminated) * (1 - truncated) * adv_next, where on truncation V(s_next) is the value of the real final observation, computed before the env resets. Returns are adv + V(s).",
+      "expectations": [
+        "Says the implementation is correct and recommends no change to the update",
+        "Explains why truncation stops the advantage recursion but still bootstraps through V(final obs)",
+        "Does not invent a bug; at most suggests checking it against scripts/rl_math.py on the same inputs"
+      ]
+    },
+    {
+      "id": "timeout-terminal-pendulum-effect",
+      "type": "targeted",
+      "prompt": "How much does treating time-outs as terminal actually hurt? Is it a big deal on something like Pendulum?",
+      "expectations": [
+        "Says the effect on Pendulum-v1 at gamma 0.99 is large in the skill's measurement: mean deterministic eval about -677 vs about -124 over 3 seeds, with two of three seeds never learning",
+        "Gives the measurement's date, machine or library versions (2026-11-16, Apple M4 Pro, torch 2.15.0, gymnasium 1.4.0), or says the result can differ on other versions",
+        "Explains the size via episode length relative to 1/(1-gamma): Pendulum's 200-step limit is only twice the 100-step horizon",
+        "Suggests running examples/ppo_pendulum.py with and without --timeout-as-terminal over several seeds rather than trusting one run"
+      ]
     }
   ]
 }

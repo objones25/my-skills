@@ -3,6 +3,7 @@ Edge of the Statistical Precipice") recommend: IQM with stratified-bootstrap per
 confidence intervals, plus probability of improvement. numpy only.
 
 Input: CSV with header containing at least  method,seed,score  and optionally  task.
+    python run_stats.py                             # self-check on synthetic runs
     python run_stats.py results.csv                 # table per method
     python run_stats.py results.csv --compare A B   # P(A > B) with CI
     python run_stats.py results.csv --reps 5000 --alpha 0.05
@@ -99,13 +100,30 @@ def load_csv(path: str) -> dict[str, dict[str, list[float]]]:
     return out
 
 
+def _self_check() -> None:
+    rng = np.random.default_rng(0)
+    x = rng.normal(size=11)
+    assert abs(iqm(x) - np.sort(x)[2:9].mean()) < 1e-12, "IQM of 11 runs is the mean of the middle 7"
+    p, lo, hi = stratified_bootstrap_ci({"t": x}, reps=500)
+    assert lo <= p <= hi
+    better, worse = {"t": np.array([3.0, 4.0, 5.0])}, {"t": np.array([0.0, 1.0, 2.0])}
+    assert prob_improvement_ci(better, worse, reps=200) == (1.0, 1.0, 1.0)
+    mean, lo_c, hi_c = curve_band(np.tile([1.0, 2.0], (3, 1)), reps=100)
+    assert np.allclose(lo_c, mean) and np.allclose(hi_c, mean)
+    print("ok: IQM = middle-50% mean, bootstrap CI brackets the point, P(improvement) = 1 under dominance, "
+          "curve band collapses when seeds agree")
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("csv")
+    ap.add_argument("csv", nargs="?", help="results CSV; omit to run the self-check")
     ap.add_argument("--reps", type=int, default=2000)
     ap.add_argument("--alpha", type=float, default=0.05)
     ap.add_argument("--compare", nargs=2, metavar=("X", "Y"))
     args = ap.parse_args()
+    if args.csv is None:
+        _self_check()
+        return
     data = load_csv(args.csv)
     pct = int(round(100 * (1 - args.alpha)))
     print(f"{'method':<20}{'runs':>6}{'mean':>10}{'IQM':>10}   {pct}% CI (IQM)")

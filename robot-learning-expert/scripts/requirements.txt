@@ -1,4 +1,4 @@
-numpy>=2.0
+numpy>=1.26        # suite passes on 1.26.4 and 2.5.5 (see CHANGELOG)
 scipy>=1.11        # optional: lqr.dare uses it when present, falls back to Riccati iteration
 pytest>=8.0        # to run tests/
 gymnasium>=1.0     # optional: local_sim.GymLocalSim and examples/ppo_pendulum.py

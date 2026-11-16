@@ -1,6 +1,6 @@
-# Simulators and RL tooling (state as of 2026-11-02)
+# Simulators and RL tooling (state as of 2026-11-02; every version in the quick pick table rechecked 2026-11-16)
 
-What each tool is, its latest version, backend, install route, license, and when to pick it. The case-study stack is mjlab 1.6.0 + rsl-rl-lib 5.4.2, task `Mjlab-Velocity-Flat-Unitree-G1`, one A100; those two get full config detail below.
+What each tool is, its latest version, backend, install route, license, and when to pick it. The case-study stack is mjlab 1.6.0 + rsl-rl-lib 5.4.2 (mjlab 1.6.1, 2026-11-15, still pins rsl-rl-lib 5.4.2 and its `src/` is unchanged from 1.6.0, so the config detail below applies to both), task `Mjlab-Velocity-Flat-Unitree-G1`, one A100; those two get full config detail below.
 
 How this was checked (all on 2026-11-02):
 - Versions and upload dates: PyPI JSON API, `https://pypi.org/pypi/<name>/json` (same data as `https://pypi.org/project/<name>/`). Dates are the upload time of the first file of that version, UTC.
@@ -17,28 +17,28 @@ Terms: PPO (proximal policy optimization) is an on-policy actor-critic algorithm
 
 | Tool | Latest seen | Upload date | Backend | License | Pick it when |
 |---|---|---|---|---|---|
-| mjlab | 1.6.0 | 2026-08-09 | MuJoCo Warp, NVIDIA GPU, PyTorch | Apache-2.0 | Isaac Lab-style manager API on MuJoCo physics; used in the G1 case study |
-| MuJoCo Warp (`mujoco-warp`) | 3.17.0 | 2026-10-22 | NVIDIA Warp on NVIDIA GPU (CPU for debugging) | Apache-2.0 | raw batched MuJoCo on GPU without a framework |
-| MJX (`mujoco-mjx`) | 3.17.0 | 2026-10-22 | JAX (GPU, TPU, Apple Silicon), or Warp via `impl='warp'` | Apache-2.0 | JAX training stacks; differentiable sim (JAX impl only) |
-| MuJoCo Playground (`playground`) | 0.2.0 | 2026-03-16 | MJX / MuJoCo Warp, JAX + Brax training | Apache-2.0 (classifier) | ready JAX envs for quadrupeds, humanoids, hands, arms |
+| mjlab | 1.6.1 | 2026-11-15 | MuJoCo Warp, NVIDIA GPU, PyTorch | Apache-2.0 | Isaac Lab-style manager API on MuJoCo physics; used in the G1 case study |
+| MuJoCo Warp (`mujoco-warp`) | 4.0.1 | 2026-11-11 | NVIDIA Warp on NVIDIA GPU (CPU for debugging) | Apache-2.0 | raw batched MuJoCo on GPU without a framework |
+| MJX (`mujoco-mjx`) | 4.0.1 | 2026-11-11 | JAX (GPU, TPU, Apple Silicon), or Warp via `impl='warp'` | Apache-2.0 | JAX training stacks; differentiable sim (JAX impl only) |
+| MuJoCo Playground (`playground`) | 1.0.1 | 2026-11-09 | MuJoCo Warp + PyTorch (1.0.x base deps list no JAX or Brax; 0.2.0 was MJX / Warp with JAX + Brax) | Apache-2.0 (classifier) | ready envs for quadrupeds, humanoids, hands, arms |
 | Isaac Lab (`isaaclab`) | 3.0.0 | 2026-10-19 | Isaac Sim / PhysX; Newton (MuJoCo Warp solver) | BSD-3-Clause | NVIDIA stack, rendering, sensors, largest task zoo |
 | Isaac Gym | Preview 4 (last) | not dated on page | PhysX GPU | NVIDIA | do not start new work; deprecated |
 | rsl_rl (`rsl-rl-lib`) | 5.5.2 | 2026-10-28 | PyTorch | BSD-3-Clause | GPU-batched PPO for locomotion; mjlab pins 5.4.2 |
 | Brax | 0.14.2 | 2026-03-15 | JAX | Apache-2.0 | JAX PPO/SAC training code (`brax/training`) |
 | ManiSkill3 (`mani-skill`) | 3.0.1 | 2026-04-21 | SAPIEN (PhysX), GPU or CPU | Apache-2.0 (repo LICENSE) | GPU-parallel manipulation with rendering |
-| Genesis (`genesis-world`) | 1.4.5 | 2026-10-22 | Quadrants compiler: CUDA, ROCm, Metal, Vulkan, x86, ARM64 | Apache-2.0 | multi-physics (rigid, FEM, MPM, SPH, PBD) or non-NVIDIA GPUs |
+| Genesis (`genesis-world`) | 1.4.6 | 2026-11-08 | Quadrants compiler: CUDA, ROCm, Metal, Vulkan, x86, ARM64 | Apache-2.0 | multi-physics (rigid, FEM, MPM, SPH, PBD) or non-NVIDIA GPUs |
 | Gymnasium | 1.4.0 | 2026-10-05 | CPU env API | MIT | single-env API standard, CPU baselines |
 | Stable-Baselines3 | 2.9.2 | 2026-10-26 | PyTorch, CPU-oriented | MIT | reference PPO on Gymnasium envs, small experiments |
 | CleanRL | 1.2.0 on PyPI (stale) | 2023-05-22 | PyTorch / JAX single files | MIT | readable single-file PPO to compare against |
 
-Sources for every row: the PyPI JSON for that name (https://pypi.org/pypi/<name>/json, checked 2026-11-02); licenses as noted in each section below.
+Sources for every row: the PyPI JSON for that name (https://pypi.org/pypi/<name>/json, checked 2026-11-02 and again 2026-11-16); licenses as noted in each section below.
 
 ---
 
 ## mjlab
 
 - What it is: Isaac Lab's manager-based environment API (observation, reward, event, termination, curriculum managers) running on MuJoCo Warp. "Isaac Lab API, powered by MuJoCo-Warp, for RL and robotics research." (source: https://pypi.org/pypi/mjlab/json, checked 2026-11-02; https://github.com/mujocolab/mjlab/blob/v1.6.0/README.md, checked 2026-11-02)
-- Latest: 1.6.0, uploaded 2026-08-09. Recent: 1.5.3 (2026-07-22), 1.5.0 (2026-06-28), 1.4.0 (2026-05-26). (source: https://pypi.org/pypi/mjlab/json, checked 2026-11-02)
+- Latest: 1.6.1, uploaded 2026-11-15. Recent: 1.6.0 (2026-08-09), 1.5.3 (2026-07-22), 1.5.0 (2026-06-28), 1.4.0 (2026-05-26). 1.6.1 keeps the same pins (`rsl-rl-lib==5.4.2`, `mujoco~=3.11.0`, `mujoco-warp~=3.11.0`). (source: https://pypi.org/pypi/mjlab/json, checked 2026-11-16)
 - 1.6.0 release notes: MuJoCo and MuJoCo Warp bumped to 3.11; visual domain randomization of lights and textures; a `GeomCfg` editor; fixes for partial resets leaking state between envs; breaking changes to `CollisionCfg`, `CommandTerm._update_command`, `ViewerConfig`. (source: https://github.com/mujocolab/mjlab/releases, checked 2026-11-02)
 - Pinned dependencies in 1.6.0: `rsl-rl-lib==5.4.2` (exact), `mujoco~=3.11.0`, `mujoco-warp~=3.11.0`, `warp-lang>=1.14.0`, `torch>=2.7.0`; Python `>=3.10,<3.14`. (source: https://github.com/mujocolab/mjlab/blob/v1.6.0/pyproject.toml, checked 2026-11-02)
 - Backend: training needs Linux, an NVIDIA GPU and CUDA 12.4 or newer (for conditional execution in CUDA graphs); evaluation also runs on macOS or WSL. (source: https://mujocolab.github.io/mjlab/main/source/installation.html via Context7, checked 2026-11-02; https://mujocolab.github.io/mjlab/main/source/faq.html via Context7, checked 2026-11-02)
@@ -120,18 +120,18 @@ From https://github.com/mujocolab/mjlab/blob/v1.6.0/src/mjlab/asset_zoo/robots/u
 ## MuJoCo Warp (MJWarp)
 
 - What it is: a GPU-accelerated version of MuJoCo built on NVIDIA Warp, maintained by Google DeepMind and NVIDIA as part of the Newton project. (source: https://raw.githubusercontent.com/google-deepmind/mujoco_warp/main/README.md, checked 2026-11-02)
-- Latest: 3.17.0, uploaded 2026-10-22; versions track MuJoCo's numbering (3.11.0 on 2026-07-28, 3.16.0 on 2026-10-14). The GitHub releases page still showed v3.11.0 as "Latest". (source: https://pypi.org/pypi/mujoco-warp/json, checked 2026-11-02; https://github.com/google-deepmind/mujoco_warp/releases, checked 2026-11-02)
-- Backend: needs an NVIDIA GPU for fast simulation; CPU is supported for development and debugging. Requires `warp-lang>=1.15` and `mujoco>=3.13.0` (3.17.0). (source: https://raw.githubusercontent.com/google-deepmind/mujoco_warp/main/README.md, checked 2026-11-02; https://pypi.org/pypi/mujoco-warp/json, checked 2026-11-02)
+- Latest: 4.0.1, uploaded 2026-11-11 (checked 2026-11-16); versions track MuJoCo's numbering (3.11.0 on 2026-07-28, 3.16.0 on 2026-10-14, 3.17.0 on 2026-10-22). The GitHub releases page still showed v3.11.0 as "Latest". (source: https://pypi.org/pypi/mujoco-warp/json, checked 2026-11-02; https://github.com/google-deepmind/mujoco_warp/releases, checked 2026-11-02)
+- Backend: needs an NVIDIA GPU for fast simulation; CPU is supported for development and debugging. 4.0.1 requires `warp-lang>=1.15` and `mujoco-core>=4.0.0`, Python `>=3.11` (3.17.0 required `mujoco>=3.13.0`). (source: https://raw.githubusercontent.com/google-deepmind/mujoco_warp/main/README.md, checked 2026-11-02; https://pypi.org/pypi/mujoco-warp/json, checked 2026-11-16)
 - Not differentiable; supports nearly all MuJoCo features except e.g. PGS and noslip solvers, the PLUGIN sensor type and SDF geoms (as listed in the MJX docs). (source: https://mujoco.readthedocs.io/en/stable/mjx.html, checked 2026-11-02)
 - Install: `pip install mujoco-warp`. (source: https://raw.githubusercontent.com/google-deepmind/mujoco_warp/main/README.md, checked 2026-11-02)
 - License: Apache-2.0. (source: https://pypi.org/pypi/mujoco-warp/json, checked 2026-11-02)
-- Version note: mjlab 1.6.0 pins `mujoco-warp~=3.11.0`, six minor versions behind PyPI. Do not upgrade it separately. (source: https://github.com/mujocolab/mjlab/blob/v1.6.0/pyproject.toml, checked 2026-11-02)
+- Version note: mjlab 1.6.0 and 1.6.1 pin `mujoco-warp~=3.11.0`, a major version behind PyPI's 4.0.1. Do not upgrade it separately. (source: https://github.com/mujocolab/mjlab/blob/v1.6.0/pyproject.toml, checked 2026-11-02; https://pypi.org/pypi/mjlab/json, checked 2026-11-16)
 - When to pick: you want batched MuJoCo on GPU directly and will write your own env and training loop.
 
 ## MJX (MuJoCo XLA)
 
 - What it is: a JAX API for MuJoCo physics, PyPI package `mujoco-mjx`. Two implementations: MJX-JAX (pure JAX; NVIDIA and AMD GPUs, Apple Silicon, TPUs) and MJX-Warp (`impl='warp'`, NVIDIA GPUs, uses MuJoCo Warp). (source: https://mujoco.readthedocs.io/en/stable/mjx.html, checked 2026-11-02)
-- Latest: 3.17.0, uploaded 2026-10-22. (source: https://pypi.org/pypi/mujoco-mjx/json, checked 2026-11-02)
+- Latest: 4.0.1, uploaded 2026-11-11; requires `mujoco-core[rendering]>=4.0.1.dev0`, JAX, Python `>=3.11`. Earlier: 3.17.0 (2026-10-22). (source: https://pypi.org/pypi/mujoco-mjx/json, checked 2026-11-16)
 - Limits: MJX-JAX supports only FREE, BALL, SLIDE and HINGE joints, CG and Newton solvers, dense Jacobians, no Flex. MJX-Warp is not differentiable. (source: https://mujoco.readthedocs.io/en/stable/mjx.html, checked 2026-11-02)
 - Install: `pip install mujoco-mjx`, or `pip install mujoco-mjx[warp]` for the Warp implementation. (source: https://mujoco.readthedocs.io/en/stable/mjx.html, checked 2026-11-02)
 - License: Apache-2.0. (source: https://pypi.org/pypi/mujoco-mjx/json, checked 2026-11-02)
@@ -140,10 +140,10 @@ From https://github.com/mujocolab/mjlab/blob/v1.6.0/src/mjlab/asset_zoo/robots/u
 ## MuJoCo Playground
 
 - What it is: open-source robot learning framework built on MJX, with environments for quadrupeds, humanoids, dexterous hands and arms, a batch renderer, and zero-shot sim-to-real from state and pixels. Paper: "MuJoCo Playground", Kevin Zakka, Baruch Tabanpour, Qiayuan Liao, Mustafa Haiderbhai, Samuel Holt, Jing Yuan Luo and 7 others (13 authors), arXiv 2502.08844 (12 Feb 2025). (source: https://arxiv.org/abs/2502.08844, checked 2026-11-02)
-- Latest: `playground` 0.2.0, uploaded 2026-03-16. In 0.2.0 MuJoCo Warp became the default implementation for all environments; 0.1.0 (2026-01-08) added Warp support. Depends on `brax>=0.14.2`, `mujoco-mjx>=3.6.0`, `warp-lang>=1.11`, JAX, Flax. (source: https://pypi.org/pypi/playground/json, checked 2026-11-02; https://github.com/google-deepmind/mujoco_playground/releases, checked 2026-11-02)
+- Latest: `playground` 1.0.1, uploaded 2026-11-09. Its base dependencies are `mujoco-warp>=4.0.0`, `mujoco[sysid]>=4.0.0`, `torch>=2.7.0,<2.14`, `warp-lang>=1.18.0,<1.18.1`, `reaf`, `reaf-sim`, `gdm-robotics`, Python `>=3.12,<3.14`; brax, JAX and Flax are no longer listed. (source: https://pypi.org/pypi/playground/json, checked 2026-11-16) The 1.0 release notes were not read. Before 1.0: 0.2.0, uploaded 2026-03-16. In 0.2.0 MuJoCo Warp became the default implementation for all environments; 0.1.0 (2026-01-08) added Warp support. Depends on `brax>=0.14.2`, `mujoco-mjx>=3.6.0`, `warp-lang>=1.11`, JAX, Flax. (source: https://pypi.org/pypi/playground/json, checked 2026-11-02; https://github.com/google-deepmind/mujoco_playground/releases, checked 2026-11-02)
 - Install: `pip install playground`. (source: https://arxiv.org/abs/2502.08844, checked 2026-11-02)
 - License: Apache classifier on PyPI; repo LICENSE is Apache 2.0. (source: https://pypi.org/pypi/playground/json, checked 2026-11-02; https://raw.githubusercontent.com/google-deepmind/mujoco_playground/main/LICENSE, checked 2026-11-02)
-- When to pick: JAX + Brax PPO on ready-made environments. The releases page mentions a Booster T1 joystick task added in v0.0.4 and a G1 foot-friction randomization fix in the same release (source: https://github.com/google-deepmind/mujoco_playground/releases, checked 2026-11-02); the full environment list was not read.
+- When to pick: ready-made MuJoCo environments; pin `playground<1` if you need the JAX + Brax training stack, since 1.0.x dropped those dependencies. The releases page mentions a Booster T1 joystick task added in v0.0.4 and a G1 foot-friction randomization fix in the same release (source: https://github.com/google-deepmind/mujoco_playground/releases, checked 2026-11-02); the full environment list was not read.
 
 ## Isaac Lab
 
@@ -194,9 +194,9 @@ From https://github.com/mujocolab/mjlab/blob/v1.6.0/src/mjlab/asset_zoo/robots/u
 ## Genesis
 
 - What it is: "A universal and generative physics engine"; Genesis World combines a multi-physics engine, a renderer (Nyx) and a compiler (Quadrants). Solvers: rigid body, FEM, MPM, particles (PBD and SPH), IPC, SAP, an explicit coupler. (source: https://pypi.org/project/genesis-world/, checked 2026-11-02)
-- Latest: `genesis-world` 1.4.5, uploaded 2026-10-22; releases roughly every 1 to 3 weeks (1.4.0 on 2026-09-06). (source: https://pypi.org/pypi/genesis-world/json, checked 2026-11-02)
+- Latest: `genesis-world` 1.4.6, uploaded 2026-11-08; releases roughly every 1 to 3 weeks (1.4.5 on 2026-10-22, 1.4.0 on 2026-09-06). (source: https://pypi.org/pypi/genesis-world/json, checked 2026-11-16)
 - Backend: Quadrants compiles to CUDA, AMD ROCm, Apple Metal, Vulkan, x86 and ARM64. (source: https://pypi.org/project/genesis-world/, checked 2026-11-02)
-- Install: install PyTorch first, then `pip install genesis-world`; Python `>=3.10,<3.14`. (source: https://pypi.org/project/genesis-world/, checked 2026-11-02)
+- Install: install PyTorch first, then `pip install genesis-world`; Python `>=3.12,<3.15` for 1.4.6 (was `>=3.10,<3.14` on 2026-11-02). (source: https://pypi.org/project/genesis-world/, checked 2026-11-02; https://pypi.org/pypi/genesis-world/json, checked 2026-11-16)
 - License: Apache 2.0. (source: https://pypi.org/project/genesis-world/, checked 2026-11-02)
 - When to pick: deformables or fluids, or a non-NVIDIA GPU. ASAP used it as a stand-in "real world" for sim-to-sim tests (see `../papers/canon-robotics.md`). The GitHub releases page failed to load, so release notes were not read.
 

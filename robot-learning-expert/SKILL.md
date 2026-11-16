@@ -1,6 +1,9 @@
 ---
 name: robot-learning-expert
-description: Robot learning and RL training expert. Use to explain, derive or check an RL concept (MDPs, dynamic programming, LQR and trajectory optimization, bandits, model-based RL, Q-learning, policy gradient and PPO, actor-critic, imitation, exploration with simulator resets, RL theory); to design, train or debug robot policies (massively parallel PPO on mjlab, rsl_rl or Isaac Lab, off-policy at scale, rewards and observations, sim-to-real, PPO health metrics, seed statistics); or to read and compare robot learning papers.
+description: Robot learning and RL training expert. Use to explain, derive or check an RL concept (MDPs, dynamic programming, LQR and trajectory optimization, bandits, model-based RL, Q-learning, policy gradient and PPO, actor-critic, imitation, exploration with simulator resets, RL theory); to design, train or debug robot policies (massively parallel PPO on mjlab, rsl_rl or Isaac Lab, off-policy at scale, rewards and observations, sim-to-real, PPO health metrics, seed statistics); or to read and compare robot learning papers. Not for scaling laws, JAX scaffolds or num_envs scaling theory beyond PPO practice (massively-parallel-rl), PyTorch API or debugging questions with no RL content (pytorch), or writing test suites (pytest-expert).
+metadata:
+  version: 0.4.0
+  test-command: "uv run --no-project --with numpy --with pytest python -m pytest tests"
 ---
 
 # Robot learning expert
@@ -9,7 +12,7 @@ Concepts, training practice, paper digests and tested tools for reinforcement le
 
 ## Rules
 
-1. Library facts come from the installed source or current docs, never memory. mjlab, rsl_rl, MuJoCo Warp, Isaac Lab, Gymnasium and W&B change often. When the user has an environment, read the installed package (its `site-packages/<name>/`); otherwise start from `references/training/simulators-and-tooling.md` (versions checked Nov 2, 2026) and confirm against the live docs. Facts tagged `[rsl_rl 5.4.2]` or `[mjlab 1.6.0]` were read from installed source.
+1. Library facts come from the installed source or current docs, never memory. mjlab, rsl_rl, MuJoCo Warp, Isaac Lab, Gymnasium and W&B change often. When the user has an environment, read the installed package (its `site-packages/<name>/`); otherwise start from `references/training/simulators-and-tooling.md` (versions checked Nov 2, 2026; the quick pick table rechecked Nov 16, 2026) and confirm against the live docs. Facts tagged `[rsl_rl 5.4.2]` or `[mjlab 1.6.0]` were read from installed source (mjlab 1.6.1 ships the same `src/` and the same rsl_rl pin).
 2. Every number has a source: a book or notes section, a paper location (`[PPO §3]`), a file, or a script run. Run code to check numbers before stating them, and prefer a small measured experiment (`examples/`) over a remembered rule of thumb.
 3. When sources disagree (textbook, paper, lecture notes, library code), say so, say which one you follow and why. Citation keys and known errata are in `references/sources.md`; papers' own errors are in each digest and in `references/papers/canon-algorithms.md` ("Disagreements and errors found").
 
@@ -48,7 +51,7 @@ Read only the files the task needs.
 
 ## Scripts (tested oracles and tools)
 
-Each runs standalone (`python scripts/<name>.py` runs a self-check or prints a table). Tests: `python -m pytest tests` from the skill root. Dependencies: `scripts/requirements.txt` (numpy; scipy, gymnasium and torch optional).
+Each runs standalone (`python scripts/<name>.py` runs a self-check or prints a table). Tests: `uv run --no-project --with numpy --with pytest python -m pytest tests` from the skill root (or `python -m pytest tests` in an environment that has them). Dependencies: `scripts/requirements.txt` (numpy; scipy, gymnasium and torch optional).
 
 | Script | Does |
 |---|---|
@@ -65,7 +68,7 @@ To check someone's implementation, run it and the oracle on the same inputs and 
 
 | File | Shows |
 |---|---|
-| `examples/ppo_pendulum.py` | 200-line PPO with correct time-out bootstrapping and logged KL, clip fraction, explained variance; solves Pendulum-v1 (deterministic eval near −130) in about 75 s of CPU (machine not recorded; varies by machine). `--timeout-as-terminal` switches the bug on (measured effect: small and noisy at γ = 0.99, see its docstring) |
+| `examples/ppo_pendulum.py` | 200-line PPO with correct time-out bootstrapping and logged KL, clip fraction, explained variance; solves Pendulum-v1 (deterministic eval near −125) in 23 to 28 s on an Apple M4 Pro CPU (2026-11-16; varies by machine). `--timeout-as-terminal` switches the bug on (measured: mean −677 vs −124 over 3 seeds at γ = 0.99, two seeds never learn; versions in its docstring) |
 | `examples/analyze_sweep.py` | a real G1 num_envs sweep (`assets/g1_sweep_results.csv`): seed means, the standing-still reference, pairwise P(improvement) |
 | `examples/exploration_chain.py` | exact A^H episodes for random exploration vs about H(A+1)/2 steps with resets on the combination lock |
 | `assets/experiment_plan.md`, `assets/writeup_skeleton.tex` | templates for planning a robot RL experiment and writing it up |
@@ -98,5 +101,5 @@ Idea first in two or three sentences; notation defined in one place (each symbol
 1. A new paper: digest it in `references/papers/` with located claims and a "gotchas" section, add a row to `references/papers/README.md`, and link it from the concept or training file it changes.
 2. A new topic or a better source for an existing one: update the concept file and record any source errors in `references/sources.md`.
 3. A script only for an oracle or tool worth running more than once, with a test (`tests/test_skill_structure.py` fails if a script has no test file).
-4. Log the change in `references/CHANGELOG.md`, and add an eval to `evals/evals.json` when a new kind of question shows up.
+4. Log the change in `CHANGELOG.md`, and add an eval to `evals/evals.json` when a new kind of question shows up.
 Keep entries terse: the load-bearing point first, then the mechanism, then the source.
