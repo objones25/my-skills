@@ -562,6 +562,11 @@ def main(argv: list[str] | None = None) -> int:
         print(f"error: unknown kind(s) {', '.join(sorted(unknown))}; valid: {', '.join(KINDS)}",
               file=sys.stderr)
         return 2
+    missing = [p for p in args.paths if not Path(p).exists()]
+    if missing:
+        # A typo in a path must not read as "no smells found: recommend no pattern".
+        print(f"error: no such file or directory: {', '.join(missing)}", file=sys.stderr)
+        return 2
     thresholds = dict(args.threshold)
     if args.max_params is not None:
         thresholds["max_params"] = args.max_params

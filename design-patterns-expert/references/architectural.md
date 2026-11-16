@@ -1,6 +1,6 @@
 # Architectural patterns
 
-These are the expensive ones. Every entry leads with the published warning, because the failure mode here is adopting them on a system that doesn't need them, and unlike a misplaced Strategy, these are hard to back out of.
+These are the expensive ones. The published warnings are quoted where they exist, because the failure mode here is adopting them on a system that doesn't need them. Event Sourcing in particular is costly to migrate to or from.
 
 Contents: [Repository](#repository) · [Unit of Work](#unit-of-work) · [Service Layer](#service-layer) · [Domain Events & message bus](#domain-events--message-bus) · [Event Sourcing](#event-sourcing) · [CQRS](#cqrs) · [Transactional Outbox](#transactional-outbox) · [Saga](#saga) · [Strangler Fig](#strangler-fig)
 
@@ -154,7 +154,7 @@ Use a different model to write than to read.
 
 Most "we need CQRS" conversations are solved by the first two rows. Their default: *"Often, your read operations will be acting on the same conceptual objects as your write model, so using the ORM… is just fine."*
 
-**The consistency point people miss:** *"all distributed systems are inconsistent. As soon as you have a web server and two customers, you have the potential for stale data."* CQRS makes an existing inconsistency explicit; it doesn't introduce one. But if a user must read their own write immediately and exactly, a lagging projection will produce support tickets: design for it (read-your-writes routing, or return the computed result from the write).
+**The consistency point people miss:** *"all distributed systems are inconsistent. As soon as you have a web server and two customers, you have the potential for stale data."* CQRS makes that existing inconsistency explicit, but separate read models can widen it: Fowler notes they raise *"the likelihood of using eventual consistency"*. But if a user must read their own write immediately and exactly, a lagging projection will produce support tickets: design for it (read-your-writes routing, or return the computed result from the write).
 
 > Sources: [Fowler, CQRS](https://martinfowler.com/bliki/CQRS.html) · [cosmicpython ch. 12](https://www.cosmicpython.com/book/chapter_12_cqrs.html)
 
@@ -196,7 +196,7 @@ A sequence of local transactions across services, each with a compensating trans
 
 **Choreography** (services react to each other's events) suits short workflows: no coordinator, no single point of failure, but Microsoft notes the workflow *"can be confusing when you add new steps"*, cyclic dependencies become a risk, and integration testing needs everything running. **Orchestration** (a central coordinator) suits complex workflows: explicit flow, no cycles, at the cost of a component to build and a single point of failure.
 
-**The failure everyone underestimates: sagas have no isolation.** No "I" in ACID. Documented anomalies: lost updates (one saga overwrites another's change), dirty reads (reading a saga's uncommitted state), and non-repeatable reads between steps. Countermeasures exist: semantic locks, commutative updates, reordering so risky updates land in the retryable phase, re-read before write, version fields: but they are design work you must do, not properties you get.
+**The failure everyone underestimates: sagas have no isolation.** No "I" in ACID. Documented anomalies: lost updates (one saga overwrites another's change), dirty reads (reading a saga's uncommitted state), and non-repeatable reads between steps. Countermeasures exist: semantic locks, commutative updates, reordering so risky updates land in the retryable phase, re-read before write, version files (a log of every operation on a record, applied in order): but they are design work you must do, not properties you get.
 
 Other documented hazards: irreversible steps can't be rolled back; **compensating transactions can themselves fail**, leaving the system inconsistent; debugging complexity scales with participant count.
 

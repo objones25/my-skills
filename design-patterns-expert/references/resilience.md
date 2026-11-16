@@ -35,11 +35,11 @@ That last rule is the one to state whenever you add retry logic to a system that
 
 Nygard (*Release It!*, "Fail Fast"): *"If slow responses are worse than no response, the worst must surely be a slow failure response."* A slow dependency ties up caller threads and connections until the pool is exhausted, at which point *unrelated* requests start failing. That is how one degraded dependency becomes a total outage.
 
-**Choosing the value**: the only concrete method I found in a primary source, from AWS: pick an acceptable rate of false timeouts (say 0.1%), then use the corresponding latency percentile of the downstream service (p99.9). For clients calling over the internet, factor in worst-case network latency, and add padding when the dependency's p99.9 is close to its p50.
+**Choosing the value**: [Netflix's Hystrix docs](https://github.com/Netflix/Hystrix/wiki/Operations) give the simple rule: set the timeout *"close to the 99.5th percentile of a normal healthy system"*. AWS gives a more careful one: pick an acceptable rate of false timeouts (say 0.1%), then use the corresponding latency percentile of the downstream service (p99.9). For clients calling over the internet, factor in worst-case network latency, and add padding when the dependency's p99.9 is close to its p50.
 
-**Deadline propagation** is the part most systems get wrong. Set one absolute deadline high in the stack and pass it down: *"if server A selects a 30-second deadline, and processes the request for 7 seconds before sending an RPC to server B, the RPC from A to B will have a 23-second deadline."* Servers should check the remaining deadline before starting more work. Without propagation, a downstream service pulls work off its queue for a caller that gave up long ago (burning capacity on results nobody will read) and total worst-case latency becomes the *sum* of per-hop timeouts.
+**Deadline propagation**: set one absolute deadline high in the stack and pass it down: *"if server A selects a 30-second deadline, and processes the request for 7 seconds before sending an RPC to server B, the RPC from A to B will have a 23-second deadline."* Servers should check the remaining deadline before starting more work. Without propagation, a downstream service pulls work off its queue for a caller that gave up long ago (burning capacity on results nobody will read) and total worst-case latency becomes the *sum* of per-hop timeouts.
 
-Python: `asyncio.timeout()` / `asyncio.wait_for`; `httpx.Timeout` for per-phase (connect/read/write/pool) bounds. Pass a deadline explicitly through your call chain: there is no maintained Python library for automatic deadline propagation.
+Python: `asyncio.timeout()` / `asyncio.wait_for`; `httpx.Timeout` for per-phase (connect/read/write/pool) bounds. Inside one process, nested `asyncio.timeout()` blocks and AnyIO cancel scopes already enforce the tightest enclosing deadline, so a callee asking for 30 s inside a caller's 0.3 s budget is cut off at 0.3 s. Across a service call nothing carries it for you: send the remaining time with the request and rebuild the deadline on the other side.
 
 ---
 
@@ -61,7 +61,7 @@ The four formulas, from AWS's canonical article:
 # No jitter: do not ship this
 sleep = min(cap, base * 2 ** attempt)
 
-# Full Jitter: the default recommendation
+# Full Jitter
 sleep = random.uniform(0, min(cap, base * 2 ** attempt))
 
 # Equal Jitter
@@ -129,7 +129,7 @@ The failure it prevents, stated precisely: *"When the consumer sends a request t
 
 Implementations, coarse to fine: separate processes/containers; **a connection pool per dependency**; a thread pool per workload class; separate queues with dedicated consumers.
 
-In Python the primitives are stdlib and the discipline is what matters:
+In Python, `asyncio.Semaphore` (stdlib) bounds concurrency and `httpx.Limits` (third party) bounds a client's connection pool; the discipline is what matters:
 
 ```python
 # one semaphore per dependency, never one global
@@ -207,7 +207,7 @@ The failure it prevents: the server commits, the response is lost in flight, the
 - **TTL must exceed the maximum client retry window**, or a late retry re-executes.
 - POST and PATCH only; keys on GET/DELETE do nothing.
 
-Note the IETF `Idempotency-Key` spec is still an Internet-Draft, not an RFC (revision -08, published 2026-10-22, expires 2027-04-25; check the datatracker for the current state): it is the best available spec text and widely followed, but it is not a standard. Say so if you cite it.
+Note the IETF `Idempotency-Key` spec is still an Internet-Draft, not an RFC (revision -08, published 2026-10-22, expires 2027-04-25; check the datatracker for the current state): its own implementation list names about ten APIs that already use an `Idempotency-Key` header, most of them older than the draft, but it is not a standard. Say so if you cite it.
 
 > Sources: [IETF draft-ietf-httpapi-idempotency-key-header](https://datatracker.ietf.org/doc/html/draft-ietf-httpapi-idempotency-key-header) · [Stripe, Idempotent requests](https://docs.stripe.com/api/idempotent_requests)
 
@@ -215,7 +215,7 @@ Note the IETF `Idempotency-Key` spec is still an Internet-Draft, not an RFC (rev
 
 ## 7. Idempotent Consumer
 
-The message-side counterpart. At-least-once delivery is the default for Service Bus, Event Hubs, Kafka and RabbitMQ, so duplicates are guaranteed, not hypothetical: producer retries after a lost ack, broker redelivery after an expired lock, consumer crash between the DB write and the ack.
+The message-side counterpart. At-least-once delivery is the default for Service Bus, Event Hubs, Kafka and RabbitMQ, so the broker can deliver the same message more than once. Plan for duplicates rather than treating them as hypothetical; they come from producer retries after a lost ack, broker redelivery after an expired lock, consumer crash between the DB write and the ack.
 
 **Design for natural idempotency first.** An upsert keyed on a business identifier, a write that sets an absolute value rather than incrementing, or an HTTP `PUT` needs no bookkeeping at all. *"use deduplication techniques only for operations that can't be made naturally idempotent."* Shipping absolute state rather than deltas is the lever that makes this possible.
 
@@ -293,7 +293,7 @@ Verify the current API before writing any of these into example code.
 | Pattern | Library | Notes |
 |---|---|---|
 | Retry | **`tenacity`** | `wait_random_exponential` is Full Jitter (its source returns `random.uniform(min, high)`, checked on 9.1.4); `stop_after_attempt`, `stop_after_delay`, `retry_if_exception_type`, `AsyncRetrying` |
-| Retry (opinionated) | **`stamina`** | Wraps tenacity; jitter on by default; async + Trio; Prometheus/structlog instrumentation; test-mode disable. Prefer for production: the defaults match the guidance above and it emits the metrics you need to detect amplification |
+| Retry (opinionated) | **`stamina`** | Wraps tenacity; jitter on by default; async + Trio; Prometheus/structlog instrumentation; test-mode disable. Prefer for production: attempts are bounded by default (10 attempts or 45 s) and it emits a Prometheus retry counter, which is what you need to detect amplification. Two gaps against the guidance above (stamina 26.2.0): its jitter adds 0 to 1 s on top of the exponential delay rather than Full Jitter, and it has no retry budget, so add one yourself |
 | Circuit breaker | **`pybreaker`** | `CircuitRedisStorage` for shared state across processes. Its documented async support is Tornado, not asyncio |
 | Circuit breaker (asyncio) | **`circuitbreaker`** | `@circuit` decorator works on async functions; fallbacks; `CircuitBreakerMonitor` |
 | Rate limiting (in-process) | **`aiolimiter`** | asyncio leaky bucket as an async context manager |

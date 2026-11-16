@@ -1,0 +1,105 @@
+{
+  "skill_name": "design-patterns-expert",
+  "note": "Regression set. Expectations marked [auto] are scored by evals/grade.py (python3 evals/grade.py ID ANSWER_FILE [--transcript FILE]); the others are graded by reading the reply. Facts behind the expectations were checked in the 2026-11-16 audit (audits/design-patterns-expert/2026-11-16.md in the My_Skills repo).",
+  "evals": [
+    {
+      "id": 1,
+      "type": "control",
+      "prompt": "Should I refactor evals/files/control_units.py into a Strategy pattern? It feels like an if/elif smell.",
+      "expected_output": "Leave it as it is: three fixed branches with no axis of change; a pattern would add files and indirection and buy nothing. Possibly suggest a dict lookup only if more units are coming, which the docstring says they are not.",
+      "files": ["evals/files/control_units.py"],
+      "expectations": [
+        "Recommends leaving the function as it is (no Strategy, no class hierarchy)",
+        "Names the reason: the three units are fixed by the hardware, so there is no axis of change",
+        "[auto] Adds no Protocol or ABC",
+        "[auto] No unfalsifiable mood claims"
+      ]
+    },
+    {
+      "id": 2,
+      "type": "refactor",
+      "prompt": "Refactor evals/files/exporters.py. We are adding xlsx next quarter and the tests are painful because export_report sends email.",
+      "expected_output": "Runs scripts/design_smells.py on the file, then: a dict of formatter functions keyed by kind (adding xlsx is one function and one dict entry), and the SMTP send injected as a callable or small sender object constructed in main(). Keeps the names export_report and ReportRow.",
+      "files": ["evals/files/exporters.py"],
+      "expectations": [
+        "Uses a dict of formatter functions or a Strategy keyed by kind, and says adding xlsx is one new function plus one entry",
+        "Moves SMTP construction out of export_report into a composition root (main or equivalent)",
+        "States one thing that gets harder (for example, the dispatch is no longer visible at the call site)",
+        "[auto] Keeps the name export_report",
+        "[auto] export_report no longer constructs SMTP",
+        "[auto] Scanner was run",
+        "[auto] All Python code blocks parse"
+      ]
+    },
+    {
+      "id": 3,
+      "type": "targeted",
+      "prompt": "Protocol or ABC for our payment provider interface? Someone on the team says Protocols can't share code and isinstance on them is way too slow.",
+      "expected_output": "Corrects both beliefs: explicit Protocol subclasses inherit default method bodies, and runtime isinstance on a runtime-checkable Protocol is about 5 to 9x a plain class check on 3.12+ (65 to 86x on 3.11), which only matters in a tight loop. Recommends a Protocol subclassed explicitly with @abstractmethod for members without a default, unless shared fields or nominal typing are needed.",
+      "files": [],
+      "expectations": [
+        "Says explicit Protocol subclasses inherit default method bodies",
+        "Gives the isinstance cost as a version-dependent ratio (about 5 to 9x on 3.12+, much higher on 3.11), not a flat 100x",
+        "[auto] No ~100x or ~160x isinstance claim",
+        "[auto] Does not say Protocols cannot share code",
+        "[auto] Mentions @abstractmethod or a type checker"
+      ]
+    },
+    {
+      "id": 4,
+      "type": "targeted",
+      "prompt": "Our httpx client gets 429s from a partner API during the nightly sync, and some of the calls are POSTs that create records. Should we retry? Show me the shape of it.",
+      "expected_output": "Retry the 429s slower, honouring Retry-After, with a cap on total time or attempts; only retry the POSTs that create records if they carry an idempotency key. Code is runnable.",
+      "files": [],
+      "expectations": [
+        "Says to retry throttling responses, more slowly than other transient errors",
+        "Says to cap total attempts or total wait (a deadline or retry budget)",
+        "[auto] Does not say never retry 429",
+        "[auto] Mentions Retry-After",
+        "[auto] Mentions an idempotency key",
+        "[auto] All Python code blocks parse",
+        "[auto] No unfalsifiable mood claims"
+      ]
+    },
+    {
+      "id": 5,
+      "type": "targeted",
+      "prompt": "How do I make sure our shop.domain package never imports sqlalchemy, even indirectly through shop.utils?",
+      "expected_output": "Use import-linter's forbidden contract for the transitive case; scripts/check_layers.py only sees direct imports (and needs --forbid sqlalchemy or --forbid-infra). Show the contract.",
+      "files": [],
+      "expectations": [
+        "Says check_layers.py catches direct imports only, so the indirect path needs import-linter",
+        "Shows an import-linter forbidden contract naming shop.domain and sqlalchemy",
+        "[auto] Names import-linter or lint-imports",
+        "[auto] Does not claim check_layers.py catches transitive imports"
+      ]
+    },
+    {
+      "id": 6,
+      "type": "targeted",
+      "prompt": "Our FastAPI service loads a 2 GB model. What's the right pattern to make sure it's only loaded once? I was going to write a Singleton class.",
+      "expected_output": "No Singleton class: load it in the FastAPI lifespan and hand it to handlers, or use a module-level loader guarded by a lock. Notes that @cache or a PEP 562 module __getattr__ can run the loader more than once under concurrent first access.",
+      "files": [],
+      "expectations": [
+        "Recommends loading in the lifespan (or composition root) and passing it in",
+        "Warns that @cache or module __getattr__ is not run-once under threads",
+        "[auto] No Singleton class",
+        "[auto] Mentions a lock or the lifespan",
+        "[auto] Mentions that @cache can run more than once under threads"
+      ]
+    },
+    {
+      "id": 7,
+      "type": "targeted",
+      "prompt": "We're building an internal admin tool: a few forms over a Postgres table, maybe 20 users. I want to do it properly with CQRS and event sourcing from day one. Can you lay out the architecture?",
+      "expected_output": "Declines CQRS and Event Sourcing for a CRUD tool, citing the published warnings (Fowler: CQRS adds risky complexity for most systems; cosmicpython: a simple CRUD wrapper needs no domain model or repository), and gives the plain structure plus the seam that would allow event sourcing later if an audit trail appears.",
+      "files": [],
+      "expectations": [
+        "Recommends against CQRS and Event Sourcing for this tool",
+        "Names what would change the answer (for example, a real audit-trail or temporal-query requirement)",
+        "[auto] Cites the published CQRS warning",
+        "[auto] No unfalsifiable mood claims"
+      ]
+    }
+  ]
+}

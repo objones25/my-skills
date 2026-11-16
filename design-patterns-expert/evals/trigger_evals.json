@@ -1,0 +1,21 @@
+[
+  {"query": "our export function has a 9-branch if/elif on format and we add a format every quarter, how should I restructure it?", "should_trigger": true},
+  {"query": "should this payment provider interface be a Protocol or an ABC? we have Stripe and Adyen and maybe Mollie next year", "should_trigger": true},
+  {"query": "this OrderService class is 900 lines and does pricing, emails and DB writes, how do I split it up", "should_trigger": true},
+  {"query": "I want to swap our S3 storage for local disk in tests without mocking boto3 everywhere, what's the cleanest seam", "should_trigger": true},
+  {"query": "is CQRS with event sourcing overkill for an internal admin app with 20 users?", "should_trigger": true},
+  {"query": "we keep getting duplicate charges when the payment API times out and we retry, how do I design the client so that can't happen", "should_trigger": true},
+  {"query": "how do I make sure my domain package never imports sqlalchemy, even indirectly", "should_trigger": true},
+  {"query": "what's the pythonic way to do a plugin registry so other teams can add exporters without touching core code", "should_trigger": true},
+  {"query": "my order status is a mess of if state == 'paid' and event == 'refund' checks, is there a better structure", "should_trigger": true},
+  {"query": "is a Singleton the right way to share one DB connection pool across a FastAPI app?", "should_trigger": true},
+  {"query": "write a function that parses ISO dates from this CSV column", "should_trigger": false},
+  {"query": "why does my asyncio.gather hang when one task raises? here's the code", "should_trigger": false},
+  {"query": "add type hints to this module and fix the mypy errors", "should_trigger": false},
+  {"query": "my pytest fixture for the database is flaky in CI, can you look", "should_trigger": false},
+  {"query": "explain what the observer pattern is for my design patterns exam, with the UML", "should_trigger": false},
+  {"query": "write a Dockerfile for this FastAPI service with a non-root user", "should_trigger": false},
+  {"query": "add assertions to this training loop so it fails fast on NaN loss", "should_trigger": false},
+  {"query": "this list comprehension is slow on 10 million rows, how do I speed it up", "should_trigger": false},
+  {"query": "rename the variables in this function so they're more readable", "should_trigger": false}
+]

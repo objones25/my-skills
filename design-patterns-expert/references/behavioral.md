@@ -80,7 +80,7 @@ Prefer a local `random.Random(seed)` over `random.seed(seed)`: the latter mutate
 ### Failure modes
 - Passing settings through the caller (above): the most common one.
 - A strategy that needs two methods (`should_buy` / `should_sell`) is not strictly a single-method Strategy. Splitting it into two hierarchies to satisfy the textbook usually adds complication without benefit. Keep it as one object.
-- The functional version does not really enforce a contract: anything callable passes. That is a real cost of the type-alias approach; a Protocol gives static checkers more to work with.
+- At runtime nothing checks the functional version, but a type checker does: mypy and pyright reject a callable whose arity, parameter types or return type don't match the alias. What an alias cannot express is parameter names, keyword-only parameters, overloads and attributes; when the contract needs those, use a Protocol.
 - Order of operations: if a strategy can *remove* items, apply it before you check for an empty result.
 
 ---
