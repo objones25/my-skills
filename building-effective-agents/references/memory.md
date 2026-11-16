@@ -50,9 +50,11 @@ Check the framework you already use before adding a memory product (versions and
 - LangGraph: a Store (`put`, `search`) separate from per-thread checkpoints.
 - Google ADK: `MemoryService` (`add_session_to_memory`, `search_memory`, the `load_memory` tool) separate from `SessionService`.
 - CrewAI: a unified `Memory` class with `remember` / `recall`.
-- OpenAI Agents SDK, Pydantic AI, smolagents: sessions or message history; no long-term memory store found in their docs as of 2026-11-02.
+- OpenAI Agents SDK: sessions, plus a `Memory` capability for sandbox agents (`agents.sandbox.capabilities.Memory`, `openai-agents` 0.24.0) that carries lessons from earlier runs into later ones.
+- Pydantic AI: message history in `pydantic-ai` itself; the separate `pydantic-ai-harness` package (0.68.0) ships a `memory` capability, a persistent notebook reused across runs.
+- smolagents: `agent.memory` holds the current run only; no long-term store found in its docs as of 2026-11-02.
 
-Off-the-shelf memory products are not automatically better than plain retrieval. In MemoryAgentBench's multi-class classification task, Mem0 scored 35, GraphRAG 64, and BM25 89. One task, one paper; test on yours.
+Off-the-shelf memory products are not automatically better than plain retrieval. In MemoryAgentBench's multi-class classification task, Mem0 scored 32.4, GraphRAG 39.8, and BM25 75.4 (Table 3; on the BANKING77 dataset alone, 35, 64 and 89). One task, one paper; test on yours.
 
 ## Testing memory
 

@@ -1,6 +1,6 @@
 # Context engineering
 
-Context is the scarce resource. "As the number of tokens in the context window increases, the model's ability to accurately recall information from that context decreases." That is context rot (the term comes from [Chroma's research](https://research.trychroma.com/context-rot)): a performance gradient rather than a cliff, caused partly by n² pairwise attention relationships and less training exposure to very long sequences (Anthropic, *Effective context engineering for AI agents*, Sep 2025). Bigger windows don't exempt a system; they postpone the problem.
+Context is the scarce resource. "As the number of tokens in the context window increases, the model's ability to accurately recall information from that context decreases." That is context rot (a term from a June 2025 Hacker News comment, popularized by [Chroma's research](https://research.trychroma.com/context-rot)): a performance gradient rather than a cliff, caused partly by n² pairwise attention relationships and less training exposure to very long sequences (Anthropic, *Effective context engineering for AI agents*, Sep 2025). Bigger windows don't exempt a system; they postpone the problem.
 
 Working goal: **find the smallest set of high-signal tokens that maximizes the likelihood of the desired outcome.**
 

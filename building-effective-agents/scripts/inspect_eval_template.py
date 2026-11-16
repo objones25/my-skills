@@ -1,7 +1,7 @@
 """Inspect AI template for an outcome-graded, multi-trial agent eval.
 
 Checked against inspect_ai 0.3.287 (signatures read with Python's `inspect`
-module on 2026-11-02). Inspect moves fast; re-check names after upgrading.
+module on 2026-11-02); --smoke and the test suite rerun on 0.3.290 on 2026-11-16. Inspect moves fast; re-check names after upgrading.
 
 What it shows
   - samples drawn from real failures, including a negative case (the right

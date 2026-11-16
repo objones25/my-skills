@@ -17,7 +17,7 @@ Not yet. First check whether the demo compared equal budgets, and which wall the
 - Specialists read and explore in parallel; one agent owns the final answer and any writes.
 - Every subagent gets a four-field brief (objective, output format, tool guidance, boundaries) and its own turn and token caps.
 - Subagents write findings to a store and return references, not full text.
-- An explicit stop condition and an independent check, since step repetition, not knowing when to stop, and weak verification are the most common multi-agent failure modes in MAST's trace study.
+- An explicit stop condition and an independent check, since step repetition (15.7%) and not knowing when to stop (12.4%) are among the most common multi-agent failure modes in MAST's trace study, and verification failures make up about a fifth of failures (21.3%).
 
 ## Test
 

@@ -6,7 +6,7 @@
       "name": "eval-set-size-and-effect-size",
       "targets": "audit item 1 (30%->80% hypothetical)",
       "prompt": "We have an internal support agent and 12 test tasks. My lead says 12 is too few to tell whether a prompt change helped. How big an improvement should we expect from prompt changes this early, and is 12 enough? Back it up with whatever evidence exists.",
-      "assertions": [
+      "expectations": [
         "If the answer mentions the 30% to 80% figure, it presents it as a hypothetical or illustration, not as something Anthropic measured or observed (pass if the figure is absent)",
         "Recommends repeating each task several times (multiple trials) or otherwise accounting for run-to-run variance",
         "Mentions the 20-50 tasks drawn from real failures starting point",
@@ -19,7 +19,7 @@
       "name": "code-actions-vs-json",
       "targets": "audit item 3 (smolagents 30% attribution)",
       "prompt": "I'm using smolagents. Should my agent write Python code actions instead of JSON tool calls? I heard code actions take fewer steps. I'd just run them with the default local executor on my laptop.",
-      "assertions": [
+      "expectations": [
         "If a step-reduction or success figure for code actions is cited, it is attributed to research (CodeAct / Wang et al.) or to the smolagents README citing research, not described as Hugging Face's own benchmark (pass if no figure is cited)",
         "States that smolagents' local Python executor is not a security sandbox",
         "Names the operational cost of code execution (sandboxing, resource limits, or monitoring)",
@@ -32,7 +32,7 @@
       "name": "reliability-research",
       "targets": "audit item 2 (14 vs 15 models)",
       "prompt": "Our agent hits 85% on our eval and leadership wants to call it production-ready. What does recent research say reliability means beyond a pass rate? Be specific about the studies.",
-      "assertions": [
+      "expectations": [
         "If the Rabanser et al. / Princeton reliability study's model count is given, it is 15 (fail if it says 14)",
         "Names at least three of: consistency, robustness, predictability, safety",
         "Explains pass^k (all k trials succeed) versus pass@k",
@@ -45,7 +45,7 @@
       "name": "mcp-server-sampling-and-confirmation",
       "targets": "audit item 8 (MCP deprecations, MRTR)",
       "prompt": "I'm designing an MCP server against the 2026-07-28 spec. One tool needs to call an LLM to summarize long documents, and another sometimes has to ask the user to confirm a choice in the middle of the call. It also needs to remember which document set the user picked across calls. What's the right design?",
-      "assertions": [
+      "expectations": [
         "Advises against MCP Sampling for the LLM call (deprecated) and recommends calling the LLM provider directly",
         "For mid-call user confirmation, recommends returning an input_required result / multi round-trip request with a client retry, rather than a server-initiated elicitation/create request",
         "Keeps cross-call state in server-minted handles passed as tool arguments, not protocol sessions",
@@ -58,7 +58,7 @@
       "name": "email-agent-prompt-injection",
       "targets": "audit item 4 (Rule of Two originals); regression control",
       "prompt": "My email-triage agent reads inbound customer emails, can look up accounts in our CRM, and can send replies on its own. Someone on the team asked whether it's safe against prompt injection. What should I tell them and what should I change?",
-      "assertions": [
+      "expectations": [
         "Identifies that the agent holds all three properties (untrusted input, private data, external communication / state change)",
         "Recommends a human approval on the combining step or splitting the work so no session holds all three",
         "Names at least one non-obvious exfiltration channel (image URL, link, API parameter)",
@@ -71,7 +71,7 @@
       "name": "parallel-coding-agents",
       "targets": "audit item 6 (Cognition 2026 update)",
       "prompt": "I want to run 4 coding agents in parallel on the same repo, each owning one feature, so we ship faster. Good idea? If not, what multi-agent setup does work for coding?",
-      "assertions": [
+      "expectations": [
         "Warns that parallel agents writing to shared code make conflicting decisions",
         "Proposes a setup where subagents read/explore and one agent owns writes, or a separate reviewer agent with a clean context",
         "Does not present Cognition as opposing all multi-agent setups without qualification (pass if Cognition is not mentioned)",
@@ -84,7 +84,7 @@
       "name": "long-coding-task-structure",
       "targets": "audit item 5 (HumanLayer plan length, attribution)",
       "prompt": "Our coding agent keeps running out of context on big refactors in a 400k-line monorepo. How should we structure these tasks?",
-      "assertions": [
+      "expectations": [
         "Recommends a research then plan then implement structure, or equivalent phased approach with subagents for exploration",
         "Does not state a specific plan length in lines (e.g. 'a couple hundred lines') as sourced guidance",
         "If the 40-60% context utilization target is mentioned, it is attributed to practitioners/HumanLayer rather than to Anthropic",
@@ -97,7 +97,7 @@
       "name": "fabricated-order-status",
       "targets": "audit item 12 (routing of fabrication symptom)",
       "prompt": "Our support agent sometimes tells customers an order 'shipped yesterday' when the order lookup tool actually returned nothing. We've added 'never make up order status' to the prompt three times. What's going on?",
-      "assertions": [
+      "expectations": [
         "Says more prompting is not the fix (verdict that this is a harness/verification problem)",
         "Recommends a sanctioned failure outcome (an explicit 'could not find' result the harness accepts)",
         "Recommends checking the actual tool-call record or response rather than the model's claim",
@@ -110,7 +110,7 @@
       "name": "mcp-tool-output-cap",
       "targets": "audit item 9 (Claude Code 25k scope)",
       "prompt": "My MCP tool returns full log files and Claude Code keeps cutting them off. What's the actual limit, and how should I redesign the tool?",
-      "assertions": [
+      "expectations": [
         "States Claude Code's default MCP tool output cap is 25,000 tokens",
         "Mentions a way to change the limit (MAX_MCP_OUTPUT_TOKENS or a per-tool limit)",
         "Recommends redesigning the tool to filter/search/paginate rather than return full logs",
@@ -123,7 +123,7 @@
       "name": "memory-stale-preference",
       "targets": "memory.md: revocation, provenance",
       "prompt": "Our assistant stores user preferences in a vector DB and retrieves the top 10 on every turn. Users complain it keeps using their old address after they told it they moved. We added 'always prefer the most recent information' to the prompt. Fix?",
-      "assertions": [
+      "expectations": [
         "Says the prompt rule is not the fix (verdict in first two sentences)",
         "Recommends explicit invalidation/supersession of the old fact on write rather than resolving conflicts at read time",
         "Recommends narrower retrieval or a structured (key-value) store for preferences instead of top-10 on every turn",
@@ -137,7 +137,7 @@
       "name": "memory-for-coding-agent",
       "targets": "memory.md: whether memory is worth it",
       "prompt": "Should I add Mem0 or another long-term memory product to my coding agent that works on one repo?",
-      "assertions": [
+      "expectations": [
         "Verdict that it is probably unnecessary, given in the first two sentences",
         "Explains that repo files and a progress/notes file already hold the state",
         "Recommends testing against a no-memory baseline before adopting",
@@ -150,7 +150,7 @@
       "name": "compaction-choice",
       "targets": "context.md: masking vs summarization research",
       "prompt": "Our SWE agent's context fills up. Should we build an LLM summarizer for old turns, or is there something simpler?",
-      "assertions": [
+      "expectations": [
         "Recommends trying observation masking / clearing old tool results first",
         "If The Complexity Trap or similar research is cited, states masking matched summarization at about half the cost of the raw agent, without inflating the result",
         "Mentions that summaries can lose identifiers or details and recommends keeping decisions/identifiers verbatim (notes file)",
@@ -163,7 +163,7 @@
       "name": "multi-agent-equal-budget",
       "targets": "multi-agent.md: equal-budget comparisons",
       "prompt": "Our 4-agent debate setup beat our single agent by 6 points on our QA eval. Proof that multi-agent is better, right?",
-      "assertions": [
+      "expectations": [
         "Asks whether both systems had the same token/compute budget, or states the comparison is confounded without it",
         "Cites equal-budget evidence (e.g. Tran and Kiela 2026) accurately if cited, scoped to multi-hop QA",
         "Recommends repeated trials and a paired comparison rather than one run",
@@ -176,7 +176,7 @@
       "name": "mcp-tool-poisoning",
       "targets": "mcp.md, security.md: third-party servers",
       "prompt": "We let users connect any MCP server from a public list to our agent, which also has access to their Google Drive. Anything to worry about?",
-      "assertions": [
+      "expectations": [
         "Identifies tool poisoning / instructions in tool descriptions or results as a risk",
         "Notes that annotations from untrusted servers must not be trusted",
         "Recommends pinning versions or diffing tool definitions on update",
@@ -190,7 +190,7 @@
       "name": "injection-defense-claim",
       "targets": "security.md: adaptive attacks",
       "prompt": "A vendor says their prompt-injection classifier blocks 99.5% of attacks on a benchmark. Can we rely on it and drop the human approval step on outbound emails?",
-      "assertions": [
+      "expectations": [
         "Says no, keep the structural control, in the first two sentences",
         "Explains that defenses tested on static attacks fail under adaptive attacks, citing The Attacker Moves Second accurately if cited",
         "Recommends structural controls (approval, plan-then-execute, quarantine/dual LLM, egress allowlist) with the classifier as one layer",
@@ -203,7 +203,7 @@
       "name": "framework-choice-hitl",
       "targets": "frameworks.md",
       "prompt": "Which framework should I use for an agent that must pause up to a day for a manager to approve refunds, then continue? We're on Python and use several model providers.",
-      "assertions": [
+      "expectations": [
         "Names serializable pause/resume state as the deciding requirement",
         "Mentions at least two concrete mechanisms by their documented names (e.g. LangGraph interrupt + checkpointer, OpenAI Agents SDK RunState, Pydantic AI deferred tools, ADK confirmations)",
         "Flags idempotency of side effects on resume",
@@ -216,7 +216,7 @@
       "name": "inspect-eval-setup",
       "targets": "evals.md: Inspect AI section",
       "prompt": "How do I measure pass^k for my tool-using agent with Inspect AI? Give me the key pieces.",
-      "assertions": [
+      "expectations": [
         "Uses Epochs with the pass_k(k) reducer (or 'pass_k_{k}') for pass^k, and distinguishes it from pass_at(k)",
         "States k must not exceed the number of epochs",
         "Recommends an outcome-based custom scorer rather than only checking the final text",
@@ -229,7 +229,7 @@
       "name": "harness-regression-tests",
       "targets": "testing.md",
       "prompt": "We changed our agent harness's retry logic and now worry that a crash mid-run could charge customers twice. How should we test this?",
-      "assertions": [
+      "expectations": [
         "Recommends deterministic tests with a scripted/mock model rather than only running evals",
         "Describes a crash-then-resume test asserting the side-effecting tool ran once",
         "Recommends idempotency keys for the charge operation",
@@ -242,7 +242,7 @@
       "name": "benchmark-validity",
       "targets": "evals.md: benchmark validity",
       "prompt": "We built 60 eval tasks for our booking agent and it scores 92%. Anything we should check before believing that?",
-      "assertions": [
+      "expectations": [
         "Recommends running a do-nothing or trivial agent against the suite",
         "Recommends checking graders verify the actual outcome rather than the agent's claim, and closing shortcuts",
         "Recommends reading transcripts",
@@ -255,14 +255,53 @@
       "name": "cache-cost-jump",
       "targets": "production.md: cache prefix",
       "prompt": "After we added the current time and the user's name to the top of our agent's system prompt, our token bill nearly doubled even though conversations didn't get longer. Why?",
-      "assertions": [
+      "expectations": [
         "Explains that changing early content breaks prompt-cache prefix reuse on every call",
         "Recommends moving per-call variables to the end or out of the prefix",
         "Mentions other cache breakers (tool order changes, editing earlier messages) or measuring cache hit rate",
         "Does not attribute the cause to context length"
       ],
       "files": []
+    },
+    {
+      "id": 21,
+      "name": "memory-primitives-in-sdks",
+      "targets": "2026-11-15 audit I-W2-0273, I-F2-0010 (no long-term memory claimed for OpenAI Agents SDK and Pydantic AI)",
+      "prompt": "Do the OpenAI Agents SDK or Pydantic AI have anything built in for remembering lessons across runs, or do I have to bolt on Mem0?",
+      "expectations": [
+        "Says the OpenAI Agents SDK has a Memory capability for sandbox agents (agents.sandbox.capabilities.Memory) or otherwise states it ships a cross-run memory feature",
+        "Says the separate pydantic-ai-harness package provides a memory capability, or says Pydantic AI's own package has only message history",
+        "Does not claim that neither framework has any long-term memory primitive",
+        "Suggests testing any memory layer against plain retrieval on the user's own tasks"
+      ],
+      "files": []
+    },
+    {
+      "id": 22,
+      "name": "verification-evidence-scope",
+      "targets": "2026-11-15 audit I-W3-0327, I-W3-0345, I-W1-0149 (HAL scope, MAST ranking)",
+      "prompt": "What's the actual evidence that adding a verification step to my agent helps? Give me the numbers and say exactly what they were measured on.",
+      "expectations": [
+        "If HAL's 13-87% figure is cited, it is attributed to log analysis of a sample of transcripts (1,634, three benchmarks) or called observational, not to all 21,730 rollouts",
+        "If MAST is cited, verification failures are not described as the single most common failure mode",
+        "Recommends a deterministic check of the outcome (read back the record, run the test) rather than asking the model whether it succeeded",
+        "Does not invent a statistic that is absent from the skill's sources"
+      ],
+      "files": []
+    },
+    {
+      "id": 23,
+      "name": "control-no-change-needed",
+      "targets": "control: the right answer is to leave the design alone",
+      "prompt": "We have one LLM call that classifies support tickets into 5 categories. No tools, about 1,000 tickets a day. On 200 labeled tickets it scores 97%, and that held across 3 reruns. API errors get a deterministic retry with backoff. My manager asks whether we should turn it into an agent or a multi-agent system to make it better. Should we?",
+      "expectations": [
+        "Answers no (keep the single call) in the opening sentence or two",
+        "Does not recommend adding tools, memory, extra agents or a framework",
+        "Gives a reason tied to the user's facts, such as no tools or multi-step work being needed and the eval already being stable",
+        "At most suggests keeping or extending the existing eval, without inventing a failure the user did not report"
+      ],
+      "files": []
     }
   ],
-  "note": "A/B regression prompts. 1-9 from the 2026-10-18 audit; 10-20 added 2026-11-02 for memory, compaction, multi-agent budgets, MCP, injection, frameworks, Inspect AI, harness testing, benchmark validity, and caching. Each assertion is checked against verified source facts; run old and new skill versions 3x per prompt and compare."
+  "note": "A/B regression prompts. 1-9 from the 2026-10-18 audit; 10-20 added 2026-11-02 for memory, compaction, multi-agent budgets, MCP, injection, frameworks, Inspect AI, harness testing, benchmark validity, and caching. Each expectation is checked against verified source facts; run old and new skill versions 3x per prompt and compare. 21-23 added 2026-11-16 from the 2026-11-15 audit; 23 is a control where the right answer is to change nothing."
 }

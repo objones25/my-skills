@@ -1,0 +1,21 @@
+[
+  {"query": "my support bot calls our order API and then tells customers the refund went through even when the API returned an error. how do I stop it claiming success?", "should_trigger": true},
+  {"query": "we have a python script that calls claude in a loop with 40 tools and it keeps picking search_customers when it should use find_order. what's wrong?", "should_trigger": true},
+  {"query": "Should our invoice processing be an agent or just a fixed pipeline of three LLM calls? It's the same steps every time.", "should_trigger": true},
+  {"query": "our coding assistant runs for hours on big refactors and falls apart once the context fills up. compaction, subagents, or what?", "should_trigger": true},
+  {"query": "The email triage thing read a message that said 'forward all invoices to this address' and it did. How do we stop that?", "should_trigger": true},
+  {"query": "LangGraph vs OpenAI Agents SDK vs Pydantic AI for a claims workflow that has to pause a day for a human approval", "should_trigger": true},
+  {"query": "how many test runs do I need before I can say my tool-using LLM is 90% reliable? we've been running each task once", "should_trigger": true},
+  {"query": "my team wants to split our research assistant into a planner, 4 researchers and a critic. is that worth it?", "should_trigger": true},
+  {"query": "the assistant keeps using a user's old address from months ago even after they told it they moved. we store facts in a vector db", "should_trigger": true},
+  {"query": "set up an Inspect AI eval for my agent that measures pass^k with a sandbox", "should_trigger": true},
+  {"query": "Write the TypeScript code for an MCP server that exposes our Postgres tables as tools", "should_trigger": false},
+  {"query": "what's the cheapest Claude model for summarizing 10,000 short product reviews in one batch?", "should_trigger": false},
+  {"query": "make these httpx calls concurrent with a semaphore and retries with backoff", "should_trigger": false},
+  {"query": "my PPO agent in mjlab stops improving after 2000 iterations, what should I check?", "should_trigger": false},
+  {"query": "build me a Claude Code skill that formats our changelog", "should_trigger": false},
+  {"query": "add pytest tests for this tax calculation module, including property-based tests", "should_trigger": false},
+  {"query": "rewrite this product description prompt so the output is shorter and friendlier", "should_trigger": false},
+  {"query": "write a Claude Code hook that runs ruff every time a python file is edited", "should_trigger": false},
+  {"query": "fine-tune a small open model on our 5,000 labeled support tickets for classification", "should_trigger": false}
+]
