@@ -154,7 +154,7 @@ CODES: dict[str, tuple[str, str, str]] = {
     "MHA_NO_BATCH_FIRST": (WARNING, "references/03-models-layers.md",
                            "batch_first defaults to False, so inputs are read as (T, B, E); pass batch_first explicitly"),
     "RMSNORM_NO_EPS": (WARNING, "references/09-attention-transformers.md",
-                       "nn.RMSNorm eps defaults to None, which means torch.finfo(dtype).eps; set eps to match the checkpoint or recipe"),
+                       "nn.RMSNorm eps defaults to None, which means torch.finfo(torch.float32).eps even for bf16/fp16 inputs; set eps to match the checkpoint or recipe"),
     "F_DROPOUT_NO_TRAINING": (ERROR, "references/02-tensors-autograd.md",
                               "F.dropout defaults to training=True and ignores model.eval(); pass training=self.training"),
     "CUDA_HARDCODE": (WARNING, "references/01-devices-amp.md",

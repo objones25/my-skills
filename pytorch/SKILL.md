@@ -5,7 +5,7 @@ license: MIT
 compatibility: Scripts need Python 3.11+ (torch 2.15 dropped 3.10) and torch; lint_pytorch.py needs only the standard library. References are verified against torch 2.15.0 / torchvision 0.29.2 / torchao 0.18.0 and re-checked on torch 2.14.1 / torchvision 0.29.1 (CPU builds). Run pytest from the skill root to re-check every walkthrough, script and claim. No network access required.
 metadata:
   author: owenbeckettjones
-  version: 1.2.1
+  version: 1.2.2
   verified-against: "torch 2.15.0, 2.14.1"
   pytorch-version: "2.15.0"
   torchvision-version: "0.29.2"
@@ -16,8 +16,8 @@ metadata:
 ## Start here
 
 **Step 1 - pin the version before quoting any API.** PyTorch's defaults and behavior move
-between minor releases (`AdamW`'s `weight_decay`, `torch.load`'s `weights_only`, FSDP2's
-gradient dtype in 2.15). Run:
+between releases (`torch.load`'s `weights_only` in 2.6, FSDP2's gradient reduction dtype
+in 2.15). Run:
 
 ```bash
 python scripts/check_env.py
@@ -72,7 +72,7 @@ model). Before handing code over, run `python scripts/lint_pytorch.py <files>`.
 | Script | Does |
 |---|---|
 | `scripts/check_env.py` | versions, accelerator, bf16 support, whether `torch.compile` is present, distributed backends |
-| `scripts/verify_api.py` | pinned defaults, symbols and 39 full signatures against the install; `--docs` resolves every API name in `references/`, reports keywords the installed callable does not accept, and compares defaults in spans that read as signatures (blind spots in its docstring); `--json` |
+| `scripts/verify_api.py` | pinned defaults, symbols and 39 full signatures against the install; `--docs` resolves every `torch.`, `nn.`, `F.`, `v2.`, `dist.`, `dcp.`, `torchvision.` and `torchao.` name in `references/` (not `optim.` or `Tensor.` shorthand), reports keywords the installed callable does not accept, and compares defaults in spans that read as signatures (blind spots in its docstring); `--json` |
 | `scripts/lint_pytorch.py` | stdlib AST linter, 24 codes: dropped `.to()`, softmax into CrossEntropy, plain list of layers, unregistered tensors, missing `zero_grad`, loss tensors kept alive, `F.dropout` without `training=`, deprecated AMP names, and more; `--list-codes`, `--format json\|github`, `# lint: ignore[CODE] reason` |
 | `scripts/diagnose.py` | runs a model defined by `make_model()`/`make_batch()`: `overfit` (one-batch memorization verdict), `grads` (per-parameter table, hidden tensors and modules, softmax-head warning), `nan` (first module to emit NaN/Inf) |
 | `scripts/memory_budget.py` | weights, grads and optimizer state per rank for DDP or FSDP2; `--measure` checks the formula against a real optimizer step |

@@ -69,7 +69,7 @@ accumulation, resume, and early stopping already wired in.
 | Compile | `torch.compile(model)` | see `11-compile-export.md` |
 | Save weights | `torch.save(model.state_dict(), path)` | not the model object |
 | Load | `torch.load(path, weights_only=True)` | `weights_only` defaults to `True` since 2.6 |
-| Load safetensors | `torch.load("model.safetensors")` | native since 2.13, no extra library (`tests/test_claims.py`) |
+| Load safetensors | `torch.load("model.safetensors")` | since 2.13; dispatches to `safetensors.torch.load_file`, so `pip install safetensors` (`tests/test_claims.py`) |
 
 DataLoader knobs:
 
@@ -219,8 +219,10 @@ unset - it refuses to execute arbitrary pickled code, restricting the unpickler 
 tensors and primitives. Loading an old checkpoint containing custom classes needs
 `torch.serialization.add_safe_globals([...])` or `weights_only=False` (trusted
 sources only). Since 2.15 nested (jagged or strided) tensors are no longer on the
-`weights_only` allowlist; allow `torch.nested._internal.nested_tensor._rebuild_njt` (the global named in the error) with
-`torch.serialization.safe_globals([...])`.
+`weights_only` allowlist. For a jagged tensor allow both
+`torch.nested._internal.nested_tensor._rebuild_njt` and `NestedTensor` from the same module
+(allowing only the first still fails, naming `NestedTensor`); a strided nested tensor needs
+`torch._utils._rebuild_nested_tensor`. Pass them to `torch.serialization.safe_globals([...])`.
 For sharded/distributed checkpoints use
 `torch.distributed.checkpoint` instead - see `12-distributed.md`.
 

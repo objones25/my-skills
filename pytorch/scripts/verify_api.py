@@ -196,7 +196,7 @@ SIGNATURES: dict[str, tuple[str, ...]] = {
 # What each known drift means, so a user on an older install knows it is expected.
 KNOWN_CHANGES: dict[str, str] = {
     "torch.compile": "2.14 renamed shapes_spec to dynamic_shapes",
-    "torch.utils.checkpoint.checkpoint": "2.14 added preserve_rng_state, respect_saved_tensors_hooks and the curried form (function=None)",
+    "torch.utils.checkpoint.checkpoint": "2.14 made preserve_rng_state an explicit keyword (2.13 read it from **kwargs) and added respect_saved_tensors_hooks and the curried form (function=None)",
     "torch.profiler.profile": "2.14 removed use_cuda",
     "torch.nn.parallel.DistributedDataParallel": "2.15 added lazy_bucket_allocation",
     "torch.distributed.fsdp.MixedPrecisionPolicy": "2.15 added param_dtype_override_fn",

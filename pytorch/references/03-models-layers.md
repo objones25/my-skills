@@ -59,7 +59,7 @@ Core layers, signatures introspected from torch 2.15.0.
 | `nn.RMSNorm` | `(normalized_shape, eps=None, elementwise_affine=True)` | shape preserved; **no bias** |
 | `nn.Dropout` | `(p=0.5, inplace=False)` | shape preserved |
 | `nn.Embedding` | `(num_embeddings, embedding_dim, padding_idx=None, ...)` | `(B, T)` int64 -> `(B, T, dim)` |
-| `nn.LSTM` / `nn.GRU` | documented as `(input_size, hidden_size, num_layers=1, batch_first=False, ...)`; the Python signature is `(*args, **kwargs)`, so `inspect` cannot check it | `(B, T, in)` -> `(B, T, hidden)` when `batch_first=True` |
+| `nn.LSTM` / `nn.GRU` | documented as `(input_size, hidden_size, num_layers=1, bias=True, batch_first=False, ...)` - pass `batch_first` by keyword, since the 4th positional argument is `bias`; the Python signature is `(*args, **kwargs)`, so `inspect` cannot check it | `(B, T, in)` -> `(B, T, hidden)` when `batch_first=True` |
 | `nn.MultiheadAttention` | `(embed_dim, num_heads, dropout=0.0, bias=True, ..., batch_first=False)` | `(B, T, dim)` -> `(B, T, dim)` when `batch_first=True` |
 | `nn.Flatten` | `(start_dim=1, end_dim=-1)` | collapses all but the batch dim |
 | `nn.LazyLinear` | `(out_features, bias=True)` | infers `in_features` on the first forward |
@@ -154,8 +154,9 @@ it on the first forward, or print the shape once at the flatten boundary.
 - **RNN and `nn.MultiheadAttention` default to `batch_first=False`** (expecting
   `(T, B, dim)`). Set `batch_first=True` or you silently transpose batch and time.
 - **First Linear after a conv stack** needs `in_features = C*H*W` at that point.
-- **`nn.RMSNorm`'s `eps` defaults to `None`**, which resolves to the dtype's epsilon -
-  not LayerNorm's `1e-5`. Set it from the checkpoint's config: the original LLaMA used
+- **`nn.RMSNorm`'s `eps` defaults to `None`**, which resolves to the epsilon of the
+  computation type: `torch.finfo(torch.float32).eps` for fp32, bf16 and fp16 inputs alike
+  (fp64 uses its own) - not LayerNorm's `1e-5`, and not bf16's `7.8e-3`. Set it from the checkpoint's config: the original LLaMA used
   `1e-6`, Llama 3.x configs use `1e-5`.
 - **Call `model(x)`, not `model.forward(x)`.**
 - **Custom tensors must be `nn.Parameter` or buffers** to be tracked, moved, and saved.

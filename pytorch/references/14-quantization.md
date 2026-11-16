@@ -137,12 +137,11 @@ int8:    6.5 GiB
 int4:    3.3 GiB
 ```
 
-bf16 to int4 turns a model that needs two 80 GiB cards into one that fits on a
-24 GiB consumer GPU.
+bf16 to int4 cuts the 7B model's weights from 13.0 GiB to 3.3 GiB, a quarter of the bytes.
 
 **5. Why that is also the speedup.** Single-token decoding reads every weight once
-and does one multiply-add per weight - arithmetic intensity of about 2 FLOPs per
-byte, far below any modern GPU's ratio of peak FLOP/s to peak bandwidth (hundreds).
+and does one multiply-add (2 FLOPs) per weight - arithmetic intensity of about
+1 FLOP per byte for bf16 weights (2 for int8), far below any modern GPU's ratio of peak FLOP/s to peak bandwidth (hundreds).
 Decoding is therefore bandwidth-bound, and time per token scales with bytes moved.
 Quartering the bytes roughly quarters the time, which is why weight-only int4 gives
 large end-to-end gains on LLM decode while barely helping a batched, compute-bound

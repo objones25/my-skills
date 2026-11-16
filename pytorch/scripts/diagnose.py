@@ -195,7 +195,7 @@ def loss_floor(loss_fn, out: torch.Tensor, y: torch.Tensor) -> float:
     """
     eps = getattr(loss_fn, "label_smoothing", 0.0)
     if isinstance(loss_fn, nn.CrossEntropyLoss) and eps > 0 and not y.is_floating_point():
-        c = out.shape[-1]
+        c = out.shape[1] if out.dim() > 1 else out.shape[0]   # (N, C, d1, ...) or (C,)
         hi, lo = 1 - eps + eps / c, eps / c
         return -(hi * math.log(hi) + (c - 1) * lo * math.log(lo))
     return 0.0
@@ -217,6 +217,14 @@ def constant_baseline(loss_fn, out: torch.Tensor, y: torch.Tensor, steps: int = 
         opt.step()
     with torch.no_grad():
         return loss_fn(c.expand_as(out), y).item()
+
+
+def judge(first: float, last: float, floor: float, baseline: float | None) -> str:
+    """"memorized" when the loss closed 90% of its gap to the floor (or got within 1e-2 of it)
+    and ended clearly below the constant-prediction baseline; otherwise "stuck"."""
+    near_floor = (last - floor) < 0.1 * (first - floor) or (last - floor) < 1e-2
+    beats_baseline = baseline is None or last < baseline - 0.5 * (baseline - floor)
+    return "memorized" if near_floor and beats_baseline else "stuck"
 
 
 def overfit(model: nn.Module, batch, loss_fn, steps: int, lr: float, floor: float | None = None) -> dict:
@@ -244,14 +252,12 @@ def overfit(model: nn.Module, batch, loss_fn, steps: int, lr: float, floor: floa
         if step % max(1, steps // 10) == 0 or step == steps - 1:
             curve.append(loss.item())
     first, last = curve[0], curve[-1]
-    near_floor = (last - floor) < 0.1 * (first - floor) or (last - floor) < 1e-2
-    beats_baseline = baseline is None or last < baseline - 0.5 * (baseline - floor)
     summary = f"loss {first:.4f} -> {last:.4f} in {steps} steps"
     if baseline is not None:
         summary += f"; constant-prediction baseline {baseline:.4f}"
     if floor > 0:
         summary += f"; floor {floor:.4f}"
-    if near_floor and beats_baseline:
+    if judge(first, last, floor, baseline) == "memorized":
         return {"verdict": "memorized", "reason": summary, "curve": curve,
                 "baseline": baseline, "floor": floor}
     if baseline is not None and last >= floor + 0.9 * (baseline - floor):

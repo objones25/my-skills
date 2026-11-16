@@ -117,14 +117,14 @@ Adam  wd: 0
 ```
 
 **4. The fused loss (added in 2.13) is numerically equivalent** to projecting then applying
-cross-entropy - it just never materializes the `(B, V)` logits matrix.
+cross-entropy; with chunking enabled it never materializes the `(B, V)` logits matrix.
 
 ```python
-import torch.nn.functional as F
+import torch, torch.nn as nn, torch.nn.functional as F
 B, D, V = 8, 32, 1000
 torch.manual_seed(0)
 h = torch.randn(B, D); W = torch.randn(V, D) * 0.02; t = torch.randint(0, V, (B,))
-fused   = F.linear_cross_entropy(h, W, t)
+fused   = F.linear_cross_entropy(h, W, t, options=nn.LinearCrossEntropyOptions())
 unfused = F.cross_entropy(h @ W.T, t)
 print("fused:", round(fused.item(), 6), "| unfused:", round(unfused.item(), 6),
       "| allclose:", torch.allclose(fused, unfused, atol=1e-5))
@@ -134,8 +134,12 @@ fused: 6.888349 | unfused: 6.888349 | allclose: True
 ```
 
 At `V = 1000` the saving is irrelevant. At `V = 128000` with a long sequence, the
-`(B*T, V)` logits tensor is tens of gigabytes, and this is where the ~4x peak-memory
-reduction comes from. The release blog labels it API Unstable, and 2.14 already removed
+`(B*T, V)` logits tensor is tens of gigabytes, and chunking is where the saving comes from.
+It is opt-in: the default `options=None` runs the reference path, whose peak memory
+equals the unfused loss (6.11 vs 6.18 GB on CPU at `V = 32768`), while
+`options=nn.LinearCrossEntropyOptions()` processes the batch dimension in chunks
+(0.38 GB in the same run). PyTorch's 2.13 release blog quotes up to ~4x lower peak GPU
+memory; that figure was not reproduced here. The release blog labels it API Unstable, and 2.14 already removed
 its `balanced` accuracy policy, and 2.15 added soft-label targets with `reduction="none"` on the
 chunked path, so pin the torch version if you depend on its options.
 
@@ -165,6 +169,8 @@ chunked path, so pin the torch version if you depend on its options.
   state cannot be matched back to parameters on reload; 2.15 emits a `FutureWarning`.
 - **`nn.LinearCrossEntropyLoss` owns the projection**, so you delete the final
   `nn.Linear` from the model rather than stacking it in front.
+- **Its memory saving is opt-in.** Pass `options=nn.LinearCrossEntropyOptions()`; the
+  default `options=None` computes the full logits like the unfused loss.
 
 ## Alternatives
 
@@ -175,7 +181,7 @@ generalizes slightly better on well-tuned CNN image classification, but needs a 
 schedule and more tuning. SGD's `weight_decay` *is* plain L2, and that is correct -
 the coupling problem is specific to adaptive methods.
 
-**Muon** (`torch.optim.Muon`; present in 2.14.1 and 2.15.0) orthogonalizes the momentum
+**Muon** (`torch.optim.Muon`; present in 2.12.1 through 2.15.0) orthogonalizes the momentum
 update with a Newton-Schulz iteration (a few matrix multiplies that push the update's
 singular values toward 1) and has been effective on 2-D weight matrices in LLM
 pretraining. It accepts 2-D parameters only: a 1-D parameter raises `ValueError: Muon only
