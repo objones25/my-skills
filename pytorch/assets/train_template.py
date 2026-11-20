@@ -25,6 +25,7 @@ import sys
 import time
 import warnings
 from pathlib import Path
+from typing import cast
 
 import torch
 import torch.nn as nn
@@ -178,7 +179,7 @@ def unwrap(model: nn.Module) -> nn.Module:
     return getattr(model, "_orig_mod", model)
 
 
-def device_rng_state():
+def device_rng_state() -> dict | None:
     """The accelerator's RNG (dropout on the device draws from it), or None on CPU."""
     if torch.cuda.is_available():
         return {"type": "cuda", "state": torch.cuda.get_rng_state_all()}
@@ -187,19 +188,22 @@ def device_rng_state():
     return None
 
 
-def set_device_rng_state(saved) -> None:
+def set_device_rng_state(saved: dict | None) -> None:
     """Restore only onto the same kind of device; other RNG streams cannot be converted."""
     current = device_rng_state()
     if saved is None and current is None:
         return
     same_device = (current is not None and isinstance(saved, dict)
                    and saved.get("type") == current["type"])
-    if same_device and saved["type"] == "cuda":
-        same_device = len(saved["state"]) == len(current["state"])
+    if same_device:
+        assert saved is not None and current is not None   # what same_device means
+        if saved["type"] == "cuda":
+            same_device = len(saved["state"]) == len(current["state"])
     if not same_device:
         print("note: checkpoint RNG is from another device or an older format; resume is not bit-exact",
               file=sys.stderr)
         return
+    assert saved is not None   # same_device is False when saved is None
     if saved["type"] == "cuda":
         torch.cuda.set_rng_state_all(saved["state"])
     else:
@@ -282,7 +286,7 @@ def main() -> None:
 
     model = build_model(n_features, n_classes).to(device)   # modules move in place
     if args.compile:
-        model = torch.compile(model)
+        model = cast(nn.Module, torch.compile(model))   # a Module in gives an nn.Module out
 
     loss_fn = nn.CrossEntropyLoss()                          # raw logits + int64 targets
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr,

@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.2.3, 2026-11-19: fix Pyright diagnostics
+
+Type-checking fixes only; no behaviour change. `pyright pytorch` went from 60 errors to 0.
+
+### Fixed
+
+| Problem | Fix |
+|---|---|
+| `lint_pytorch.py`: `list[stmt]` passed where `list[AST]` was declared, `lineno` read from plain `AST`, `.func` read from an unnarrowed `expr` | `iter_scope` and `_scope` accept `list[ast.stmt] | list[ast.AST]`; `_is_backward`, `_is_opt_step` and `_is_super_init` return `TypeGuard[ast.Call]`; the assignment scan skips non-assignment nodes (their target list was already empty); `_discarded_to` asserts its caller's invariant |
+| `memory_budget.py` `load_model`: `spec_from_file_location` can return `None` | raises `ImportError` naming the file instead of an `AttributeError` on `None` |
+| `verify_api.py` `_params`: `resolve` had no return annotation | `resolve() -> Any` |
+| `train_template.py`: RNG-state helpers subscripted possibly-`None` values; `torch.compile(model)` typed as a function | `dict \| None` annotations plus asserts for what `same_device` implies; `cast(nn.Module, ...)` on the compiled model |
+| `ddp_template.py`: `Module.__getattr__` typing hid `no_sync`, `module` and `set_requires_gradient_sync` | `build_model` returns `nn.Sequential`; `isinstance` asserts on `DDP` and `FSDPModule`; the full state dict cast to `dict[str, Tensor]` |
+| Tests: unchecked `spec`/`spec.loader`, `re.Match`, `__doc__` and `current_accelerator()` `None`s; `_torch_minor` returned `tuple[int, ...]` | asserts or explicit narrowing; `_torch_minor` unpacks `(major, minor)`; `import torch.utils.checkpoint` made explicit |
+
+Two `# pyright: ignore[reportPrivateImportUsage]` comments remain, for `torch._dynamo.is_dynamo_supported` (private on purpose) and `torch.distributed.HashStore` (exported at runtime, not re-exported for the checker).
+
 ## 1.2.2, 2026-11-16: fix the findings of the 2026-11-16 audit
 
 Evidence for each fix is in `AUDIT.md` (audit of 1.2.1, risk scope, 162 of 1547 items checked).

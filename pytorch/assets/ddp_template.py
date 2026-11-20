@@ -22,10 +22,12 @@ import argparse
 import contextlib
 import os
 from pathlib import Path
+from typing import cast
 
 import torch
 import torch.distributed as dist
 import torch.nn as nn
+from torch.distributed.fsdp import FSDPModule
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.utils.data import DataLoader, TensorDataset
 from torch.utils.data.distributed import DistributedSampler
@@ -40,7 +42,7 @@ def build_data(n=2048, n_features=32, n_classes=10, seed=0):
     return TensorDataset(x, y, idx), n_features, n_classes
 
 
-def build_model(n_features: int, n_classes: int) -> nn.Module:
+def build_model(n_features: int, n_classes: int) -> nn.Sequential:
     return nn.Sequential(nn.Linear(n_features, 128), nn.ReLU(), nn.Linear(128, 128),
                          nn.ReLU(), nn.Linear(128, n_classes))
 
@@ -77,10 +79,12 @@ def main() -> None:
                                      seed=args.seed, drop_last=True)
         loader = DataLoader(ds, batch_size=args.batch_size, sampler=sampler)   # NOT shuffle=True
 
-        model = build_model(n_features, n_classes).to(device)
+        model: nn.Module = build_model(n_features, n_classes).to(device)
         if args.fsdp:
             from torch.distributed.device_mesh import init_device_mesh
             from torch.distributed.fsdp import fully_shard
+
+            assert isinstance(model, nn.Sequential)
 
             mesh = init_device_mesh(device.type, (world,), mesh_dim_names=("dp",))
             for layer in model:
@@ -106,9 +110,11 @@ def main() -> None:
                 last_micro = (i + 1) % args.accum_steps == 0 or (i + 1) == len(loader)
                 # Skip the gradient all-reduce on accumulation micro-steps.
                 if args.fsdp:
+                    assert isinstance(model, FSDPModule)   # fully_shard swapped the class in place
                     model.set_requires_gradient_sync(last_micro)
                     sync = contextlib.nullcontext()
                 else:
+                    assert isinstance(model, DDP)
                     sync = contextlib.nullcontext() if last_micro else model.no_sync()
                 with sync:
                     loss = loss_fn(model(x), y) / args.accum_steps
@@ -126,8 +132,10 @@ def main() -> None:
         # Checksum of the full weights on every rank: DDP keeps replicas identical.
         if args.fsdp:
             from torch.distributed.checkpoint.state_dict import get_model_state_dict, StateDictOptions
-            state = get_model_state_dict(model, options=StateDictOptions(full_state_dict=True))
+            # full_state_dict=True gathers every parameter into a plain tensor
+            state = cast(dict[str, torch.Tensor], get_model_state_dict(model, options=StateDictOptions(full_state_dict=True)))
         else:
+            assert isinstance(model, DDP)
             state = model.module.state_dict()          # .module drops the "module." prefix
         checksum = sum(float(v.double().sum()) for v in state.values())
         print(f"rank {rank} checksum {checksum:.6f} first_epoch_samples {len(seen)} "

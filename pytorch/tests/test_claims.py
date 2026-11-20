@@ -64,6 +64,8 @@ def test_linear_cross_entropy_matches_unfused_loss():
 
 
 def test_checkpoint_without_use_reentrant_warns():
+    import torch.utils.checkpoint
+
     x = torch.randn(2, 4, requires_grad=True)
     with pytest.warns(UserWarning, match="use_reentrant"):
         torch.utils.checkpoint.checkpoint(nn.Linear(4, 4), x)
@@ -84,7 +86,9 @@ def test_linear_cross_entropy_chunks_only_when_options_are_passed():
     import torch.nn.modules.linear_cross_entropy_options as lce
 
     assert inspect.signature(F.linear_cross_entropy).parameters["options"].default is None
-    assert "processes the batch dimension" in " ".join(lce.LinearCrossEntropyOptions.__doc__.split())
+    doc = lce.LinearCrossEntropyOptions.__doc__
+    assert doc is not None
+    assert "processes the batch dimension" in " ".join(doc.split())
     h, w = torch.randn(8, 32), torch.randn(1000, 32) * 0.02
     t = torch.randint(0, 1000, (8,))
     chunked = F.linear_cross_entropy(h, w, t, options=nn.LinearCrossEntropyOptions())
@@ -126,14 +130,16 @@ def test_named_tensors_are_gone():
 
 
 def _torch_minor() -> tuple[int, int]:
-    return tuple(int(v) for v in torch.__version__.split(".")[:2])
+    major, minor = torch.__version__.split(".")[:2]
+    return int(major), int(minor)
 
 
 @pytest.fixture
 def one_rank_group():
     import torch.distributed as dist
 
-    dist.init_process_group("gloo", store=dist.HashStore(), rank=0, world_size=1)
+    store = dist.HashStore()  # pyright: ignore[reportPrivateImportUsage] # stub gap: the class is exported at runtime
+    dist.init_process_group("gloo", store=store, rank=0, world_size=1)
     yield dist
     dist.destroy_process_group()
 

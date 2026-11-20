@@ -137,7 +137,7 @@ def compile_ready(device: torch.device) -> None:
     run needs a C++ compiler on PATH. ``torch._dynamo.is_dynamo_supported`` is
     a private helper; it checks the Python version and platform.
     """
-    if not torch._dynamo.is_dynamo_supported():
+    if not torch._dynamo.is_dynamo_supported():  # pyright: ignore[reportPrivateImportUsage] # private helper on purpose, see the docstring
         pytest.skip("torch.compile is not supported on this Python or platform")
     if device.type == "cpu" and not _has_cxx_compiler():
         pytest.skip("Inductor on CPU needs a C++ compiler (c++, g++ or clang++) on PATH")

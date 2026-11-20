@@ -39,6 +39,7 @@ import re
 import sys
 import warnings
 from pathlib import Path
+from typing import Any
 
 REFERENCE_VERSION = "torch 2.15.0 / torchvision 0.29.2"
 MISSING = object()
@@ -209,7 +210,7 @@ ALIASES = {
 }
 
 
-def resolve(path: str):
+def resolve(path: str) -> Any:
     parts = path.split(".")
     if parts[0] in ALIASES:
         parts = ALIASES[parts[0]].split(".") + parts[1:]

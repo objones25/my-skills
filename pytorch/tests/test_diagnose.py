@@ -78,6 +78,7 @@ def test_hidden_state_finds_a_plain_tensor_attribute(skill_root):
     import torch.nn as nn
 
     spec = importlib.util.spec_from_file_location("diag", skill_root / "scripts" / "diagnose.py")
+    assert spec is not None and spec.loader is not None
     diag = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(diag)
 
@@ -141,6 +142,7 @@ def diag(skill_root):
     import importlib.util
 
     spec = importlib.util.spec_from_file_location("diag", skill_root / "scripts" / "diagnose.py")
+    assert spec is not None and spec.loader is not None
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     return mod
