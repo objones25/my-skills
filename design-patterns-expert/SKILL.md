@@ -2,7 +2,7 @@
 name: "design-patterns-expert"
 description: Python-first design patterns for extensible production systems. Use whenever the user is deciding how code should be STRUCTURED rather than just writing it - choosing between patterns, refactoring a growing if/elif or flag-driven function, making a component swappable (a new provider, backend or exporter, no core edits), untangling coupling, separating logic from I/O, Protocol vs ABC vs plain function, wiring dependencies, or hardening a service boundary with retry, circuit breaker, idempotency or hedging. Also use when the user names a pattern for their own code (strategy, factory, observer, command, state machine, registry, adapter, repository, hexagonal, CQRS, event sourcing, saga, dependency injection, value object, null object, functional core) or asks "what pattern should I use" or "this class is doing too much". Not for a single function or a bug fix with no structural decision; for async retry and timeout mechanics use async-expert, for runtime assertions use negative-space-programming.
 metadata:
-  version: 1.0.0
+  version: 1.0.1
   test-command: "uv run --no-project --with pytest --with mypy --with import-linter python -m pytest tests"
 ---
 
