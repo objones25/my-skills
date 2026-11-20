@@ -1,0 +1,39 @@
+# Packages the skills' scripts, examples and tests import, so Pyright/Pylance can
+# resolve them (see pyrightconfig.json). Not needed to use a skill.
+# atheris (pytest-expert fuzz targets) is left out: it did not install on macOS arm64.
+torch
+torchvision
+numpy
+scipy
+pandas
+matplotlib
+pytest
+pytest-asyncio
+hypothesis
+jax
+flax
+optax
+gymnax
+craftax
+distrax
+gymnasium
+transformers
+wandb
+fastapi
+httpx
+anyio
+pyyaml
+requests
+markdown
+lxml
+python-pptx
+pdfplumber
+pikepdf
+pymupdf
+playwright
+latex2mathml
+mathml2omml
+anthropic
+inspect-ai
+testcontainers
+threadpoolctl

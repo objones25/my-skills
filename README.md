@@ -64,6 +64,18 @@ cd transformer-architecture
 uv run --no-project --with pytest --with torch --with numpy --with scipy python -m pytest
 ```
 
+## Type checking
+
+[pyrightconfig.json](pyrightconfig.json) scopes Pyright and Pylance to the skill folders, sets the import paths each skill's tests use, and ignores the fixtures that are wrong on purpose. It expects a `.venv` at the repo root holding the packages the skills import:
+
+```bash
+uv venv --python 3.13 .venv
+uv pip install --python .venv/bin/python -r requirements-dev.txt
+pyright
+```
+
+In VS Code, select `.venv` as the Python interpreter so Pylance resolves the same packages.
+
 ## Repository layout
 
 Source `.zip` archives, tool caches and skills kept out of this repo are excluded by [.gitignore](.gitignore).
