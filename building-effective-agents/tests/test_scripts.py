@@ -155,7 +155,10 @@ class TestToolBudget:
 
     def test_docstring_hint_matches_real_output(self):
         import re
-        quoted = re.search(r'"(\[showing [^"]+\])"', tb.__doc__).group(1)
+        assert tb.__doc__ is not None
+        match = re.search(r'"(\[showing [^"]+\])"', tb.__doc__)
+        assert match is not None
+        quoted = match.group(1)
         text = "\n".join(f"row {i}" for i in range(1483))
         real = tb.budget_text(text, max_tokens=400).text.splitlines()[-1]
         shape = r"\[showing lines \d+-\d+ of [\d,]+; call again with offset=\d+\]"
@@ -280,9 +283,11 @@ C = al.ToolCall
 class TestAgentLoop:
     def test_docstring_does_not_call_finish_the_only_way_to_end(self):
         # The loop also ends on step_limit, budget_limit and verify_failed.
-        assert "the only way to end" not in al.__doc__
+        doc = al.__doc__
+        assert doc is not None
+        assert "the only way to end" not in doc
         for status in ("step_limit", "budget_limit", "verify_failed"):
-            assert status in al.__doc__, status
+            assert status in doc, status
 
     def test_verified_done(self, tmp_path):
         m = al.ScriptedModel([T("", [C("c1", "get_order", {"order_id": "A1"})]),
@@ -365,6 +370,7 @@ def test_inspect_template_smoke():
     import inspect_eval_template as tmpl
     log = tmpl._smoke()
     assert log.status == "success"
+    assert log.results is not None
     by_reducer = {s.reducer: s.metrics["accuracy"].value for s in log.results.scores}
     # 2 of 3 samples correct; the fabricated answer for the missing order fails
     assert by_reducer["pass_at_1"] == pytest.approx(2 / 3)

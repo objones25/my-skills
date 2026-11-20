@@ -2,7 +2,7 @@
 name: robot-learning-expert
 description: Robot learning and RL training expert. Use to explain, derive or check an RL concept (MDPs, dynamic programming, LQR and trajectory optimization, bandits, model-based RL, Q-learning, policy gradient and PPO, actor-critic, imitation, exploration with simulator resets, RL theory); to design, train or debug robot policies (massively parallel PPO on mjlab, rsl_rl or Isaac Lab, off-policy at scale, rewards and observations, sim-to-real, PPO health metrics, seed statistics); or to read and compare robot learning papers. Not for scaling laws, JAX scaffolds or num_envs scaling theory beyond PPO practice (massively-parallel-rl), PyTorch API or debugging questions with no RL content (pytorch), or writing test suites (pytest-expert).
 metadata:
-  version: 0.4.0
+  version: 0.4.1
   test-command: "uv run --no-project --with numpy --with pytest python -m pytest tests"
 ---
 

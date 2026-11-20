@@ -62,6 +62,7 @@ import re
 import subprocess
 import sys
 from pathlib import Path
+from typing import Any
 
 import pymupdf
 
@@ -346,8 +347,8 @@ def draw_diagram(page, rect, d):
         sh.draw_polyline([(cx - 3, top + bh + 7), (cx, top + bh + 2), (cx + 3, top + bh + 7)])
         sh.finish(color=(0.33, 0.33, 0.33), width=0.8)
     sh.commit()
-    kw = {"fontname": "dvr", "fontfile": reg} if reg else {"fontname": "helv"}
-    kb = {"fontname": "dvb", "fontfile": bold} if bold else {"fontname": "hebo"}
+    kw: dict[str, Any] = {"fontname": "dvr", "fontfile": reg} if reg else {"fontname": "helv"}
+    kb: dict[str, Any] = {"fontname": "dvb", "fontfile": bold} if bold else {"fontname": "hebo"}
     for i, (node, r) in enumerate(zip(nodes, centers)):
         inner = pymupdf.Rect(r.x0 + 3, r.y0 + 5, r.x1 - 3, r.y1 - 2)
         for fs in (8.5, 8, 7.5, 7, 6.5):
@@ -546,7 +547,7 @@ def main():
         rd.mkdir(parents=True, exist_ok=True)
         for old in rd.glob("wt_*.png"):
             old.unlink()
-        for i, pg in enumerate(pymupdf.open(args.out), 1):
+        for i, pg in enumerate(pymupdf.open(args.out).pages(), 1):
             pg.get_pixmap(dpi=96).save(rd / f"wt_{i}.png")
 
 

@@ -48,9 +48,9 @@ def test_one_input(data: bytes) -> None:
 
 
 if __name__ == "__main__":
-    import atheris
+    import atheris  # pyright: ignore[reportMissingModuleSource]
 
-    atheris.instrument_func(parse_pairs)
-    atheris.instrument_func(check)
+    atheris.instrument_func(parse_pairs)  # pyright: ignore[reportAttributeAccessIssue]
+    atheris.instrument_func(check)  # pyright: ignore[reportAttributeAccessIssue]
     atheris.Setup(sys.argv, test_one_input)
     atheris.Fuzz()

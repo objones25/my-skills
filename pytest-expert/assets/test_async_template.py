@@ -17,7 +17,8 @@ Verified against pytest 9.2.0, pytest-asyncio 1.4.1, anyio 4.16.0, Python 3.13
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Coroutine
+from typing import Any
 from unittest import mock
 
 import pytest
@@ -65,7 +66,7 @@ async def notify(client, user: str) -> None:
     await client.send(user, "hello")
 
 
-async def gather_profiles(load: Callable[[str], Awaitable[dict]], users: list[str]) -> list[dict]:
+async def gather_profiles(load: Callable[[str], Coroutine[Any, Any, dict]], users: list[str]) -> list[dict]:
     async with asyncio.TaskGroup() as tg:
         tasks = [tg.create_task(load(u)) for u in users]
     return [t.result() for t in tasks]
@@ -82,7 +83,7 @@ def fake_sleep():
     async def _sleep(seconds: float) -> None:
         delays.append(seconds)
 
-    _sleep.delays = delays
+    _sleep.delays = delays  # pyright: ignore[reportFunctionMemberAccess]  # the test reads the recorded delays off the fake
     return _sleep
 
 

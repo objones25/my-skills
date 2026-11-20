@@ -37,7 +37,7 @@ from __future__ import annotations
 import argparse
 import sys
 import time
-from typing import NamedTuple
+from typing import NamedTuple, cast
 
 import distrax
 import flax.linen as nn
@@ -85,7 +85,7 @@ class ActorCritic(nn.Module):
 class RunningNorm(NamedTuple):
     mean: jnp.ndarray
     var: jnp.ndarray
-    count: jnp.ndarray
+    n_samples: jnp.ndarray  # not "count": that would shadow tuple.count
 
     @staticmethod
     def create(dim):
@@ -94,9 +94,9 @@ class RunningNorm(NamedTuple):
     def update(self, x):
         """Merge the statistics of batch x (B, dim) into the running estimate."""
         b_mean, b_var, b_n = x.mean(0), x.var(0), x.shape[0]
-        delta, tot = b_mean - self.mean, self.count + b_n
+        delta, tot = b_mean - self.mean, self.n_samples + b_n
         mean = self.mean + delta * b_n / tot
-        m2 = self.var * self.count + b_var * b_n + delta ** 2 * self.count * b_n / tot
+        m2 = self.var * self.n_samples + b_var * b_n + delta ** 2 * self.n_samples * b_n / tot
         return RunningNorm(mean, m2 / tot, tot)
 
     def __call__(self, x):
@@ -164,6 +164,7 @@ def make_train(cfg: dict):
                 rng, k_act, k_env = jax.random.split(rng, 3)
                 o = norm(obs, rms)
                 pi, value = net.apply(ts.params, o)
+                value = cast(jnp.ndarray, value)  # flax stub types apply() as Any | variable dict
                 action = pi.sample(seed=k_act)
                 log_prob = pi.log_prob(action)
                 out = jax.vmap(wrapper.step)(jax.random.split(k_env, n), state, to_env_action(action))
@@ -182,6 +183,7 @@ def make_train(cfg: dict):
 
             (obs, state, rms, rng), trs = jax.lax.scan(rollout_step, (obs, state, rms, rng), None, t)
             _, last_val = net.apply(ts.params, norm(obs, rms))
+            last_val = cast(jnp.ndarray, last_val)  # flax stub limitation, as above
 
             def gae_step(c, tr):
                 gae, next_value = c

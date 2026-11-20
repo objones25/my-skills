@@ -26,7 +26,7 @@ from __future__ import annotations
 
 import copy
 from dataclasses import dataclass, field
-from typing import Any, Callable
+from typing import Any, Callable, cast
 
 import numpy as np
 
@@ -165,7 +165,7 @@ class TabularSim:
         if self.protocol == "online":
             raise ProtocolViolation("online protocol cannot restore")
         self.count.restores += 1
-        self._h, self._s = token.h, token.latent
+        self._h, self._s = token.h, cast(int, token.latent)  # TabularSim tokens carry the int latent state
         self._obs = self.obs_fn(self._s, self.rng) if self.resample else token.obs
         return self._obs
 
@@ -259,6 +259,8 @@ class GymLocalSim:
     def checkpoint(self) -> Token:
         if self.protocol == "online":
             raise ProtocolViolation("online protocol has no checkpoints")
+        if self._h is None:
+            raise ProtocolViolation("nothing to checkpoint before reset()")
         self._uid += 1
         snap = self.get_state(self.env) if self.get_state else copy.deepcopy(self.env)
         return Token(self._uid, self._h, snap, self._clean_obs)
@@ -268,6 +270,7 @@ class GymLocalSim:
             raise ProtocolViolation("online protocol cannot restore")
         self.count.restores += 1
         if self.set_state:
+            assert self.obs_from_env is not None  # the constructor requires it whenever set_state is given
             self.set_state(self.env, token.latent)
             self._clean_obs = self.obs_from_env(self.env)
         else:

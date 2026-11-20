@@ -20,5 +20,7 @@ def test_put_updates_an_existing_wallet_instead_of_duplicating(tmp_path):
     store = SqliteWalletStore(tmp_path / "wallets.db")
     store.put(Wallet(owner="alice", balance=Decimal("1.00")))
     store.put(Wallet(owner="alice", balance=Decimal("2.00")))
-    assert (store.count(), store.get("alice").balance) == (1, Decimal("2.00"))
+    wallet = store.get("alice")
+    assert wallet is not None
+    assert (store.count(), wallet.balance) == (1, Decimal("2.00"))
     store.close()

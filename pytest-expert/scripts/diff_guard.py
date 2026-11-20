@@ -351,8 +351,9 @@ def literal_values(source: str) -> set:
                   and n.body and isinstance(n.body[0], ast.Expr) and isinstance(n.body[0].value, ast.Constant)}
     out = set()
     for node in ast.walk(tree):
-        is_value = isinstance(node, ast.Constant) and id(node) not in docstrings and type(node.value) in (int, float, str)
-        if is_value and node.value not in TRIVIAL_LITERALS and not (isinstance(node.value, str) and len(node.value) < 2):
+        if not (isinstance(node, ast.Constant) and id(node) not in docstrings and type(node.value) in (int, float, str)):
+            continue
+        if node.value not in TRIVIAL_LITERALS and not (isinstance(node.value, str) and len(node.value) < 2):
             out.add(node.value)
     return out
 
@@ -529,6 +530,7 @@ def guard(start: Path, base: str = "HEAD", allow: frozenset[str] = frozenset()) 
 
 
 def main(argv: list[str] | None = None) -> int:
+    assert __doc__ is not None
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("path", nargs="?", default=".", help="any directory inside the repository")
     ap.add_argument("--base", default="HEAD", help="git ref to compare against (default HEAD)")

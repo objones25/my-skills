@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026-11-19: type fixes for Pyright
+
+`pyright pytest-expert` reported 75 errors and 3 warnings (78 diagnostics); it now reports 0 and 0. No runtime behaviour changed: `selftest` gives 257 passed, 3 skipped before and after, and the wallet example suite gives 89 passed, 1 skipped before and after.
+
+| Where | What was wrong | Change |
+|---|---|---|
+| `assets/conftest.py`, `examples/wallet/tests/conftest.py` | The socket guards typed `address`, `host` and `*args` as `object`, which `socket.getaddrinfo` and `real_connect` do not accept | Typed them `Any` |
+| `scripts/audit_tests.py` | `visit_TryStar = visit_Try` did not match the base signature; `fn_stack` was `list[ast.AST]`, so `decorator_list` was unknown | `visit_Try` takes `ast.Try \| ast.TryStar`; `fn_stack` is a list of function nodes |
+| `scripts/diff_guard.py` | A stored `isinstance` result did not narrow `node`; `__doc__` may be `None` | Inline the checks with `continue`; assert `__doc__` is set |
+| `scripts/mutate_check.py` | `is_docstring` and `in_scope` returned a list, not `bool`; mutation sites read fields off `ast.AST` | `len(...) > 0`; the mutated node is cast to `Any` once |
+| `selftest/conftest.py`, `examples/wallet/tests/security/test_fuzz_corpus_replay.py` | `spec_from_file_location` may return `None` | `assert spec is not None and spec.loader is not None` |
+| `selftest/test_hooks.py`, `examples/wallet/tests/integration/test_sqlite_file_store.py` | `fire()` and `store.get()` return `None` when nothing is found | `assert x is not None` before use |
+| `assets/test_async_template.py` | `gather_profiles` took `Awaitable`, but `TaskGroup.create_task` needs a coroutine | Typed as `Coroutine[Any, Any, dict]` |
+| `assets/fuzz_target_template.py`, `examples/wallet/fuzz/fuzz_parse_amount.py`, `examples/wallet/demo/fuzz_v0.py` | `atheris` is not installed here and its bundled stub lacks `instrument_func` and `instrument_imports` | Targeted `# pyright: ignore` with reason; `fuzz_parse_amount.py` imports `atheris` again in its second `__main__` block instead of relying on a possibly unbound name |
+| `assets/test_async_template.py` (`_sleep.delays`), `examples/wallet/tests/unit/test_money.py` (`parse_amount(12.5)`) | A function attribute set on purpose; a wrong type passed on purpose | Targeted `# pyright: ignore` with reason |
+
 ## 2026-11-15: evals run on the corrected version
 
 All 17 cases in `evals/evals.json`, one run each, on macOS arm64 with Claude Opus 5.5 subagents in Claude Code. With the skill: fresh subagents told to load it, kept away from `evals/`. Without: fresh subagents told not to load any skill or read the skill files. A separate fresh subagent graded each pair against the expectations without being told which reply was which (replies that name the skill's own files partly give that away).

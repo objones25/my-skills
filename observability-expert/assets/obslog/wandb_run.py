@@ -30,11 +30,13 @@ import os
 from collections.abc import Iterator, Mapping
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal, cast
 
 from obslog.context import bind_log_context
 
 logger = logging.getLogger(__name__)
+
+_WandbMode = Literal["online", "offline", "disabled", "shared"]
 
 def _has_credentials() -> bool:
     """Ask W&B itself whether a key is configured, without prompting.
@@ -113,6 +115,7 @@ def start_run(
             run's summary holds the best value rather than the last one.
     """
     import wandb  # imported lazily so `import obslog` never needs wandb
+    from wandb.errors import AuthenticationError, CommError
 
     resolved_mode = resolve_mode(mode)
     if resolved_mode == "offline" and mode is None:
@@ -133,13 +136,17 @@ def start_run(
     )
     try:
         run = wandb.init(
-            project=project, config=dict(config), mode=resolved_mode, **init_kwargs
+            project=project,
+            config=dict(config),
+            # wandb validates the string itself; the Literal is only for the stubs
+            mode=cast(_WandbMode, resolved_mode),
+            **init_kwargs,
         )
-    except wandb.errors.AuthenticationError:
+    except AuthenticationError:
         # A revoked or wrong key. AuthenticationError subclasses CommError, so
         # without this clause a bad key would silently degrade to offline.
         raise
-    except wandb.errors.CommError:
+    except CommError:
         # Credentials exist but the server is unreachable. wandb.init raises
         # CommError after `init_timeout` (90 s by default) rather than falling
         # back on its own, so do the fallback here -- but only when the caller
@@ -153,7 +160,11 @@ def start_run(
         )
         resolved_mode = "offline"
         run = wandb.init(
-            project=project, config=dict(config), mode=resolved_mode, **init_kwargs
+            project=project,
+            config=dict(config),
+            # wandb validates the string itself; the Literal is only for the stubs
+            mode=cast(_WandbMode, resolved_mode),
+            **init_kwargs,
         )
 
     for metric, step_metric in (step_metrics or {}).items():

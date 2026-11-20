@@ -42,7 +42,7 @@ def main():
     if not file_path:
         return 0
     file_path = file_path.replace("\\", "/")
-    project_dir = os.environ.get("CLAUDE_PROJECT_DIR", event.get("cwd", "")).replace("\\", "/")
+    project_dir = os.environ.get("CLAUDE_PROJECT_DIR", str(event.get("cwd", ""))).replace("\\", "/")
 
     rel = file_path
     if project_dir and file_path.startswith(project_dir.rstrip("/") + "/"):

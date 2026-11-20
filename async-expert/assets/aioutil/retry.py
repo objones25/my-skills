@@ -14,8 +14,11 @@ import asyncio
 import random
 from collections.abc import Awaitable, Callable, Iterable
 from dataclasses import dataclass, field
+from typing import TypeVar
 
 import httpx
+
+_T = TypeVar("_T")
 
 ALWAYS_RETRYABLE: tuple[type[Exception], ...] = (
     httpx.ConnectError,
@@ -166,12 +169,12 @@ async def request_with_retry(
 
 
 async def with_retry(
-    fn: Callable[[], Awaitable[object]],
+    fn: Callable[[], Awaitable[_T]],
     *,
     policy: RetryPolicy = DEFAULT_POLICY,
     retry_on: Iterable[type[Exception]] = RETRYABLE_EXCEPTIONS,
     rng: random.Random | None = None,
-):
+) -> _T:
     """Generic form for anything awaitable — a DB call, an SDK method, a socket.
 
     Unlike `request_with_retry`, this has no HTTP method to inspect, so it cannot

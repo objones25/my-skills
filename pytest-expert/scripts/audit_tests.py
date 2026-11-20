@@ -232,7 +232,7 @@ class Auditor(ast.NodeVisitor):
         self.seeded = seeded
         self.strict_xfail = strict_xfail
         self.findings: list[Finding] = []
-        self.fn_stack: list[ast.AST] = []
+        self.fn_stack: list[ast.FunctionDef | ast.AsyncFunctionDef] = []
         self.scopes: list[dict[str, int]] = [{}]
         parts = {p.lower() for p in path.parts}
         self.integration_module = bool(parts & INTEGRATION_MARKERS) or bool(module_markers(tree) & INTEGRATION_MARKERS)
@@ -362,7 +362,7 @@ class Auditor(ast.NodeVisitor):
             self.add(node, "BARE_COMPARISON", f"`{ast.unparse(node.value)[:60]}` is not asserted")
         self.generic_visit(node)
 
-    def visit_Try(self, node: ast.Try) -> None:
+    def visit_Try(self, node: ast.Try | ast.TryStar) -> None:
         if self.current_test() is not None:
             for handler in node.handlers:
                 caught = self._caught_names(handler.type)

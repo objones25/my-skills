@@ -5,7 +5,7 @@ license: MIT
 compatibility: The scripts/ helpers run on Python 3.10+ with numpy and scipy installed; numpy 2.4 / scipy 1.17 themselves need Python 3.11+ (numpy 2.5 / scipy 1.18 need 3.12+). Reference docs are written against numpy 2.4.4 / scipy 1.17.1 and flag which APIs need newer versions. No network access required by the scripts; the tests in `scripts/tests/test_verify_api.py` need `uv` and PyPI access or they skip. 5 passed on 2026-11-03, macOS arm64, Python 3.13.
 metadata:
   author: owenbeckettjones
-  version: 1.0.0
+  version: 1.0.1
   numpy-version: "2.4.4"
   scipy-version: "1.17.1"
 ---

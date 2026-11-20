@@ -18,6 +18,7 @@ pytestmark = pytest.mark.security
 @pytest.fixture(scope="module")
 def harness():
     spec = importlib.util.spec_from_file_location("fuzz_parse_amount", FUZZ_DIR / "fuzz_parse_amount.py")
+    assert spec is not None and spec.loader is not None
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module

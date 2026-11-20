@@ -75,7 +75,7 @@ def test_transfer_fee_rejects_valid_check_digit_outside_ten_digits(account):
 
 def test_parse_amount_rejects_non_text_with_a_clear_message():
     with pytest.raises(AmountError, match="amount must be text, got float"):
-        parse_amount(12.5)
+        parse_amount(12.5)  # pyright: ignore[reportArgumentType]  # deliberately not text
 
 
 def test_parse_amount_accepts_exactly_32_characters():

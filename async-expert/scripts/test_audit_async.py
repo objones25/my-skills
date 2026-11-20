@@ -22,6 +22,7 @@ SCRIPT = Path(os.environ.get("AUDIT_SCRIPT", HERE / "audit_async.py")).resolve()
 BAD_EXAMPLE = HERE.parent / "assets" / "examples" / "bad_example.py"
 
 _spec = importlib.util.spec_from_file_location("audit_async_under_test", SCRIPT)
+assert _spec is not None and _spec.loader is not None, f"cannot load {SCRIPT}"
 audit = importlib.util.module_from_spec(_spec)
 sys.modules[_spec.name] = audit  # @dataclass looks its module up in sys.modules
 _spec.loader.exec_module(audit)

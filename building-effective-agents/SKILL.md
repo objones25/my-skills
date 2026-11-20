@@ -2,7 +2,7 @@
 name: "building-effective-agents"
 description: Diagnose and design AI agents and their harnesses, covering agent vs workflow, tool and MCP server design, context engineering and compaction, long-term memory, verification, security and prompt injection, multi-agent orchestration, long-running state, testing and evals (including Inspect AI), framework choice, and cost. Framework-agnostic (Claude Agent SDK, OpenAI Agents SDK, LangGraph, CrewAI, Google ADK, Pydantic AI, MCP, hand-rolled), with runnable scripts. Use when the user describes an LLM that calls tools, loops, or orchestrates other LLM calls, even without saying "agent." Trigger on "should this be an agent or a script", "my agent says it succeeded but didn't", "it runs out of context", "it forgets", "it picks the wrong tool", "how many agents", "it followed instructions in a web page", "how do I resume a long run", "how do I eval or test this", "why is it slow and expensive", "which framework". For writing an MCP server's code, use mcp-builder.
 metadata:
-  version: "1.1"
+  version: "1.1.1"
   test-command: "python3 -m pytest tests -q"
 ---
 

@@ -88,6 +88,7 @@ def mb(skill_root):
     import importlib.util
 
     spec = importlib.util.spec_from_file_location("mb", skill_root / "scripts" / "memory_budget.py")
+    assert spec is not None and spec.loader is not None
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     return mod

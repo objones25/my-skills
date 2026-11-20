@@ -64,7 +64,11 @@ def _pyright(*paths: Path, cwd: Path = ROOT) -> list[dict[str, object]]:
         _skip("pyright not on PATH (npm install -g pyright, or pip install pyright)")
         return []
     proc = subprocess.run(  # noqa: S603  fixed argv, no shell
-        [exe, "--outputjson", *map(str, paths)],
+        # --project: a pyrightconfig.json in a parent directory otherwise wins over
+        # this directory's pyproject.toml, and the run checks the wrong files.
+        # --pythonpath: resolve imports from the interpreter running this test.
+        [exe, "--outputjson", "--project", str(cwd), "--pythonpath", sys.executable,
+         *map(str, paths)],
         cwd=cwd, capture_output=True, text=True, check=False,
         timeout=PYRIGHT_TIMEOUT_S,
     )

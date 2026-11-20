@@ -54,8 +54,10 @@ class ActorCritic(nn.Module):
         self.mu = mlp(obs_dim, act_dim)
         self.v = mlp(obs_dim, 1)
         self.log_std = nn.Parameter(torch.full((act_dim,), init_log_std))
-        nn.init.orthogonal_(self.mu[-1].weight, gain=0.01)  # small initial actions (37 Details: policy output gain 0.01; Andrychowicz et al. §3.2)
-        nn.init.zeros_(self.mu[-1].bias)
+        head = self.mu[-1]
+        assert isinstance(head, nn.Linear)
+        nn.init.orthogonal_(head.weight, gain=0.01)  # small initial actions (37 Details: policy output gain 0.01; Andrychowicz et al. §3.2)
+        nn.init.zeros_(head.bias)
 
     def dist(self, obs: torch.Tensor) -> torch.distributions.Normal:
         return torch.distributions.Normal(self.mu(obs), self.log_std.exp())
@@ -81,12 +83,16 @@ def evaluate(model: ActorCritic, episodes: int, seed: int, act_scale: float) -> 
 
 
 def train(args: argparse.Namespace) -> dict[str, float]:
+    if args.epochs < 1:
+        raise ValueError(f"--epochs must be at least 1, got {args.epochs}")
     torch.manual_seed(args.seed)
     rng = np.random.default_rng(args.seed)
     envs = [gym.make("Pendulum-v1") for _ in range(args.num_envs)]
-    act_scale = float(envs[0].action_space.high[0])
+    action_space = envs[0].action_space
+    assert isinstance(action_space, gym.spaces.Box)  # Pendulum-v1 has a Box action space
+    act_scale = float(action_space.high[0])
     obs = np.stack([e.reset(seed=int(rng.integers(1 << 30)))[0] for e in envs]).astype(np.float32)
-    model = ActorCritic(obs.shape[1], envs[0].action_space.shape[0])
+    model = ActorCritic(obs.shape[1], action_space.shape[0])
     opt = torch.optim.Adam(model.parameters(), lr=args.lr)
     N, T = args.num_envs, args.rollout
     batch = N * T
@@ -131,6 +137,7 @@ def train(args: argparse.Namespace) -> dict[str, float]:
         flat = lambda x: torch.as_tensor(x.reshape(batch, *x.shape[2:]), dtype=torch.float32)  # noqa: E731
         bO, bA, bLP, bAdv, bRet = map(flat, (O, A, LP, adv, ret))
         stop = False
+        new_lp, kl = bLP.numpy(), 0.0  # overwritten in every epoch; args.epochs >= 1 is checked above
         for _ in range(args.epochs):
             perm = torch.randperm(batch)
             for k in range(args.minibatches):

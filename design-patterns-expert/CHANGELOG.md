@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.1 (2026-11-19)
+
+### Fixed: tests
+
+- `tests/test_examples.py`: the mixed-currency addition inside `pytest.raises` is now assigned to `_`, so Pyright no longer reports it as an unused expression (`reportUnusedExpression`). The assertion is unchanged.
+
 ## 1.0.0 (2026-11-16)
 
 First versioned release. Fixes the findings of the 2026-11-16 audit (`audits/design-patterns-expert/2026-11-16.md` in the My_Skills repo, local only); item ids below refer to that report.

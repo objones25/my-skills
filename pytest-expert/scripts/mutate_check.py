@@ -34,6 +34,7 @@ import tempfile
 import time
 from dataclasses import asdict, dataclass
 from pathlib import Path
+from typing import Any, cast
 
 COMPARE_SWAPS = {
     ast.Lt: ast.LtE, ast.LtE: ast.Lt, ast.Gt: ast.GtE, ast.GtE: ast.Gt,
@@ -69,7 +70,7 @@ def is_docstring(node: ast.AST, parents: dict[ast.AST, ast.AST]) -> bool:
     return (
         isinstance(parent, ast.Expr)
         and isinstance(grand, (ast.Module, ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef))
-        and grand.body and grand.body[0] is parent
+        and len(grand.body) > 0 and grand.body[0] is parent
     )
 
 
@@ -86,7 +87,7 @@ class SiteFinder(ast.NodeVisitor):
         if self.function is None:
             return True
         joined = ".".join(self.qualname)
-        return joined == self.function or joined.startswith(self.function + ".") or (self.qualname and self.qualname[-1] == self.function and "." not in self.function)
+        return joined == self.function or joined.startswith(self.function + ".") or (len(self.qualname) > 0 and self.qualname[-1] == self.function and "." not in self.function)
 
     def generic_visit(self, node: ast.AST) -> None:
         for child in ast.iter_child_nodes(node):
@@ -153,6 +154,8 @@ def mutate(tree: ast.Module, target_id: int, kind: str) -> ast.Module:
     for orig, new in zip(ast.walk(tree), ast.walk(clone), strict=True):
         if id(orig) != target_id:
             continue
+        # The site kind says which node type this is; ast.AST has no typed fields to check.
+        new = cast(Any, new)
         if kind.startswith("cmp:"):
             i = int(kind.split(":")[1])
             new.ops[i] = COMPARE_SWAPS[type(new.ops[i])]()

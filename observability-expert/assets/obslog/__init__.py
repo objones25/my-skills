@@ -8,4 +8,4 @@ Nothing here imports wandb at module load, so the logging half works in a
 project that has never heard of W&B.
 """
 
-__all__ = ["context", "json_formatter", "redact", "setup", "wandb_run"]
+__all__ = ["context", "json_formatter", "redact", "setup", "wandb_run"]  # pyright: ignore[reportUnsupportedDunderAll]  # submodules, imported on demand by `from obslog import *`

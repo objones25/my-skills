@@ -135,7 +135,7 @@ def warn_if_degenerate_eval(wrapper: AutoReset, n_instances: int, eval_seed: int
               f"Add --sticky-prob 0.1 (MinAtar's own default) or evaluate a stochastic policy.")
 
 
-def make_env(name: str):
+def make_env(name: str) -> tuple[Any, Any]:
     """Return (env, params) for a gymnax or Craftax environment name."""
     if name.startswith("Craftax"):
         try:

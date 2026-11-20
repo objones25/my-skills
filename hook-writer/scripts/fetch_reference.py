@@ -85,7 +85,8 @@ def print_index(lines):
 def print_section(lines, name):
     target = name.strip().lower().strip("`")
     in_code = False
-    start = level = None
+    start = None
+    level = 0  # only read once start is set
     for i, line in enumerate(lines):
         if line.startswith("```"):
             in_code = not in_code

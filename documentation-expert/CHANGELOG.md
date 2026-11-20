@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.1.1, 2026-11-19
+
+Type-checking fix only; no change in behaviour. `scripts/test_scripts.py` asserts that the module docstring exists before splitting it. `pyright documentation-expert` still reports the unresolved `widgetkit` import in `evals/files/readme_draft/tests/test_cli.py`, which is eval test data and was left unchanged.
+
+### Test results by machine
+
+| Date | Machine | Versions | Result |
+|---|---|---|---|
+| 2026-11-19 | macOS arm64 (Apple Silicon) | Python 3.13.2, pytest 9.2.0 | 40 passed, 0 skipped (same count before and after the change) |
+
 ## 1.1, 2026-11-15: fixes from a full audit
 
 Every fix below answers a finding of the 2026-11-15 audit-skill run (full scope, 823 items, blind 3-round review; details and the report's location in `AUDIT.md`). Item ids refer to that report.

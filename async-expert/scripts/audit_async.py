@@ -363,13 +363,15 @@ class AsyncAuditor(ast.NodeVisitor):
             if name and name[-1] in self.coroutine_names:
                 self.add("SEQUENTIAL_AWAIT", node, f"await {name[-1]}(...) in a loop")
 
-    def visit_Try(self, node: ast.Try) -> None:
+    def visit_Try(self, node: ast.Try | ast.TryStar) -> None:
         for handler in node.handlers:
             if handler_catches_cancel(handler) and not contains_reraise(handler):
                 self.add("SWALLOWED_CANCEL", handler)
         self.generic_visit(node)
 
-    visit_TryStar = visit_Try  # `except* CancelledError:` swallows just the same (3.11+)
+    def visit_TryStar(self, node: ast.TryStar) -> None:
+        # `except* CancelledError:` swallows just the same (3.11+)
+        self.visit_Try(node)
 
 
 def audit_source(path: str, source: str) -> list[Finding]:

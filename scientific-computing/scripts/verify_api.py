@@ -15,6 +15,7 @@ import importlib
 import inspect
 import re
 import sys
+from typing import Any
 
 _SENTINEL = re.compile(r"<object object at 0x[0-9a-fA-F]+>")
 
@@ -24,7 +25,7 @@ def _norm(sig: str) -> str:
     return _SENTINEL.sub("<sentinel>", sig)
 
 # (dotted path, expected signature string as of numpy 2.4.4 / scipy 1.17.1)
-SIGNATURES: list[tuple[str, str]] = [
+SIGNATURES: list[tuple[str, str | None]] = [
     # linear algebra
     ("scipy.linalg.solve",
      "(a, b, lower=False, overwrite_a=False, overwrite_b=False, "
@@ -164,7 +165,7 @@ MUST_EXIST = [
 ]
 
 
-def resolve(path: str):
+def resolve(path: str) -> Any:
     parts = path.split(".")
     for i in range(len(parts), 0, -1):
         try:
@@ -266,7 +267,8 @@ def main(verbose: bool = False) -> int:
         checks.append((
             "Krylov solvers reject `tol` (renamed to rtol)",
             _raises(lambda: spla.cg(sparse.eye_array(3).tocsr(),
-                                    np.ones(3), tol=1e-8), TypeError)))
+                                    np.ones(3), tol=1e-8),  # pyright: ignore[reportCallIssue] deliberate: tol was removed
+                                    TypeError)))
     except ImportError:
         pass
 

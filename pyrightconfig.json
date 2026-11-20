@@ -1,0 +1,154 @@
+{
+  "include": [
+    "accessible-course-materials",
+    "annotate-research-paper",
+    "async-expert",
+    "audit-skill",
+    "bash-scripting-specialist",
+    "building-effective-agents",
+    "design-patterns-expert",
+    "dockerfile-expert",
+    "documentation-expert",
+    "hook-writer",
+    "kubernetes-expert",
+    "lesson-design",
+    "massively-parallel-rl",
+    "negative-space-programming",
+    "observability-expert",
+    "pytest-expert",
+    "pytorch",
+    "robot-learning-expert",
+    "scientific-computing",
+    "skill-builder",
+    "transformer-architecture"
+  ],
+  "exclude": [
+    "**/__pycache__",
+    "**/.venv",
+    "**/node_modules"
+  ],
+  "ignore": [
+    "async-expert/assets/examples/bad_example.py",
+    "async-expert/evals/files/unawaited/test_notify.py",
+    "async-expert/evals/files/hang/service.py",
+    "documentation-expert/evals/files",
+    "negative-space-programming/assets/examples/typing_before.py",
+    "scientific-computing/evals/files/neumann_eigs/laplacian.py"
+  ],
+  "venvPath": ".",
+  "venv": ".venv",
+  "typeCheckingMode": "standard",
+  "executionEnvironments": [
+    {
+      "root": "accessible-course-materials",
+      "extraPaths": [
+        "accessible-course-materials/scripts"
+      ]
+    },
+    {
+      "root": "annotate-research-paper",
+      "extraPaths": []
+    },
+    {
+      "root": "async-expert",
+      "extraPaths": [
+        "async-expert/assets"
+      ]
+    },
+    {
+      "root": "audit-skill",
+      "extraPaths": [
+        "audit-skill/scripts"
+      ]
+    },
+    {
+      "root": "bash-scripting-specialist",
+      "extraPaths": []
+    },
+    {
+      "root": "building-effective-agents",
+      "extraPaths": [
+        "building-effective-agents/scripts"
+      ]
+    },
+    {
+      "root": "design-patterns-expert",
+      "extraPaths": [
+        "design-patterns-expert/examples",
+        "design-patterns-expert/examples/ports_adapters",
+        "design-patterns-expert/scripts"
+      ]
+    },
+    {
+      "root": "dockerfile-expert",
+      "extraPaths": []
+    },
+    {
+      "root": "documentation-expert",
+      "extraPaths": []
+    },
+    {
+      "root": "hook-writer",
+      "extraPaths": [
+        "hook-writer/scripts"
+      ]
+    },
+    {
+      "root": "kubernetes-expert",
+      "extraPaths": []
+    },
+    {
+      "root": "lesson-design",
+      "extraPaths": []
+    },
+    {
+      "root": "massively-parallel-rl",
+      "extraPaths": [
+        "massively-parallel-rl/scripts"
+      ]
+    },
+    {
+      "root": "negative-space-programming",
+      "extraPaths": [
+        "negative-space-programming/assets"
+      ]
+    },
+    {
+      "root": "observability-expert",
+      "extraPaths": [
+        "observability-expert/assets"
+      ]
+    },
+    {
+      "root": "pytest-expert",
+      "extraPaths": [
+        "pytest-expert/examples",
+        "pytest-expert/examples/wallet/src"
+      ]
+    },
+    {
+      "root": "pytorch",
+      "extraPaths": []
+    },
+    {
+      "root": "robot-learning-expert",
+      "extraPaths": [
+        "robot-learning-expert/scripts"
+      ]
+    },
+    {
+      "root": "scientific-computing",
+      "extraPaths": []
+    },
+    {
+      "root": "skill-builder",
+      "extraPaths": [
+        "skill-builder/scripts"
+      ]
+    },
+    {
+      "root": "transformer-architecture",
+      "extraPaths": []
+    }
+  ]
+}

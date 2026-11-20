@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.1.2, 2026-11-19
+
+Type-checking fixes only; no change in behaviour. `pyright audit-skill` went from 16 errors to 0.
+
+- `scripts/mutate_check.py`: `is_docstring` and `SiteFinder.in_scope` return a real `bool` (they returned a list or `[]` through `and`); `mutate` types the node being rewritten as `Any`, because the site finder has already matched its kind to the node class.
+
+### Test results by machine
+
+| Date | Machine | Versions | Result |
+|---|---|---|---|
+| 2026-11-19 | macOS arm64 (Apple Silicon) | Python 3.13.2, pytest 9.2.0 | 215 passed, 0 skipped (same count before and after the change) |
+
 ## 0.1.1, 2026-11-15
 
 Found by the first real full audit (documentation-expert, 2026-11-15; report in the repository's gitignored `audits/` folder).

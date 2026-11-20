@@ -12,6 +12,7 @@ import pytest
 @pytest.fixture(scope="session")
 def lint(skill_root):
     spec = importlib.util.spec_from_file_location("lint_pytorch", skill_root / "scripts" / "lint_pytorch.py")
+    assert spec is not None and spec.loader is not None
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module

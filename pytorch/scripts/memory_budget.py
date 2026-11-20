@@ -61,6 +61,8 @@ def bytes_per_param(precision: str, optimizer_copies: float) -> dict[str, float]
 def load_model(path: str):
     file = Path(path)
     spec = importlib.util.spec_from_file_location(f"_mb_{file.stem}", file)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"cannot load {file} as a Python module; pass a .py file defining make_model()")
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     return mod.make_model()

@@ -15,8 +15,8 @@ def run_template(skill_root, out_dir, *extra):
     cmd = [sys.executable, str(skill_root / "assets" / "train_template.py"),
            "--num-workers", "0", "--out", str(out_dir), *extra]
     proc = subprocess.run(cmd, capture_output=True, text=True, check=True, timeout=300)
-    return [EPOCH_LINE.match(line).groups() for line in proc.stdout.splitlines()
-            if EPOCH_LINE.match(line)]
+    matches = (EPOCH_LINE.match(line) for line in proc.stdout.splitlines())
+    return [m.groups() for m in matches if m]
 
 
 def test_template_reduces_validation_loss(skill_root, tmp_path):
@@ -106,7 +106,9 @@ def test_resume_survives_a_checkpoint_from_another_device(template, tmp_path, de
 def test_device_rng_state_records_its_device_type(template):
     state = template.device_rng_state()
     if torch.accelerator.is_available():
-        assert state["type"] == torch.accelerator.current_accelerator().type
+        accelerator = torch.accelerator.current_accelerator()
+        assert accelerator is not None
+        assert state["type"] == accelerator.type
     else:
         assert state is None
 

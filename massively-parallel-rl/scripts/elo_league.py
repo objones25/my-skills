@@ -166,7 +166,8 @@ def main() -> int:
               file=sys.stderr)
     elo = elo_league(returns, ref)
 
-    lo = hi = None
+    lo: np.ndarray | None = None
+    hi: np.ndarray | None = None
     if args.bootstrap:
         boots = bootstrap_elo(returns, ref, args.bootstrap)
         lo, hi = np.percentile(boots, [5, 95], axis=0)
@@ -176,14 +177,14 @@ def main() -> int:
     print(f"{'agent':<{width}}  {'elo':>8}" + ("  90% CI" if lo is not None else ""))
     for i in order:
         line = f"{names[i]:<{width}}  {elo[i]:8.1f}"
-        if lo is not None:
+        if lo is not None and hi is not None:
             line += f"  [{lo[i]:.1f}, {hi[i]:.1f}]"
         print(line)
 
     if args.json:
-        out = {"agents": names, "elo": elo.tolist(), "reference": args.reference,
+        out: dict = {"agents": names, "elo": elo.tolist(), "reference": args.reference,
                "instances": int(returns.shape[1])}
-        if lo is not None:
+        if lo is not None and hi is not None:
             out["ci90"] = [lo.tolist(), hi.tolist()]
         with open(args.json, "w") as f:
             json.dump(out, f, indent=2)

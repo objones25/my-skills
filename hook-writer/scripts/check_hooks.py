@@ -230,6 +230,7 @@ def check_group(rep, where, event, group):
         if event == "PreToolUse" and "Bash" in names and "PowerShell" not in names:
             rep.add("INFO", where, "matches Bash but not PowerShell; on Windows, shell commands can go through the PowerShell tool and this guard won't see them")
     else:
+        assert matcher is not None  # kind == "regex" implies a non-empty matcher
         try:
             re.compile(matcher)
         except re.error as exc:

@@ -314,6 +314,8 @@ class Model(nn.Module):
         if c.tie_embeddings:
             self.lm_head.weight = self.embed.weight
         cos, sin = rope_tables(c.head_dim, c.seq_len * 4, c.rope_theta)
+        self.cos: torch.Tensor
+        self.sin: torch.Tensor
         self.register_buffer("cos", cos, persistent=False)
         self.register_buffer("sin", sin, persistent=False)
         self.apply(self._init)
@@ -409,6 +411,7 @@ def verify() -> int:
                         torch.isfinite(zero).all().item())
     xz = torch.zeros(1, c.d_model, requires_grad=True)
     n(xz).sum().backward()
+    assert xz.grad is not None
     fails += not _check("...and gets a finite gradient (catches x / (sqrt(ms) + eps))",
                         torch.isfinite(xz.grad).all().item(),
                         "sqrt has an infinite derivative at 0; eps must be under it")
@@ -493,8 +496,10 @@ def verify() -> int:
     print("\nWeight tying and init")
     fails += not _check("lm_head and embedding are the same tensor",
                         m.lm_head.weight.data_ptr() == m.embed.weight.data_ptr())
-    o_std = m.blocks[0].attn.o_proj.weight.std().item()
-    q_std = m.blocks[0].attn.q_proj.weight.std().item()
+    block0 = m.blocks[0]
+    assert isinstance(block0, Block)
+    o_std = block0.attn.o_proj.weight.std().item()
+    q_std = block0.attn.q_proj.weight.std().item()
     expect = 0.02 / math.sqrt(2 * c.n_layers)
     fails += not _check("residual output projections are scaled by 1/sqrt(2*n_layers)",
                         abs(o_std - expect) / expect < 0.15,
@@ -568,6 +573,7 @@ def _detect_eps_outside_sqrt():
     after = x * torch.rsqrt(x.pow(2).mean(-1, keepdim=True)) + 1e-6       # eps added to the output
     denom = x / (x.pow(2).mean(-1, keepdim=True).sqrt() + 1e-6)           # eps added to the sqrt
     denom.sum().backward()
+    assert x.grad is not None
     fwd_nan = not torch.isfinite(after).all().item()
     grad_nan = not torch.isfinite(x.grad).all().item()
     return fwd_nan and grad_nan, "zero input: rsqrt(ms)+eps gives NaN output; x/(sqrt(ms)+eps) gives NaN gradient"
@@ -641,6 +647,8 @@ def load_impl(path: str) -> list[str]:
     """Swap this file's apply_rope / repeat_kv / RMSNorm for the user's, by name."""
     import importlib.util
     spec = importlib.util.spec_from_file_location("user_impl", path)
+    if spec is None or spec.loader is None:
+        raise SystemExit(f"{path} cannot be loaded as a Python module")
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     swapped = [n for n in ("apply_rope", "repeat_kv", "RMSNorm") if hasattr(mod, n)]

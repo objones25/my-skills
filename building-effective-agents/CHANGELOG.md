@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.1.1, 2026-11-19: Pyright type fixes
+
+Pyright now reports 0 errors on this skill (was 13). No change in runtime behaviour.
+
+- `scripts/agent_loop.py`: the `AnthropicModel` adapter casts its message and tool lists to the `anthropic` SDK's `MessageParam` and `ToolParam` types (imported under `TYPE_CHECKING`, so `anthropic` stays optional at runtime).
+- `scripts/inspect_eval_template.py`: `_smoke()` is annotated `-> EvalLog` (it already returned the log), and the `None` cases of `re.search` and `log.results` are asserted.
+- `scripts/reliability.py`: `run_budget` annotates its result as `dict[str, int | float]`.
+- `scripts/tool_lint.py`: the loaded tool list is cast to `Sequence[dict[str, Any]]`.
+- `tests/test_scripts.py`: `__doc__`, `re.search` and `log.results` are asserted non-`None` before use; no assertion was loosened.
+
 ## 1.1, 2026-11-16: fixes from the 2026-11-15 audit
 
 Every fix answers a finding of the 2026-11-15 audit-skill run (risk scope, 454 of 1,208 items checked, blind review stopped at the 3-round cap with 16 items disputed; details in `AUDIT.md`). Item ids refer to that report.

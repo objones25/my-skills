@@ -176,7 +176,7 @@ def test_parsing_collects_errors_and_rejects_bools() -> None:
         pdv.parse_order({"sku": "mug", "quantity": True})
     assert set(exc.value.errors) == {"sku", "quantity"}
     with pytest.raises(ValueError, match="currency"):
-        pdv.Money(1, "USD") + pdv.Money(1, "EUR")
+        _ = pdv.Money(1, "USD") + pdv.Money(1, "EUR")
 
 
 # ------------------------------------------------------- functional core

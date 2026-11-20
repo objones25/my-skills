@@ -77,7 +77,7 @@ def pdf_title(data):
         import pymupdf
         doc = pymupdf.open(stream=data, filetype="pdf")
         t = (doc.metadata or {}).get("title") or ""
-        first = " ".join(doc[0].get_text().split()[:30]) if len(doc) else ""
+        first = " ".join(str(doc[0].get_text()).split()[:30]) if len(doc) else ""
         if t and len(t) > 6 and not t.lower().endswith((".dvi", ".doc", ".tex")):
             return t.strip(), first
         return (first[:160] or None), first

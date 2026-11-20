@@ -113,7 +113,7 @@ import re
 import sys
 import tokenize
 from pathlib import Path
-from typing import NamedTuple
+from typing import NamedTuple, TypeGuard
 
 ERROR, WARNING = "error", "warning"
 
@@ -279,7 +279,7 @@ def first_arg(call: ast.Call, kw: str) -> ast.AST | None:
     return call.args[0] if call.args else kw_value(call, kw)
 
 
-def iter_scope(body: list[ast.AST]):
+def iter_scope(body: list[ast.stmt] | list[ast.AST]):
     """Yield every node of a scope without entering nested functions, lambdas or classes."""
     stack = list(reversed(body))
     while stack:
@@ -544,11 +544,13 @@ class Linter:
         empty_containers: set[str] = set()
         reported_no_super = False
         for node in sorted(nodes, key=lambda n: (getattr(n, "lineno", 0), getattr(n, "col_offset", 0))):
-            targets = []
+            targets: list[ast.expr] = []
             if isinstance(node, ast.Assign):
                 targets = node.targets
             elif isinstance(node, (ast.AnnAssign, ast.AugAssign)):
                 targets = [node.target]
+            else:
+                continue
             for target in targets:
                 if not (isinstance(target, ast.Attribute) and dotted(target.value) == "self"):
                     continue
@@ -584,7 +586,7 @@ class Linter:
                         self.add(node, "PLAIN_LIST_OF_MODULES", f"module stored in plain container self.{target.value.attr}; make it nn.ModuleDict()")
 
     @staticmethod
-    def _is_super_init(node: ast.AST) -> bool:
+    def _is_super_init(node: ast.AST) -> TypeGuard[ast.Call]:
         if not (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and node.func.attr == "__init__"):
             return False
         recv = node.func.value
@@ -607,7 +609,7 @@ class Linter:
         return out
 
     # ------------------------------------------------------------------ scopes
-    def _scope(self, body: list[ast.AST], fn: ast.AST | None, cls: ast.ClassDef | None) -> None:
+    def _scope(self, body: list[ast.stmt] | list[ast.AST], fn: ast.AST | None, cls: ast.ClassDef | None) -> None:
         nodes = list(iter_scope(body))
         local = Bindings(nodes)
         self_b = self._self_bindings(cls)
@@ -641,6 +643,7 @@ class Linter:
     # DISCARDED_TO ------------------------------------------------------------
     def _discarded_to(self, stmt: ast.Expr, r: "_Resolver") -> None:
         call = stmt.value
+        assert isinstance(call, ast.Call)  # the caller only passes expression statements whose value is a call
         if not (isinstance(call.func, ast.Attribute) and call.func.attr in MOVE_METHODS
                 and isinstance(call.func.value, ast.Name)):
             return
@@ -932,7 +935,7 @@ def _bare_names(expr: ast.AST) -> set[str]:
     return out
 
 
-def _is_backward(node: ast.AST) -> bool:
+def _is_backward(node: ast.AST) -> TypeGuard[ast.Call]:
     return (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
             and node.func.attr == "backward") or (isinstance(node, ast.Call) and dotted(node.func) == "torch.autograd.backward")
 
@@ -944,7 +947,7 @@ def _looks_like_optimizer(node: ast.AST) -> bool:
     return "optim" in name or bool(re.search(r"(^|_)opt($|_|[a-z]?\d*$)|opt$|^opt", name))
 
 
-def _is_opt_step(node: ast.AST) -> bool:
+def _is_opt_step(node: ast.AST) -> TypeGuard[ast.Call]:
     if not (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and node.func.attr == "step"):
         return False
     receiver = node.func.value
