@@ -2,7 +2,7 @@
 name: audit-skill
 description: "Read-only fact-check of a Claude Code skill: inventories every claim, script, example and test, verifies each in-scope item against code, official docs and peer-reviewed research (no hype or vendor sources), machine-checks every quote, passes a blind 3-round independent review, and writes a cited report that states exactly what was and was not checked. Use when the user asks to audit, fact-check, verify or review a skill, asks whether a skill's claims, citations or numbers are still true, suspects a skill is stale, or wants evidence before updating a skill. Not for editing or fixing the skill (skill-builder's Update mode does that from this report), tuning a description (skill-creator), or reviewing application code."
 metadata:
-  version: 0.1.1
+  version: 0.1.2
   test-command: "uv run --no-project --with pytest python -m pytest tests"
 ---
 
