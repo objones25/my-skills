@@ -120,6 +120,7 @@ def sliding_window_decode(attn: Attention, x: torch.Tensor) -> torch.Tensor:
     """Token-by-token decode keeping only the last `window` keys and values (a rolling cache)."""
     b, t, _ = x.shape
     w = attn.window
+    assert w is not None, "sliding_window_decode needs an Attention built with window="
     ks, vs, outs = [], [], []
     for i in range(t):
         xi = x[:, i:i + 1]                                               # (2, 1, 64)
@@ -181,6 +182,7 @@ class MoE(nn.Module):
         self.router = nn.Linear(D, c.n_experts, bias=False)
         self.experts = nn.ModuleList(Expert(c.d_ff) for _ in range(c.n_experts))
         self.shared = nn.ModuleList(Expert(c.d_ff) for _ in range(c.n_shared))
+        self.bias: torch.Tensor
         self.register_buffer("bias", torch.zeros(c.n_experts))
 
     def route(self, x: torch.Tensor, bias_in_weights: bool = False):
@@ -397,6 +399,7 @@ def verify() -> int:
 
     print("\nAttention sinks")
     sink = Attention(sinks=True)
+    assert sink.sinks is not None
     sink.load_state_dict(plain.state_dict(), strict=False)
     with torch.no_grad():
         sink.sinks.fill_(-1e4)
@@ -494,6 +497,7 @@ def verify() -> int:
         import pathlib
         spec = importlib.util.spec_from_file_location(
             "config_budget", pathlib.Path(__file__).with_name("config_budget.py"))
+        assert spec is not None and spec.loader is not None
         cb = importlib.util.module_from_spec(spec)
         sys.modules["config_budget"] = cb
         spec.loader.exec_module(cb)
@@ -607,6 +611,7 @@ def shapes() -> int:
     x = torch.randn(B, T, D)
     print(f"x {tuple(x.shape)}")
     a = Attention(gate="elementwise", sinks=True)
+    assert a.sinks is not None
     print(f"gated attention: gate sigmoid(x W_g) {tuple(a.g(x).shape)} -> view (B, T, H, HD) "
           f"{(B, T, H, HD)}; sinks {tuple(a.sinks.shape)}; probs {tuple(a.probs(x).shape)}; out {tuple(a(x).shape)}")
     m = MoE()

@@ -136,6 +136,7 @@ def _token_grad(variant, lengths, A, **kw):
         mask[i, :n] = 1
     logp = torch.zeros(G, T, requires_grad=True)
     policy_loss(logp, torch.zeros(G, T), torch.tensor(A, dtype=torch.float32), mask, variant, **kw).backward()
+    assert logp.grad is not None  # backward() populates the grad of a leaf that requires grad
     return logp.grad
 
 
@@ -151,6 +152,7 @@ def verify() -> int:
     pc = torch.zeros(1, requires_grad=True)
     pr = torch.zeros(1, requires_grad=True)
     dpo_loss(pc, pr, torch.zeros(1), torch.zeros(1))[0].backward()
+    assert pc.grad is not None and pr.grad is not None
     check("gradient raises chosen and lowers rejected", pc.grad.item() < 0 < pr.grad.item(),
           f"dL/dchosen {pc.grad.item():+.3f}, dL/drejected {pr.grad.item():+.3f}")
     before = dpo_loss(torch.tensor([-50.0]), torch.tensor([-60.0]), torch.tensor([-50.0]), torch.tensor([-60.0]))
@@ -201,9 +203,11 @@ def verify() -> int:
     old = torch.zeros(G, T)
     lp = torch.full((G, T), math.log(1.25), requires_grad=True)
     policy_loss(lp, old, torch.tensor([1.0]), mask, "grpo", eps=0.2).backward()
+    assert lp.grad is not None
     clipped_grad = lp.grad.abs().sum().item()
     lp2 = torch.full((G, T), math.log(1.25), requires_grad=True)
     policy_loss(lp2, old, torch.tensor([1.0]), mask, "dapo", eps=0.2, eps_high=0.28).backward()
+    assert lp2.grad is not None
     check("ratio 1.25, A > 0: symmetric eps 0.2 stops the gradient, clip-higher 0.28 keeps it",
           clipped_grad == 0 and lp2.grad.abs().sum() > 0,
           f"grads {clipped_grad:.3f} vs {lp2.grad.abs().sum().item():.3f}")
@@ -215,9 +219,11 @@ def verify() -> int:
     check("sequence ratio = geometric mean of token ratios", torch.allclose(s, geo), f"{s.item():.4f}")
     lp = logp.clone().requires_grad_(True)
     policy_loss(lp, old, torch.tensor([1.0]), mask, "gspo", eps=0.2).backward()
+    assert lp.grad is not None
     check("every token in a response gets the same gradient weight", torch.allclose(lp.grad, lp.grad[0, :1].expand_as(lp.grad)))
     lp = torch.log(torch.tensor([[1.5, 1.5, 1.5, 1.5]])).requires_grad_(True)
     policy_loss(lp, old, torch.tensor([1.0]), mask, "gspo", eps=0.2).backward()
+    assert lp.grad is not None
     check("a response whose sequence ratio is outside the clip range drops out entirely",
           lp.grad.abs().sum().item() == 0)
 

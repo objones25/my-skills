@@ -247,6 +247,7 @@ PUBLISHED_ACTIVE: dict[str, float] = {
 def attention_params(c: Config) -> dict:
     """Per-layer attention parameters, split by matrix so --show-work can print them."""
     d, hd, nh, nkv = c.d_model, c.head_dim, c.n_heads, c.n_kv_heads
+    assert hd is not None and nkv is not None  # resolved in Config.__post_init__
     if c.is_mla:
         qk = c.qk_nope_head_dim + c.qk_rope_head_dim
         if c.q_lora_rank:
@@ -291,9 +292,12 @@ def param_breakdown(c: Config) -> dict:
 
     n_moe = c.n_moe_layers
     n_dense = L - n_moe
-    expert = mlp_params(c, c.moe_d_ff, c.expert_bias) if c.is_moe else 0
+    moe_d_ff = c.moe_d_ff
+    if c.is_moe:
+        assert moe_d_ff is not None  # resolved in Config.__post_init__
+    expert = mlp_params(c, moe_d_ff, c.expert_bias) if c.is_moe and moe_d_ff is not None else 0
     router = (d * c.n_experts + (c.n_experts if c.router_bias else 0)) if c.is_moe else 0
-    shared = c.n_shared_experts * mlp_params(c, c.moe_d_ff, False) if c.is_moe else 0
+    shared = c.n_shared_experts * mlp_params(c, moe_d_ff, False) if c.is_moe and moe_d_ff is not None else 0
     moe_mlp = c.n_experts * expert + shared + router
 
     dense_layer = attn + dense_mlp + norms
@@ -366,6 +370,7 @@ def flops_per_token(c: Config, p: dict) -> dict:
     full (unmasked) matrix as PaLM does; causal kernels skip about half of it.
     Sliding-window layers attend to at most sliding_window keys.
     """
+    assert c.head_dim is not None  # resolved in Config.__post_init__
     dense = 6 * p["active_non_embedding"]
     head = 6 * c.vocab * c.d_model
     if c.is_mla:
@@ -382,6 +387,7 @@ def kv_elements_per_token_per_layer(c: Config) -> int:
     """Cached numbers per token per layer. MLA caches the latent plus the shared RoPE key."""
     if c.is_mla:
         return c.kv_lora_rank + c.qk_rope_head_dim
+    assert c.n_kv_heads is not None and c.head_dim is not None  # resolved in Config.__post_init__
     return 2 * c.n_kv_heads * c.head_dim
 
 
@@ -425,10 +431,12 @@ def activation_memory(c: Config, batch: int, checkpointed: bool) -> int:
     Not checkpointed: the dominant terms are the MLP intermediates
     (~2 * d_ff for a gated MLP) plus attention projections (~4 * head budget).
     """
+    assert c.head_dim is not None and c.n_kv_heads is not None  # resolved in Config.__post_init__
     per_tok_per_layer = 2 * c.d_model  # residual stream in/out
     if not checkpointed:
         width = c.d_ff
         if c.is_moe:                     # a token only materializes its own experts' intermediates
+            assert c.moe_d_ff is not None  # resolved in Config.__post_init__
             moe_width = (c.top_k + c.n_shared_experts) * c.moe_d_ff
             width = (c.first_k_dense * c.d_ff + c.n_moe_layers * moe_width) / c.n_layers
         per_tok_per_layer += 2 * (2 * width) + 2 * (2 * c.n_heads * c.head_dim
@@ -445,6 +453,7 @@ def validate(c: Config, p: dict, tokens: float | None) -> list[tuple[str, str]]:
     """Returns (severity, message). Severity is ERROR / WARN / NOTE."""
     out: list[tuple[str, str]] = []
     d, L = c.d_model, c.n_layers
+    assert c.head_dim is not None and c.n_kv_heads is not None  # resolved in Config.__post_init__
 
     if c.is_mla:
         out.append(("NOTE", f"MLA: the cache holds a {c.kv_lora_rank}-wide latent plus a "
@@ -476,6 +485,7 @@ def validate(c: Config, p: dict, tokens: float | None) -> list[tuple[str, str]]:
         out.append(("WARN", f"d_ff/d_model = {ff_ratio:.2f} is outside the observed "
                             "dense shipping range 2.67-6.0"))
     if c.is_moe:
+        assert c.moe_d_ff is not None  # resolved in Config.__post_init__
         gran = c.moe_d_ff / d
         out.append(("NOTE", f"MoE: {c.top_k} of {c.n_experts} routed experts per token"
                             f"{f' plus {c.n_shared_experts} shared' if c.n_shared_experts else ''}; "
@@ -599,10 +609,12 @@ def report(c: Config, tokens: float | None, batch: int, show_work: bool) -> str:
     if not c.is_moe or c.first_k_dense:
         add(f"| d_ff / d_model | {c.d_ff/c.d_model:.2f} | 2.67-6.0 for dense MLPs, no single standard |")
     if c.is_moe:
+        assert c.moe_d_ff is not None  # resolved in Config.__post_init__
         add(f"| expert d_ff / d_model | {c.moe_d_ff/c.d_model:.2f} | fine-grained MoE uses narrow experts (0.27-1.0 in the presets) |")
         add(f"| active / total | {p['active']/p['total']:.1%} | 3-28% in the presets |")
     add(f"| d_model / n_layers | {c.d_model/c.n_layers:.1f} | 19-128 in the reference table; 33-128 above 1B |")
     if not c.is_mla:
+        assert c.n_kv_heads is not None  # resolved in Config.__post_init__
         add(f"| n_heads / n_kv_heads | {c.n_heads//c.n_kv_heads}x | 1x (none) to 8x; 4x most common |")
     add(f"| embedding share | {p['embed']/p['total']:.1%} | >21% -> every model ties; below that, size and family decide |")
     add(f"| attention share of FLOPs | {f['attention_share']:.1%} | at seq_len={c.seq_len} |")

@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.2.1, 2026-11-19: Pyright type fixes
+
+No behavior change; `pyright transformer-architecture` went from 68 errors to 0 and the 182 tests still pass.
+
+| Problem | Fix |
+|---|---|
+| `Config.n_kv_heads`, `head_dim` and `moe_d_ff` are `int | None` fields that `__post_init__` always resolves, so arithmetic on them was flagged | `assert ... is not None` where they are used |
+| `register_buffer` attributes (`MoE.bias`, `Model.cos`, `Model.sin`) had no declared type | annotated as `torch.Tensor` |
+| `.grad` and `Attention.sinks` read as optional in the self-checks | asserted non-None after `backward()` or construction |
+| `importlib` spec could be None (`modern_blocks.py`, `tests/conftest.py`) | asserted; `reference_block.py --impl` now exits with a clear message instead of an `AttributeError` for a path that is not a loadable Python file |
+| `residual_probe.py` hook buffer typed as a list of tuples but initialised with None | typed `list[tuple | None]` |
+
 ## 1.2.0, 2026-11-02: MoE, MLA and 2025-2026 components; audit fixes
 
 Audit details, with the evidence for each fix, are in `AUDIT.md`.

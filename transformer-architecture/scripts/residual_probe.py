@@ -106,7 +106,7 @@ def probe_blocks(model, input_ids, blocks=None, attention_mask=None,
     if blocks is None:
         blocks, _ = _find_blocks(model)
 
-    captured: list[tuple] = [None] * len(blocks)
+    captured: list[tuple | None] = [None] * len(blocks)
 
     def make_hook(i):
         def hook(_mod, args, kwargs, output):
