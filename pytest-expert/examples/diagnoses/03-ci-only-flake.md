@@ -28,7 +28,7 @@ $ pytest -q -p no:randomly
 $ python scripts/flake_hunt.py --runs 12 --repeat-seed 2 -- tests/
 3 tests x 12 seeds x 2 repeat(s)
 FLAKY tests.test_convert::test_unknown_currency_converts_at_par
-      order-dependent; fails with --randomly-seed in [1, 2, 3, 5, 6, 8, 11, 12]
+      order-dependent; fails with --randomly-seed in [2, 3, 4, 5, 8, 9, 12]
 
 1 flaky test(s)
 ```
@@ -36,10 +36,10 @@ FLAKY tests.test_convert::test_unknown_currency_converts_at_par
 Reproducing one seed shows the leak:
 
 ```
-$ pytest -q -p randomly --randomly-seed=1
+$ pytest -q -p randomly --randomly-seed=2
 E       AssertionError: assert 500 == 1000
 E        +  where 500 = convert(1000, 'EUR')
-FAILED tests/test_convert.py::test_unknown_currency_converts_at_par
+FAILED tests/test_convert.py::test_unknown_currency_converts_at_par - Asserti...
 ```
 
 `test_set_rate_changes_conversion` set EUR to 0.5 in a module-level dict and never

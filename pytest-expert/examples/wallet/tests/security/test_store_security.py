@@ -1,5 +1,6 @@
 """Security regressions for the persistence boundary."""
 
+import json
 import pickle
 from decimal import Decimal
 
@@ -49,9 +50,65 @@ def test_load_wallet_refuses_pickle_payloads(tmp_path):
         load_wallet(tmp_path, "mallory")
 
 
+def test_save_wallet_returns_the_file_it_wrote(tmp_path):
+    path = save_wallet(tmp_path, Wallet(owner="alice", balance=Decimal("1.00")))
+    assert path == tmp_path.resolve() / "alice.json"
+    assert path.read_text(encoding="utf-8") == '{"owner": "alice", "balance": "1.00"}'
+
+
+def test_wallet_path_rejects_a_symlink_that_leaves_the_base_directory(tmp_path):
+    base = tmp_path / "store"
+    base.mkdir()
+    outside = tmp_path / "outside.json"
+    outside.write_text("{}", encoding="utf-8")
+    (base / "alice.json").symlink_to(outside)
+    with pytest.raises(StoreError, match="^wallet path escapes the store: 'alice'$"):
+        wallet_path(base, "alice")
+
+
+@pytest.mark.parametrize(
+    "stored",
+    [
+        {"owner": "mallory", "balance": "5.00"},
+        {"owner": "alice", "balance": "-0.01"},
+        {"owner": "alice", "balance": "NaN"},
+        {"owner": "alice", "balance": "Infinity"},
+    ],
+    ids=["owner-mismatch", "negative-balance", "nan-balance", "infinite-balance"],
+)
+def test_load_wallet_rejects_inconsistent_files(tmp_path, stored):
+    (tmp_path / "alice.json").write_text(json.dumps(stored), encoding="utf-8")
+    with pytest.raises(StoreError, match="^inconsistent wallet file for 'alice'$"):
+        load_wallet(tmp_path, "alice")
+
+
+def test_load_wallet_accepts_a_zero_balance(tmp_path):
+    (tmp_path / "alice.json").write_text('{"owner": "alice", "balance": "0.00"}', encoding="utf-8")
+    assert load_wallet(tmp_path, "alice") == Wallet(owner="alice", balance=Decimal("0.00"))
+
+
+@pytest.mark.parametrize(
+    "stored",
+    [b"\xff\xfe", b"{not json", b'{"owner": "alice"}', b"[]", b'{"owner": "alice", "balance": "abc"}'],
+    ids=["not-utf8", "not-json", "missing-balance", "wrong-shape", "balance-not-a-number"],
+)
+def test_load_wallet_reports_corrupt_files(tmp_path, stored):
+    (tmp_path / "alice.json").write_bytes(stored)
+    with pytest.raises(StoreError, match="^corrupt wallet file for 'alice'$"):
+        load_wallet(tmp_path, "alice")
+
+
 def test_load_wallet_round_trips(tmp_path):
     save_wallet(tmp_path, Wallet(owner="alice", balance=Decimal("12.50")))
     assert load_wallet(tmp_path, "alice") == Wallet(owner="alice", balance=Decimal("12.50"))
+
+
+def test_get_returns_the_stored_wallet(store):
+    assert store.get("alice") == Wallet(owner="alice", balance=Decimal("10.00"))
+
+
+def test_find_by_prefix_returns_matching_wallets_in_owner_order(store):
+    assert [w.owner for w in store.find_by_prefix("al")] == ["alfred", "alice"]
 
 
 @pytest.mark.parametrize("payload", INJECTION, ids=repr)

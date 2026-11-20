@@ -15,6 +15,7 @@ or decide whether a specific case earns an exception.
 - [Coverage](#coverage): rules 26–27
 - [Rules added in the October 2026 audit](#rules-added-in-the-october-2026-audit) (rules 28 to 31)
 - [Audit code index](#audit-code-index)
+- [Diff guard code index](#diff-guard-code-index-rule-34)
 - [When to break a rule](#when-to-break-a-rule)
 - [Source list](#source-list)
 
@@ -99,8 +100,9 @@ Worse, a branch in a test can silently skip the assertion. `if platform == "linu
 passes trivially everywhere else, and nobody notices for a year.
 
 The genuine exception is a loop that *builds* data rather than driving cases:
-`items = [make(i) for i in range(3)]` in the Arrange block. The audit only flags `for` loops
-whose iterable is a literal collection, which is the case-driving shape.
+`items = [make(i) for i in range(3)]` in the Arrange block. The audit flags `if`, `while`,
+`match`, and `for` or `async for` loops whose iterable is not a call (a literal or a name:
+the case-driving shapes). `for i in range(3)` and comprehensions are not flagged.
 
 ### Rule 5: No duplicate test names in a module
 
@@ -124,7 +126,10 @@ Audit code: `NO_ASSERT`.
 A test with no assertion checks exactly one thing: that the code did not raise. That is
 occasionally a legitimate smoke test, and when it is, it should say so explicitly rather than
 appearing to check something it does not. The audit counts `assert`, `pytest.raises`,
-`pytest.warns`, `pytest.fail`, and the real `Mock.assert_*` methods.
+`pytest.warns`, `pytest.fail`, and the real `Mock.assert_*` methods, but only where they can
+run: a bare `pytest.raises(ValueError)` with no `with` block and no callable checks nothing, and
+an `assert` after a `return` or `raise`, or inside a nested function the test never calls,
+never executes. Each of those tests is reported as `NO_ASSERT`.
 
 This one is common in AI-generated and hurried tests, and it is the reason coverage numbers lie:
 an assertion-free suite can reach 100% line coverage while proving nothing.
@@ -132,6 +137,23 @@ an assertion-free suite can reach 100% line coverage while proving nothing.
 A bare `x == pytest.approx(y)` without `assert` does not count as an assertion; the old
 audit counted it. For a deliberate smoke test, suppress on the `def` line with a reason:
 `def test_x():  # audit: ignore[NO_ASSERT] smoke test: must not raise`.
+
+When the suite asserts through its own helper (`check_total(result)`), name the helper instead of
+suppressing every test. `--assert-helper PATTERN` (repeatable) and `assert_helpers = [...]` under
+`[tool.pytest-expert]` in `pyproject.toml` (read on Python 3.11 or later) make a live call to a
+matching function count as an assertion for `NO_ASSERT` and for nothing else: `WEAK_ASSERT` and
+every other rule see the test as before. Patterns are case-sensitive `fnmatch` globs. One without a
+dot matches the final name of the callee (`check_*` matches `check_x(r)`, `self.check_x(r)` and
+`helpers.check_x(r)`); one with a dot matches the whole dotted callee, as written or with the import
+alias resolved (`helpers.expect_*` matches `h.expect_ok(r)` after `import helpers as h`). The call
+must be able to run, by the same rules as `assert`: not after an unconditional `return` or `raise`,
+not in a nested function nothing calls, not in a lambda. The command line adds to the configured
+list. A pattern that would match every call (`*`, `?`, `*.*`, `[a-z]`) or an empty one is rejected
+with exit 2, as is an unknown key or a non-list value under `[tool.pytest-expert]`. The patterns in
+effect are echoed in the text summary (`NO_ASSERT relaxed by assert helpers: check_*`), the SARIF
+run properties (`assertHelpers`) and a GitHub `::notice`; `--format json` prints
+`{"findings": [...], "assert_helpers": [...]}` when helpers are in effect and a plain list of
+findings otherwise.
 
 `print()` in a test (`PRINT`, warning) is the same failure in another shape: it shows a
 value instead of checking it. If output is the behavior, capture it with `capsys`.
@@ -144,7 +166,9 @@ Audit code: `ALWAYS_TRUE`.
 version, because it reads like documentation and passes because non-empty strings are truthy.
 
 The tuple form is the subtle one: `assert (result == 3, "msg")` asserts a non-empty
-tuple, which is always truthy, so the comparison inside never matters.
+tuple, which is always truthy, so the comparison inside never matters. The audit also reports
+`assert x or True`, `assert 1 == 1`, and any other condition whose value is fixed by its literal
+parts.
 
 ### Rule 8: Floats never compare with `==`
 
@@ -195,7 +219,9 @@ with pytest.raises(InsufficientFunds, match=r"cannot withdraw 500\.0"):
 ```
 
 `match=` takes a regex applied with `re.search`, so escape regex metacharacters in literal text:
-`\.` for a decimal point, or wrap in `re.escape()`.
+`\.` for a decimal point, or wrap in `re.escape()`. The audit reports `Exception` and
+`BaseException` with no `match=`, or with a `match=` that matches any message (`""`, `".*"`,
+`"^.*$"`, `".*?"`, `"(?s).*"`, or `None`).
 
 Keep the `with` block to the single statement expected to raise (PT012). A three-line block gives
 you no way to know which line raised, and an early line raising the right exception type for the
@@ -246,7 +272,7 @@ Verify it rather than assuming it:
 | alone | `pytest tests/test_wallet.py::test_withdraw_reduces_balance` |
 | shuffled order (pytest-randomly) | `pytest -p randomly` |
 | parallel (pytest-xdist) | `pytest -n auto` |
-| many orders | `python scripts/flake_hunt.py --runs 30 -- tests/` |
+| many orders | `python scripts/flake_hunt.py --runs 31 -- tests/` |
 
 Order dependence is always a defect, and always in the test, never in the runner. The usual
 causes: module-level mutable state (rule 13), a too-broad fixture scope (see `fixtures.md`), a
@@ -262,7 +288,9 @@ fix, which means a test everyone learns to re-run until it goes green. Seed cent
 
 The audit is context-aware. It stays quiet if a `conftest.py` calls `random.seed(...)`,
 `np.random.seed(...)`, `torch.manual_seed(...)`, or `default_rng(<seed>)`, and it always
-allows an explicitly seeded local generator such as `random.Random(7)`. Setting
+allows an explicitly seeded local generator such as `random.Random(7)` or
+`random.Random(seed=7)`. The conftest lookup walks up from the test file and stops at the
+project root, the nearest directory holding a pytest config file or `.git`. Setting
 `PYTHONHASHSEED` does not count: inside a running test it only affects child processes,
 and it seeds string hashing, not any RNG.
 
@@ -297,8 +325,13 @@ differently when a rate limit kicks in.
 dependencies you did not know were making them. Tests that genuinely need a real service carry
 `@pytest.mark.integration` and are deselected by default.
 
-Loopback and Unix-domain sockets stay allowed by the conftest guard. The audit skips tests
-marked `integration` or `e2e` and tests under an `integration/` or `e2e/` directory.
+Loopback and Unix-domain sockets stay allowed by the conftest guard. The audit reports a call
+that opens a connection or resolves a host (`requests.get`, `httpx.Client`,
+`urllib.request.urlopen`, `socket.socket`, `socket.create_connection`,
+`aiohttp.ClientSession`, `http.client.HTTPConnection`, and similar), not any other name from
+those libraries. It skips tests marked `integration` or `e2e` (on the function, its class, or a
+module-level `pytestmark`) and tests under an `integration/` or `e2e/` directory inside the
+audited project.
 
 ### Rule 15: No `time.sleep`
 
@@ -331,7 +364,10 @@ Source: pythontest.com.
 Audit code: `ENV_MUTATION`.
 
 `os.environ["MODE"] = "test"` persists for the rest of the process. The test that breaks is some
-unrelated one, later, and only when the suite runs in a particular order.
+unrelated one, later, and only when the suite runs in a particular order. The audit reports
+assignment and deletion on `os.environ` and calls such as `os.environ.update`, `.setdefault`,
+`.pop`, `.clear`, `os.putenv` and `os.unsetenv`; code inside `with mock.patch.dict(os.environ, ...)`
+is exempt, because that restores the environment on exit.
 
 Verified `MonkeyPatch` API (pytest 9.2.0): all of it undone at teardown:
 
@@ -360,7 +396,8 @@ If your tests cannot import your package, the packaging is wrong. Fix that inste
   does not modify `sys.path` at all
 
 A `sys.path.insert` in a test file makes the suite pass locally and fail in CI, or worse, test
-the working tree while CI tests the built wheel.
+the working tree while CI tests the built wheel. The audit reports `insert`, `append`, `extend`,
+`remove`, `pop` and `clear` on `sys.path`, and assignment to it.
 
 Source: pytest docs, *Good Integration Practices*.
 
@@ -409,22 +446,28 @@ original module rebinds a name nothing is looking at any more. This is the singl
 
 Audit code: `FAKE_MOCK_ASSERT`.
 
-`Mock` auto-creates any attribute you touch. So:
+A mock assertion that is not called asserts nothing, and some misspelt ones are silent too:
 
 ```python
-m.called_once_with(3)          # returns a Mock. Truthy. Asserts nothing. Passes forever.
-assert m.called_once           # same trap, in assert form
-m.assert_called_once_wtih(3)   # typo. Auto-created. Passes forever.
+m.assert_called_once           # a bound method, never called: truthy, asserts nothing, on every Python
+m.called_once_with(3)          # Python < 3.12: returns a truthy Mock, asserts nothing
+assert m.called_once           # same, in assert form
+m.assert_called_once_wtih(3)   # typo: raises AttributeError on a default Mock, passes on Mock(unsafe=True)
 ```
+
+The first form is the live trap: no Python version warns about it. For the others, Python 3.12
+added `AttributeError` for `called_once`, `called_once_with`, `called_with`, `not_called` and
+`has_calls` on a default `Mock`, and `assert_`-prefixed misspellings have raised since 3.5. Checked
+2026-11-20 with `unittest.mock.Mock()` on Python 3.11.14, 3.12.16 and 3.13.2: the `called_once*`
+names return a Mock on 3.11 and raise on 3.12 and 3.13; `assert_called_once_wtih` raises on all
+three. The audit still reports them, because the suite may run on 3.11 or older, and because
+`Mock(unsafe=True)` and attributes of other objects accept any name.
 
 The real names, all of which raise `AssertionError` when unmet:
 
 `assert_called`, `assert_called_once`, `assert_called_with`, `assert_called_once_with`,
 `assert_any_call`, `assert_has_calls`, `assert_not_called`, and the `assert_await*` equivalents.
-
-`unittest.mock` mitigates the typo case for `assert_`-prefixed names on newer Pythons, but not
-for the non-prefixed ones, and not at all on `MagicMock` attributes you construct yourself. The
-audit checks all of them.
+Call them with parentheses.
 
 ### Rule 22: Prefer real objects and `monkeypatch` over mocks
 
@@ -468,7 +511,8 @@ Source: pythontest.com; pytest docs.
 
 ### Rule 24: `skip`/`skipif`/`xfail` carry `reason=`
 
-Audit code: `SKIP_NO_REASON`.
+Audit code: `SKIP_NO_REASON`. It covers marks on a function, a class, and a module-level
+`pytestmark`, and an empty `reason=""`.
 
 Run with `-ra` (in the recommended `addopts`) and the summary prints every non-passing test with
 its reason. Without `reason=`, the report shows an `s` and nothing else, and a test that has been
@@ -488,9 +532,11 @@ marker." That is the notification you actually want.
 
 `--runxfail` ignores `xfail` marks entirely; Okken suggests it for final pre-production runs, to
 see what the suite would say with the excuses removed.
-The audit reads the nearest `pyproject.toml`, `pytest.toml`, `pytest.ini`, `tox.ini`, or
-`setup.cfg`. When `strict`, `strict_xfail`, or `xfail_strict` is true there, it does not
-ask for `strict=True` on each marker.
+The audit reads the pytest config the way pytest 9.2.0 picks it: from the audited directory up
+to the project root, the first of `pytest.toml`, `.pytest.toml`, `pytest.ini`, `.pytest.ini`,
+`pyproject.toml` (only if it has a `[tool.pytest]` table), `tox.ini` or `setup.cfg` that carries
+pytest settings. `strict_xfail` (alias `xfail_strict`) decides if it is set, otherwise `strict`.
+When that is true, the audit does not ask for `strict=True` on each marker.
 
 
 ---
@@ -541,7 +587,8 @@ def test_total():
 ```
 
 This test cannot fail. Neither can one that wraps the call in `except Exception:` or a
-bare `except:` without re-raising or calling `pytest.fail`. Ruff's SIM105 suggests
+bare `except:` without re-raising or calling `pytest.fail`, and neither can a
+`with contextlib.suppress(AssertionError):` block. Ruff's SIM105 suggests
 rewriting the block as `contextlib.suppress(AssertionError)`, which makes the hidden
 failure permanent, so `assets/ruff-pytest.toml` turns SIM105 off for tests. Catching a
 specific, documented exception is fine and common in property tests:
@@ -617,34 +664,71 @@ tree with a git base and reports those edits; the Stop hook runs it. See
 
 ## Audit code index
 
-| Code | Severity | Rule |
-|---|---|---|
-| `NO_ASSERT` | error | 6 |
-| `PRINT` | warning | 6 |
-| `ALWAYS_TRUE` | error | 7 |
-| `FLOAT_EQ` | error | 8 |
-| `BROAD_RAISES` | error | 9 |
-| `BRANCHING` | error | 4 |
-| `SHADOWED_TEST_NAME` | error | 5 |
-| `UNITTEST_CLASS` | error | 3 (plain functions get fixtures and assertion rewriting) |
-| `UNSEEDED_RANDOM` | error | 12 |
-| `MUTABLE_MODULE_STATE` | error | 13 |
-| `NETWORK` | error | 14 |
-| `SLEEP` | error | 15 |
-| `ENV_MUTATION` | error | 17 |
-| `SYS_PATH` | error | 18 |
-| `PATCH_NO_SPEC` | error | 19 |
-| `FAKE_MOCK_ASSERT` | error | 21 |
-| `SKIP_NO_REASON` | error | 24 |
-| `XFAIL_NOT_STRICT` | error | 25 |
-| `SWALLOWED_FAILURE` | error | 28 |
-| `BARE_COMPARISON` | error | 29 |
-| `NAN_COMPARE` | error | 30 |
-| `WEAK_ASSERT` | warning | 31 |
-| `YIELD_FIXTURE` | error | 32 |
-| `SUPPRESSION_NO_REASON` | error | see below |
+26 codes. The text in the last column is what `python scripts/audit_tests.py --list-codes` prints.
 
-`python scripts/audit_tests.py --list-codes` prints the same list.
+| Code | Severity | Rule | What it reports |
+|---|---|---|---|
+| `NO_ASSERT` | error | 6 | test contains no reachable assert, pytest.raises/warns/fail that runs, or real mock assertion |
+| `PRINT` | warning | 6 | print() in a test; assert instead, or use capsys/caplog |
+| `ALWAYS_TRUE` | error | 7 | assertion can never fail (truthy literal, `x or True`, 1 == 1, non-empty tuple/list/dict/set) |
+| `FLOAT_EQ` | error | 8 | float value compared with == or != (or `in` a float list); use pytest.approx |
+| `BROAD_RAISES` | error | 9 | pytest.raises on Exception/BaseException with no match= (or a match that matches anything); passes on the wrong error |
+| `BRANCHING` | error | 4 | if/while or for-over-cases in a test body; use parametrize |
+| `SHADOWED_TEST_NAME` | error | 5 | two tests with the same name in one scope; the first never runs |
+| `UNITTEST_CLASS` | error | 3 (plain functions get fixtures and assertion rewriting) | unittest.TestCase subclass; plain functions get fixtures and assert rewriting |
+| `UNSEEDED_RANDOM` | error | 12 | unseeded randomness and no seeding conftest; failures become unreproducible |
+| `MUTABLE_MODULE_STATE` | error | 13 | module-level mutable is mutated by tests; state leaks between tests |
+| `NETWORK` | error | 14 | network call (requests/httpx/urllib/socket/aiohttp/http.client) in a test without an integration or e2e marker or directory |
+| `SLEEP` | error | 15 | time.sleep in a test or fixture; slow and flaky, inject a clock |
+| `ENV_MUTATION` | error | 17 | os.environ mutated directly; use monkeypatch.setenv/delenv |
+| `SYS_PATH` | error | 18 | sys.path mutated in a test; fix packaging or use monkeypatch.syspath_prepend |
+| `PATCH_NO_SPEC` | error | 19 | mock.patch / patch.object without autospec/spec/new; the double drifts from the API |
+| `FAKE_MOCK_ASSERT` | error | 21 | mock assertion that cannot fail: an assert_* method named without parentheses, or a misspelt assert_* / called_once / not_called name (those only pass silently on Mock(unsafe=True), non-Mock objects, and called_once-style names on Python < 3.12; a default Mock raises AttributeError) |
+| `SKIP_NO_REASON` | error | 24 | skip/skipif/xfail without a reason (or an empty one); the report will not say why |
+| `XFAIL_NOT_STRICT` | error | 25 | xfail with no strict= (or strict=False) while the pytest config does not enable strict_xfail |
+| `SWALLOWED_FAILURE` | error | 28 | except AssertionError/Exception/bare, or contextlib.suppress of them, without re-raise; failures vanish |
+| `BARE_COMPARISON` | error | 29 | comparison used as a statement; it is computed and thrown away, add assert |
+| `NAN_COMPARE` | error | 30 | == / != against NaN is always False / True; use math.isnan or nan_ok |
+| `WEAK_ASSERT` | warning | 31 | every assertion is existence-only (is not None, isinstance, len > 0) |
+| `YIELD_FIXTURE` | error | 32 | pytest.yield_fixture is deprecated; pytest 9.2 schedules removal for pytest 10 or 11; use @pytest.fixture |
+| `SUPPRESSION_NO_REASON` | error | see below | audit: ignore[...] pragma without a reason after the bracket |
+| `SUPPRESSION_INERT` | warning | see below | audit: ignore[...] pragma that suppresses nothing: unknown, misspelt, lower-case or empty code, ALL, or no matching finding in its line, scope or file (stale) |
+| `SYNTAX` | error | none: a file that does not parse is reported, not skipped | file does not parse |
+
+`audit_tests.py` exits 0 when it checked and found nothing, 1 when an error-severity finding
+remains (or any warning, with `--warnings-as-errors`), and 2 when it could not check: bad
+arguments, an unknown `--ignore` code, no test files under the path, an unreadable file or
+config, or an internal error. Exit 2 is never a pass. A clean run prints `clean: no findings
+(N file(s) checked)`.
+
+## Diff guard code index (rule 34)
+
+19 codes from `python scripts/diff_guard.py --list-codes`; `llm-written-tests.md` says when
+an edit is legitimate. Exit 0 = nothing found, 1 = an error-severity finding (or any warning
+with `--warnings-as-errors`), 2 = could not check (nothing to compare, an unreadable or
+unparsable config, git missing, an unknown base, an internal error).
+
+| Code | Severity | What it reports |
+|---|---|---|
+| `TEST_FILE_DELETED` | error | a test file present in the base is gone (a pure rename or move is followed, not reported) |
+| `TEST_DELETED` | error | a test function present in the base is gone from every test file |
+| `TEST_EMPTIED` | error | test body reduced to pass, ..., or an early return |
+| `ASSERTS_REDUCED` | error | test has fewer live checks (assert, pytest.raises/warns, assert*/self.assert* calls) than in the base; dead code does not count |
+| `ASSERT_WEAKENED` | error | test kept its checks but lost exact comparisons (== loosened to truthiness, is not None, in, <), or pytest.raises widened to Exception / lost match= |
+| `CASES_REDUCED` | error | a parametrize list lost rows (a failing case can be dropped this way) |
+| `ASSERT_TRIVIALIZED` | error | test gained an assertion that cannot fail (assert True, assert x == x, x or True, approx with a huge tolerance) |
+| `SKIP_ADDED` | error | skip, skipif, xfail, pytest.skip(), importorskip or a unittest skip added to a test, class, module or conftest |
+| `PRAGMA_ADDED` | error | new '# audit: ignore' pragma silences the test audit |
+| `COLLECTION_NARROWED` | error | conftest gained collect_ignore entries or a collection hook, or changed the body of one |
+| `CONFIG_NARROWED` | error | pytest config gained --deselect/--ignore/-k/-m/--collect-only/--no-cov/..., or lost testpaths, python_files/classes/functions patterns |
+| `COVERAGE_LOWERED` | error | effective coverage floor (coverage fail_under or --cov-fail-under, in any config file) lowered or removed (a floor the base never had is not checked), or coverage omit gained entries |
+| `SYNTAX` | error | a .py file in the test tree (or a changed source file) cannot be decoded or parsed, so it is not compared; a collected test file or conftest then fails to collect, a helper module fails when imported |
+| `EXPECTATION_CHANGED` | warning | a literal on the expected side of an assert, or a parametrize row, changed; confirm the spec changed |
+| `CONSTANT_EQ` | warning | source gained __eq__/__ne__/__hash__ returning a constant: makes any == assertion pass |
+| `SPECIAL_CASE` | warning | source gained a comparison with a literal that also appears in the tests: possible special-casing |
+| `SNAPSHOT_CHANGED` | warning | a stored snapshot (syrupy __snapshots__/*.ambr, or any file under __snapshots__) was rewritten or deleted; review it like code |
+| `PARAM_HOOK_CHANGED` | warning | a pytest_generate_tests hook was added or its body changed (it decides which parameter sets run); confirm no cases were dropped |
+| `SKIP_VIA_HELPER` | warning | a test gained a call to (or a request for) a helper or fixture that can reach pytest.skip/xfail/importorskip, or such a helper gained the skip; confirm the skip condition is real |
 
 ## When to break a rule
 
@@ -663,6 +747,11 @@ Legitimate exceptions that come up often:
 
 Suppress at the narrowest scope that covers the decision, and always give the reason
 after the bracket. A pragma without a reason is itself a finding, `SUPPRESSION_NO_REASON`.
+A pragma that suppresses nothing is `SUPPRESSION_INERT` (warning): an unknown or misspelt code (the
+nearest valid one is suggested), empty brackets, a lower-case code, `ALL`, a code pragmas cannot
+suppress, or a well-formed pragma with no matching finding in its line, scope or file. The last
+kind is a stale pragma: the finding went away and the pragma now hides the next one in its scope.
+A pragma cannot suppress `SUPPRESSION_INERT` or `SUPPRESSION_NO_REASON`; `--ignore` removes either.
 
 | Scope | Syntax |
 |---|---|

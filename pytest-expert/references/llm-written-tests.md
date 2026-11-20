@@ -59,27 +59,34 @@ coverage of LLM-written suites was uniformly weak at predicting whether they cau
 
 `scripts/diff_guard.py` compares the test tree with a git base (the commit the session
 started from, when the hooks are installed) and reports each pattern below. Errors fail
-the Stop gate; warnings are shown for a human to judge.
+the Stop gate; warnings are shown for a human to judge. `references/rules.md` lists all 19
+codes with the guard's own text. A clean run prints `clean: no test-weakening edits since
+<base>`. Exit status: 0 nothing found, 1 an error-severity finding, 2 could not check
+(nothing to compare, git missing, an unknown base, an unreadable or unparsable config, an
+internal error); exit 2 is never a pass.
 
 | Code | Edit | Legitimate when |
 |---|---|---|
-| `TEST_FILE_DELETED`, `TEST_DELETED` | a test file or function removed | the feature was removed, or the test moved and was renamed (a rename reads as a delete) |
+| `TEST_FILE_DELETED`, `TEST_DELETED` | a test file or function removed | the feature was removed, or the test function was renamed (a pure file rename or move is followed and not reported; a renamed function reads as a delete) |
 | `TEST_EMPTIED` | body reduced to `pass`, `...`, or an early `return` | almost never |
-| `ASSERTS_REDUCED` | fewer `assert`, `pytest.raises`, `assert_*` calls | a redundant check was removed (say which) |
-| `ASSERT_TRIVIALIZED` | `assert True`, `assert x == x` added | never |
+| `ASSERTS_REDUCED` | fewer live checks (`assert`, `pytest.raises`, `assert_*` calls) than in the base; dead code does not count | a redundant check was removed (say which) |
+| `ASSERT_WEAKENED` | the checks are all still there but `==` became a truthiness test, `is not None`, `in` or `<`, or `pytest.raises` widened to `Exception` or lost `match=` | the spec loosened (say so) |
+| `ASSERT_TRIVIALIZED` | `assert True`, `assert x == x`, `x or True`, or `approx` with a huge tolerance added | never |
 | `CASES_REDUCED` | rows removed from a `@pytest.mark.parametrize` list | a duplicate row was removed (say which) |
 | `SKIP_ADDED` | skip, skipif, xfail, `pytest.skip()`, `importorskip`, at test, class, or module level | a real platform or dependency limit, with a reason and an issue |
 | `PRAGMA_ADDED` | new `# audit: ignore[...]` | a deliberate exception with a reason (still worth a human look) |
-| `COLLECTION_NARROWED` | `collect_ignore` entries or a `pytest_collection_modifyitems` hook added | a real collection need, reviewed |
-| `CONFIG_NARROWED` | addopts gained `--deselect`, `--ignore`, `-k`; `testpaths` lost a path | rarely in a shared config |
-| `COVERAGE_LOWERED` | `fail_under` or `--cov-fail-under` lowered | never silently |
-| `SYNTAX` | a test file no longer parses | never; reported instead of as mass deletion |
+| `COLLECTION_NARROWED` | `collect_ignore` entries or a collection hook added, or the body of one changed | a real collection need, reviewed |
+| `CONFIG_NARROWED` | pytest config (any file pytest 9.2 reads) gained `--deselect`, `--ignore`, `-k`, `-m`, `--collect-only`, `--no-cov` and similar, or lost `testpaths` or a `python_files`, `python_classes` or `python_functions` pattern | rarely in a shared config |
+| `COVERAGE_LOWERED` | the effective coverage floor (`fail_under` or `--cov-fail-under`, in any config file) lowered or removed, or `omit` gained entries | never silently |
+| `SYNTAX` | a `.py` file in the test tree, or a changed source file, cannot be decoded or parsed | never; reported instead of as mass deletion |
 | `CONSTANT_EQ` (warning) | source gained an `__eq__`, `__ne__`, or `__hash__` that returns a constant | almost never; a sentinel class, perhaps |
 | `SPECIAL_CASE` (warning) | changed source compares a value with a literal that a test also uses (`if cents == 1000: return 10`) | often legitimate (a boundary from the spec); a human decides |
 | `EXPECTATION_CHANGED` (warning) | a literal on the expected side of an assert changed, including `snapshot(<literal>)` | the spec changed; the commit says how |
 | `SNAPSHOT_CHANGED` (warning) | a syrupy `.ambr` file rewritten or deleted | the rendered output was meant to change |
+| `PARAM_HOOK_CHANGED` (warning) | a `pytest_generate_tests` hook added, or the body of one changed (it decides which parameter sets run) | a real parametrization need; check that no cases were dropped |
+| `SKIP_VIA_HELPER` (warning) | a test gained a call to, or a request for, a helper or fixture that can reach `pytest.skip`, `xfail` or `importorskip`, or such a helper gained the skip | the condition is a real environment limit (no GPU, a missing optional dependency) and the reason says so |
 
-Real output, after an edit that skipped the failing test and committed it:
+Real output (2026-11-20), after an edit that skipped the failing test and committed it:
 
 ```
 tests/test_cart.py:9: SKIP_ADDED: test_discount: skip/xfail added
@@ -92,13 +99,13 @@ overloading comparison operators, recording extra state) at >14% each; read-only
 stopped test edits but not special-casing or overloading [IB §4.2, §5.2]
 (`papers/impossiblebench.md`). That is why the guard reads source diffs too.
 
-What it still cannot see: a test rewritten to assert the same number of weaker things,
-recorded extra state (a counter that changes behavior on the second call), a
+What it still cannot see: a test rewritten to assert the same number of weaker things that
+no longer use a comparison it recognises as loosened, recorded extra state (a counter that changes behavior on the second call), a
 special case on a literal no test file contains, or an expected value that was wrong
 from the first commit. Mutation testing and review cover those.
 
 When the user asks for a deletion, accept the specific code for that run
-(`--allow TEST_DELETED`, or `PYTEST_EXPERT_DIFF_ALLOW=TEST_DELETED` for the hook) and
+(`--allow TEST_DELETED`, repeatable, or `PYTEST_EXPERT_DIFF_ALLOW=TEST_DELETED` for the hook) and
 say in the reply which tests were removed and why. Do not widen the allow list to get
 past a block you were not asked to cause.
 

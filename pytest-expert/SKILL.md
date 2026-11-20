@@ -2,7 +2,7 @@
 name: pytest-expert
 description: Build, audit, and harden pytest suites for Python codebases. Use whenever the user writes, reviews, or fixes tests; configures pytest or coverage; hunts flaky tests; tests async (asyncio, anyio) or ML/PyTorch code; or asks for property-based testing (Hypothesis), fuzzing (Atheris), symbolic execution (CrossHair), mutation testing, snapshot tests, security tests, integration tests, CI test pipelines, pre-commit hooks, or Claude Code hooks that run tests. Also use when an AI agent wrote or changed tests, says "all tests pass now", or a suite went green suspiciously, and proactively when writing Python code that will need tests. Ships a stdlib audit that fails the build on tests that cannot fail, a diff guard that catches tests weakened to get green, a mutation checker, a flaky-test hunter, hooks, hardened workflows, templates, and worked examples. Not for test suites in other languages, bats tests for shell scripts (use bash-scripting-specialist), or checking a skill's own claims (use audit-skill).
 metadata:
-  test-command: "uv run --no-project --with pytest --with pytest-randomly python -m pytest selftest -q"
+  test-command: "uv run --no-project --with pytest --with pytest-randomly --with hypothesis --with pytest-cov --with pytest-timeout python -m pytest selftest -q -rs"
 ---
 
 # pytest Expert
@@ -47,14 +47,13 @@ boundaries, and look at the existing layout (`tests/`, `conftest.py`,
 
 **2. Install the gates.** Merge `assets/pytest-config.toml` into `pyproject.toml`,
 copy `assets/conftest.py` into the project's `tests/` (add `assets/conftest_ml.py` for
-PyTorch), and adopt `assets/ruff-pytest.toml`. Copy `scripts/audit_tests.py` into the
-project's `scripts/`. *Done when* `pytest --collect-only -q` succeeds under strict
-config.
+PyTorch), and adopt `assets/ruff-pytest.toml`. Copy `scripts/audit_tests.py` and
+`scripts/diff_guard.py` into the project's `scripts/`. *Done when*
+`pytest --collect-only -q` succeeds under strict config.
 
-**3. Write tests at the right layer.** Use the ladder below and the hard gates. Thread
-one realistic example through related tests. *Done when* every behavior you were
-asked to cover has a test and `python scripts/audit_tests.py tests/` prints
-`clean: no findings`.
+**3. Write tests at the right layer.** Use the ladder below and the hard gates, threading
+one realistic example through related tests. *Done when* every behavior you were asked
+to cover has a test and `python scripts/audit_tests.py tests/` prints `clean: no findings`.
 
 **4. Run the gates.**
 
@@ -66,10 +65,10 @@ pytest -p randomly -n auto
 python scripts/diff_guard.py
 ```
 
-*Done when* all five exit 0. Report audit findings and how you resolved each. A green
-pytest run over a suite the audit flags is not a pass, and neither is one the diff
-guard flags: it compares the tests with a git base (default `HEAD`; `--base <ref>` for
-the commit before your work) and reports deleted tests or parametrize rows, dropped
+*Done when* all five exit 0; report audit findings and how you resolved each. A green
+pytest run over a suite the audit flags is not a pass, and neither is one the diff guard
+flags: it compares the tests with a git base (default `HEAD`; `--base <ref>` for the
+commit before your work) and reports deleted tests or parametrize rows, dropped
 assertions, new skips, deselection, a lowered coverage floor, and source-side cheats.
 
 **5. Prove the tests can fail.** Run the mutation checker on each function you tested:
@@ -80,9 +79,9 @@ python scripts/mutate_check.py src/pkg/module.py --function name -- python -m py
 
 *Done when* every surviving mutant is killed by a new test, or recorded as equivalent
 (no input can distinguish it) or unproductive (killable, but the test would pin an
-arbitrary detail), each with a one-line reason. Report the score. This is the
-highest-value step and the easiest to skip. Coverage does not substitute: 49% of the
-mutant-killing tests Meta kept added no line coverage (`references/papers/meta-ach.md`).
+arbitrary detail), each with a one-line reason; report the score. This is the
+highest-value step and the easiest to skip, and coverage does not substitute: 49% of
+the mutant-killing tests Meta kept added no line coverage (`references/papers/meta-ach.md`).
 
 **6. Escalate where the risk is.** For each code shape in the ladder below, add the
 layer it calls for. *Done when* each parser has an exception-contract property, each
@@ -118,9 +117,9 @@ Problem, Tried, Recommendation) and stop. Evidence and details:
 | Tests an AI agent wrote or changed | spec-derived expected values, diff guard, mutation check | `llm-written-tests.md` |
 | The suite as a whole | mutmut nightly, flake hunt nightly | `mutation-testing.md`, `flaky-tests.md` |
 
-Measured on the worked example: random generation found malformed-input bugs in
-seconds but missed a checksum-gated bug in 3 of 3 runs at 1,000 examples; the solver
-backend found it in about 0.4 seconds (CrossHair 0.0.112). Use both.
+Measured on the worked example: random draws over any ten-digit account missed a
+checksum-gated bug in 14 of 15 runs (1,000 examples); a property that builds valid
+accounts and the solver backend (about 0.4 s, CrossHair 0.0.112) both found it. Use both.
 
 ## The hard gates
 
@@ -175,8 +174,8 @@ are audit codes; `references/rules.md` explains each rule with its source.
 **Integrity**
 34. A suite made green by weakening tests is not green (`scripts/diff_guard.py`).
 
-Deliberate exceptions get an inline pragma with a reason:
-`# audit: ignore[CODE] reason`. A pragma without a reason is itself a finding.
+Deliberate exceptions get a pragma with a reason: `# audit: ignore[CODE] reason`. One with no
+reason, or that suppresses nothing (`SUPPRESSION_INERT`), is itself a finding.
 
 ## Choosing what to test
 
@@ -233,24 +232,25 @@ Not worth testing: getters, third-party behavior, `__repr__`, pure configuration
 
 | Script | Does |
 |---|---|
-| `scripts/audit_tests.py` | stdlib AST audit; 25 codes; text, json, github, and sarif output; exit 1 on any error |
-| `scripts/diff_guard.py` | stdlib git + AST; test-weakening edits since a base ref (16 codes), source-side cheats as warnings |
-| `scripts/mutate_check.py` | stdlib targeted mutation check for one file or function |
-| `scripts/flake_hunt.py` | reruns under many random orders; labels order-dependent vs nondeterministic |
+| `scripts/audit_tests.py` | stdlib AST audit; 26 codes; `--assert-helper` / `assert_helpers` for NO_ASSERT; text, json, github, sarif |
+| `scripts/diff_guard.py` | stdlib git + AST; test-weakening edits since a base ref (19 codes), source-side cheats as warnings |
+| `scripts/mutate_check.py` | stdlib targeted mutation check for one file or function; says which test killed each mutant |
+| `scripts/flake_hunt.py` | reruns under many random orders (default 31); labels order-dependent vs nondeterministic |
 
 Each prints usage with `--help`; the audit and the guard take `--list-codes` and
-`--format json|github`. `selftest/` tests the scripts, the hooks, and the skill's own
-structure; `metadata.test-command` runs it.
+`--format json|github`. Exit 0 is clean, 1 findings, 2 "could not check" (no tests found,
+nothing to compare, a red baseline): never a pass. `selftest/` (run by
+`metadata.test-command`) tests the scripts, the hooks, and the skill's structure.
 
 ## Worked example
 
 `examples/wallet/` is a small package tested at every layer: unit, property
 (including a stateful model), security, integration, symbolic, and a fuzz target with
-corpus replay. `examples/wallet/demo/` holds v0 versions with planted bugs and the
-tests that find them. Start with `examples/wallet/README.md`. `examples/diagnoses/`
-holds five diagnoses with real script output (a bug behind a green suite, a gamed
-suite, a CI-only flake, a hanging async suite, 100% coverage at 38% mutation score);
-index: `examples/diagnoses/README.md`.
+corpus replay; start with `examples/wallet/README.md`. `examples/wallet/demo/` holds v0
+versions with planted bugs and the tests that find them. `examples/diagnoses/` holds five
+diagnoses with script output (a bug behind a green suite, a gamed suite, a CI-only flake,
+a hanging async suite, 100% coverage at 38% mutation score); index:
+`examples/diagnoses/README.md`.
 
 ## Extend this skill
 

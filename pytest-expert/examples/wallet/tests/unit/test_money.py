@@ -43,12 +43,16 @@ def test_transfer_fee_cents(amount_cents, account, expected):
 
 
 @pytest.mark.parametrize(
-    ("amount_cents", "account"),
-    [(0, REGULAR), (100, REGULAR + 1), (100, 123)],
+    ("amount_cents", "account", "message"),
+    [
+        (0, REGULAR, "amount must be positive"),
+        (100, REGULAR + 1, "invalid account number"),
+        (100, 123, "invalid account number"),
+    ],
     ids=["zero-amount", "bad-check-digit", "too-short"],
 )
-def test_transfer_fee_rejects_bad_input(amount_cents, account):
-    with pytest.raises(AmountError, match=r"amount|account"):
+def test_transfer_fee_rejects_bad_input(amount_cents, account, message):
+    with pytest.raises(AmountError, match=f"^{message}$"):
         transfer_fee_cents(amount_cents, account)
 
 
@@ -69,7 +73,7 @@ def test_transfer_fee_accepts_both_ends_of_the_account_range(account):
 
 @pytest.mark.parametrize("account", [NINE_DIGIT_WITH_CHECK, ELEVEN_DIGIT_WITH_CHECK], ids=["nine-digits", "eleven-digits"])
 def test_transfer_fee_rejects_valid_check_digit_outside_ten_digits(account):
-    with pytest.raises(AmountError, match="invalid account"):
+    with pytest.raises(AmountError, match="^invalid account number$"):
         transfer_fee_cents(10_000, account)
 
 

@@ -17,7 +17,7 @@ PYTHONPATH=demo python -m pytest demo -p no:randomly --no-cov -q
 | `wallet_v0.py` | `withdraw(nan)` passes both checks (`nan <= 0` and `nan > balance` are both false) and the balance becomes `nan` | Hypothesis with `@example(math.nan)`, every run | plain `st.floats()`: NaN appeared in about 1% of draws, so one run passed 100 of 100 examples |
 | `money_v0.py` | `parse_amount("")` leaks `decimal.InvalidOperation` instead of `AmountError` | Hypothesis `st.text()`; Atheris on its first input | example tests |
 | `money_v0.py` | `parse_amount("0.001")` passes the positivity check, then rounds to `0.00` | Hypothesis (reported alongside the leak as a second distinct failure) | example tests |
-| `money_v0.py` | partner-bank fee `10 - amount // 1000` goes negative, only for accounts that pass a mod-97 check | Hypothesis with `backend="crosshair"`; `crosshair check` | Hypothesis random search, 3 of 3 runs at 1,000 examples |
+| `money_v0.py` | partner-bank fee `10 - amount // 1000` goes negative, only for accounts that pass a mod-97 check | Hypothesis with `backend="crosshair"`; `crosshair check` | Hypothesis random search over unconstrained ten-digit accounts: it passed (missed the bug) in 14 of 15 runs at 1,000 examples, 2026-11-20 |
 | `store_v0.py` | SQL built with an f-string | the injection payload tests; ruff `S608` without running anything | |
 
 ## Captured output
@@ -31,12 +31,18 @@ FAILED demo/test_v0_findings.py::test_parse_amount_raises_only_amount_error
 FAILED demo/test_v0_findings.py::test_fee_never_negative_solver_search - asse...
 FAILED demo/test_v0_findings.py::test_get_returns_nothing_for_injection_payloads[tautology]
 FAILED demo/test_v0_findings.py::test_get_returns_nothing_for_injection_payloads[like-wildcard]
-6 failed, 1 passed in 4.03s
+6 failed, 1 passed in 1.21s
 ```
 
 The one that passed is `test_fee_never_negative_random_search`: random search missing
-the checksum-gated bug. `..._random_only` failed in this run and passed in an earlier
-one; that inconsistency is the reason to use `@example`.
+the checksum-gated bug. In a batch of 10 further runs on 2026-11-20 it passed 10 of 10
+(in 15 runs in all it found the bug once). `..._random_only` failed in 7 of those 10
+runs and passed in 3; that inconsistency is the reason to use `@example`.
+
+The fixed `src/wallet` property avoids the miss differently: `tests/property` builds
+valid account numbers (`97 * k + 1`, including partner-bank ones) instead of filtering
+random ten-digit integers, so every draw reaches the fee computation. The solver-backed
+test in `tests/symbolic` finds the same bug without knowing the check rule.
 
 Values found:
 
@@ -47,7 +53,7 @@ E   decimal.InvalidOperation: [<class 'decimal.ConversionSyntax'>]
 E   assert ('alice', '10.00') is None
 ```
 
-Atheris:
+Atheris (captured on an earlier machine, not rerun on 2026-11-20: Atheris could not be installed there):
 
 ```
 PYTHONPATH=demo python demo/fuzz_v0.py -runs=200000 -artifact_prefix=/tmp/v0-
@@ -83,8 +89,9 @@ The fixed versions of each module are in `src/wallet/`.
 
 ## Re-run notes (November 2026)
 
-Re-run on Python 3.13 with pytest 9.2.0, Hypothesis 6.170.14, CrossHair 0.0.112: same
-6 failed, 1 passed. Two things changed underneath:
+Re-run on 2026-11-20 (macOS arm64) on Python 3.13.2 with pytest 9.2.0, Hypothesis 6.170.17,
+CrossHair 0.0.114 and ruff 0.17.4: same 6 failed, 1 passed, same Values found, same CrossHair
+and ruff lines. Two things changed underneath (found on 2026-11 reruns with Hypothesis 6.170.14):
 
 - Python 3.13 emits `ResourceWarning` for a `sqlite3.Connection` that is garbage
   collected without `close()` (3.12 does not; checked with `-X dev` on both). Under

@@ -43,7 +43,7 @@ The first large flakiness study for Python: run the test suites of 22,352 PyPI p
 ## What it means for a pytest suite
 
 - The skill's numbers are right: 876,186 tests, 22,352 projects, 7,571 flaky, 59/28/13% [`flaky-tests.md`]. Two refinements:
-  - "about 170 reruns for 95% confidence that a passing test is not flaky" applies to NOD flakiness only; OD needs 31 random-order runs [§IV-C (a)]. `flake_hunt.py --runs 30` therefore matches the OD figure, which is the common case, but says little about NOD.
+  - "about 170 reruns for 95% confidence that a passing test is not flaky" applies to NOD flakiness only; OD needs 31 random-order runs [§IV-C (a)]. `flake_hunt.py`'s default `--runs 31` therefore matches the OD figure, which is the common case, but says little about NOD.
   - "Two runs prove almost nothing" is true for proving a test is clean, but one or three reruns are enough to tell whether a single observed failure was flaky [§IV-C (d)]. The flaky-tests reference can say both.
 - Order dependence is the main Python cause, so pytest-randomly in every CI run (already in `tests.yml`) and the module-state audit (`MUTABLE_MODULE_STATE`) target the largest slice.
 - The 28% infrastructure share argues for pinned, cached dependencies in CI (lockfiles, `pip install --require-hashes`) and for treating `ModuleNotFoundError` in CI as infrastructure, not a test failure.

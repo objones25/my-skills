@@ -37,5 +37,10 @@ class Wallet:
 
 def transfer(source: Wallet, target: Wallet, amount: Decimal) -> None:
     """Move money between wallets; either both sides change or neither does."""
+    source_balance_before = source.balance
     source.withdraw(amount)
-    target.deposit(amount)
+    try:
+        target.deposit(amount)
+    except Exception:
+        source.balance = source_balance_before  # undo the debit, then let the failure surface
+        raise

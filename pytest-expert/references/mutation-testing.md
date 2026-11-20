@@ -51,12 +51,33 @@ unproductive and suppresses them (`papers/google-mutation-at-scale.md`).
 
 | Tool | Scope | Speed | Use when |
 |---|---|---|---|
-| `scripts/mutate_check.py` | one file, optionally one function | seconds to a minute | workflow step 5: prove the tests you just wrote can fail |
-| mutmut 3 | whole package | seconds on the example (under 10 s), and it grows with mutants times suite time | nightly, or before trusting a suite |
+| `scripts/mutate_check.py` | one file, optionally one function | 74 s for the example's 34 mutants (2026-11-20, `examples/wallet/README.md`), and it grows with mutants times suite time | workflow step 5: prove the tests you just wrote can fail |
+| mutmut 3 | whole package | 12 s on the example (2026-11-20), and it grows with mutants times suite time | nightly, or before trusting a suite |
 
-`mutate_check.py` is stdlib only. Operators: comparison boundaries (`<` and `<=`,
-`==` and `!=`), arithmetic swaps, integer constant +1, `True`/`False`, `and`/`or`,
-dropping `not`, `max`/`min` and `any`/`all` swaps, and `return x` to `return None`.
+`mutate_check.py` is stdlib only. Mutation kinds (the names work with `--skip-kinds` and
+`--only-kinds`):
+
+| Kind | Mutation |
+|---|---|
+| `cmp` | comparison boundaries and negations: `<` and `<=`, `==` and `!=`, `is`, `in` |
+| `binop`, `augassign` | arithmetic swaps (`+ - * // / % **`), plain and augmented |
+| `boolop` | `and` and `or` |
+| `not` | `not x` becomes `x` |
+| `bool` | `True` and `False` |
+| `int`, `float` | `n` becomes `n + 1`, `c` becomes `c + 1.0` |
+| `name` | `max` and `min`, `any` and `all` |
+| `return` | `return x` becomes `return None` |
+| `matmul` | `@` becomes `*` |
+| `shift` | `<<` and `>>` |
+| `bitop` | `\|` becomes `&`, `&` becomes `\|`, `^` becomes `&` |
+| `neg` | unary minus dropped |
+
+Only code inside a function or class body is mutated; annotations, docstrings and module-level
+code are not. `x | None` is never mutated (it can only be a type union), but other runtime `|`
+(`isinstance(x, int | str)`, set and dict union) is, and a type-union mutant raises `TypeError`,
+which is a weak kill. Drop the `bitop` kind if that noise outweighs the signal. A tool that
+mutates more kinds finds more mutants, so a score is comparable only with scores from the same
+version of the script and the same kinds.
 
 ## mutate_check.py: prove one function's tests can fail
 
@@ -65,11 +86,49 @@ python scripts/mutate_check.py src/wallet/money.py --function transfer_fee_cents
 ```
 
 Everything after `--` is your test command. The file is edited in place and
-restored on exit, Ctrl-C, or SIGTERM. Each run gets a fresh `PYTHONPYCACHEPREFIX`:
+restored on exit, Ctrl-C, or SIGTERM (exit 130). Each run gets a fresh `PYTHONPYCACHEPREFIX`:
 a same-size mutation written within the same second can otherwise be masked by a
 stale `.pyc`, making a mutant look like it survived.
 
-First run on the example's unit tests:
+The test command runs in its own process group, and the whole group is killed on a timeout,
+on SIGINT or SIGTERM, and when it exits. The baseline run happens twice and must pass both
+times, so the baseline cost is doubled; a flaky suite cannot be scored. The mutant timeout is
+`max(--timeout-floor, baseline * --timeout-factor)`, with a floor of 10 s: a
+`--timeout-factor` that gives less than 10 s changes nothing unless you also lower
+`--timeout-floor`.
+
+Each mutant gets one status, from the test command's exit code (pytest's):
+
+| Status | Meaning | In the score |
+|---|---|---|
+| `SURVIVED` | exit 0: the tests did not notice | counts against it |
+| `killed` | exit 1, or any code listed in `--kill-codes` (default `1`, "tests failed") | counts for it |
+| `killed (timeout)` | the run exceeded the timeout | counts for it, and is reported on its own line: a loaded machine also causes it |
+| `errored (exit N)` | any other exit: pytest 2 (the mutant broke the import or collection), a crash by signal (negative N) | left out: the tests could not run, so they did not catch anything |
+
+The score is killed over killed plus survived. The text report prints each mutant as it
+finishes, with the test ids that killed it (`by test_a, test_b (+2 more)`: the first three).
+JSON (`--format json`) has `score`, `killed`, `survived`, `errored`, `timeouts`,
+`baseline_seconds` and `timeout_seconds`, and per mutant `index`, `line`, `description`,
+`status`, `seconds`, `exit_code` and `killed_by`. The ids come from pytest's short summary and
+unittest's `FAIL:` lines in the captured output, so a test command that suppresses the summary
+(`-p no:terminal`) reports an empty `killed_by`; the output never changes a status.
+`--show-output` prints the last 10 lines of each errored mutant's output (text) or adds an
+`output_tail` field to every mutant (JSON). `--function NAME` scopes by a bare name (any
+function or class of that name at any depth, with everything nested in it) or `Class.method`
+(a path from the top of the module).
+
+Exit status: 0 when no mutant survived (or survivors are at most `--max-survivors`), 1
+otherwise, 130 after SIGINT or SIGTERM. 2 means the check could not be done, and is never a
+pass: a usage error, an unreadable or unparsable source, a test command that cannot start, a
+red or flaky baseline, no mutation sites, or no mutant that could be evaluated (every run
+exited outside `--kill-codes`).
+
+First run on the example's unit tests. These two reports are earlier captures: the current
+script also prints one `  #N  line L  description  status` line per mutant as it goes and ends
+its summary line with `mutant timeout Ns`; the survivor lines and counts are as quoted (the
+second report's survivors were confirmed again on 2026-11-20, 32 of 34 killed, in
+`examples/wallet/README.md`).
 
 ```
 28/34 mutants killed (82%), baseline 4.5s
@@ -97,7 +156,7 @@ mod-97 check (remainders 34 and 49), so the function rejects them either way.
 Equivalent mutants are expected; record why and move on.
 
 The baseline must pass first. When boundary constants were mistyped, the script
-refused to run:
+refused to run and exited 2 (re-run 2026-11-20 with a command that exits 1):
 
 ```
 mutate_check: baseline test command did not pass (failed); fix the suite first
@@ -126,7 +185,7 @@ failed with `test_corpus_is_not_empty` for exactly that reason. Add `mutants/` t
 | `mutmut results` | list survivors |
 | `mutmut show <name>` | diff of one mutant |
 
-Result on the example, first run (72 s, 3.25 mutants/s; machine not recorded):
+Result on the example, first run (72 s, 3.25 mutants/s; machine not recorded; 194 mutants then, 196 now):
 
 ```
 194/194  killed 175  survived 19
@@ -162,25 +221,25 @@ No test at exactly 32 characters. Added accept-32 and reject-33 tests.
 ```
 Equivalent. Ignore.
 
-After the four new tests, on 2026-11-09 on macOS arm64 with Python 3.13.2, mutmut
-3.8.1 and pytest 9.2.0 (two runs, 6 s and 9 s; an earlier record of 183 killed and 11
-survived in 61 s, machine not recorded, did not reproduce):
+After tests for those four, and for the fee messages and `load_wallet`'s consistency checks
+(see `examples/wallet/README.md`), on 2026-11-20 on macOS arm64 with Python 3.13.2, mutmut
+3.8.1 and pytest 9.2.0 (one run, 12 s, in a scratch copy of the example):
 
 ```
-194/194  killed 181  survived 13
+196/196  killed 190  survived 6
 ```
 
-What the remaining 13 teach:
+What the remaining 6 teach:
 
 | Survivor | Lesson |
 |---|---|
 | Three `encoding="utf-8"` mutants in `save_wallet` (`None`, omitted, `"UTF-8"`), and `decode("UTF-8")` in `load_wallet` | Equivalent. `json.dumps` escapes non-ASCII by default (`ensure_ascii=True`), so the file is pure ASCII under any encoding, and codec names are case-insensitive. |
-| `AmountError("amount must be positive")` mutated to `"XXamount must be positiveXX"`, the same for `"invalid account number"`, and `StoreError(...)` mutated to `StoreError(None)` in `load_wallet` | `pytest.raises(match=...)` uses `re.search`. Anchor it (`match=r"^amount must be positive$"`) when the message is the contract. |
-| `balance < 0` mutated to `balance <= 0` and to `balance < 1` in `load_wallet` | No test loads a stored wallet with a zero or negative balance. A security-relevant gap: corrupt files are not covered. |
-| Each `or` mutated to `and` in the same check | Same gap: no test for a file whose owner does not match its name, or whose balance is not finite. |
-| `10**9 <= account` mutated to `<`, and `account < 10**10` to `<=` | Equivalent (see above). |
+| `10**9 <= account` mutated to `<`, and `account < 10**10` to `<=`, in `transfer_fee_cents` | Equivalent: `10**9 % 97` is 34 and `10**10 % 97` is 49, so neither boundary value passes the mod-97 check either way. |
 
-These are left in the example on purpose as exercises.
+A message mutant such as `AmountError("amount must be positive")` becoming
+`"XXamount must be positiveXX"` survives while `pytest.raises(match=...)` is unanchored,
+because `match` uses `re.search`. Anchor it (`match=r"^amount must be positive$"`) when the
+message is the contract; that is how the example kills them.
 
 Triage order: a survivor in validation, auth, or money logic is a missing test.
 A survivor in a log or error message is a missing test only if callers depend on
@@ -188,7 +247,7 @@ the text. An equivalent mutant gets a one-line note.
 
 ## In CI
 
-A whole-package run costs roughly mutants times suite time: under 10 s on the example,
+A whole-package run costs roughly mutants times suite time: 12 s on the example (2026-11-20),
 but long enough on a real package that it belongs in a nightly job, while
 `mutate_check.py` on the functions a change touched is cheap enough to run before
 pushing. Google's approach is per change: mutants only on the lines a changelist adds

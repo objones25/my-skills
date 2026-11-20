@@ -47,7 +47,7 @@ Coverage says a line ran; it does not say a test would notice if the line were w
 - Report surviving mutants as named test goals, not as a score. That is how Google surfaces them, and the paper's evidence is about acting on individual live mutants during review. `mutate_check.py` already prints each `SURVIVED line N: a -> b`; keep that as the primary output and treat the percentage as secondary.
 - Mutate the diff, not the package, when gating an agent's turn. Google runs only on changed, covered lines [§II]. A Stop-hook or per-edit mutation check scoped to the functions the agent touched matches this design and keeps cost down.
 - One mutant per line is a defensible budget. With >90% majority fate [§IV-D], a cheap checker that tries one or two operators per line loses little signal.
-- Statement deletion matters. SBR produced most fault-coupled mutants [§IV-C]. `mutate_check.py`'s operator list (comparisons, arithmetic, constants, booleans, `and`/`or`, `not`, `max`/`min`, `return None`) has no statement-deletion operator; adding "delete this statement" (replace with `pass`) would catch tests that run a line without checking its effect.
+- Statement deletion matters. SBR produced most fault-coupled mutants [§IV-C]. `mutate_check.py`'s operator list (comparisons, arithmetic, shift, bitwise and matrix-multiply operators, unary minus, constants, booleans, `and`/`or`, `not`, `max`/`min`, `return None`) has no statement-deletion operator; adding "delete this statement" (replace with `pass`) would catch tests that run a line without checking its effect.
 - Skip arid lines (logging, metrics) so survivors stay actionable; see the companion digest `google-mutation-at-scale.md`.
 
 ## Threats to validity / caveats
