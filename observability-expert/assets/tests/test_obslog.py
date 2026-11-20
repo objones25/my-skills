@@ -12,10 +12,12 @@ from __future__ import annotations
 import json
 import logging
 import logging.config
+import logging.handlers
 import subprocess
 import sys
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from typing import TYPE_CHECKING, Any
 
 import pytest
 
@@ -44,8 +46,15 @@ def _reset_logging():
     root.setLevel(saved[1])
 
 
-def make_record(**extra) -> logging.LogRecord:
-    record = logging.LogRecord(
+class _ExtraRecord(logging.LogRecord):
+    """LogRecord whose `extra=` fields the checker may read as attributes."""
+
+    if TYPE_CHECKING:
+        def __getattr__(self, name: str) -> Any: ...
+
+
+def make_record(**extra) -> _ExtraRecord:
+    record = _ExtraRecord(
         name="t", level=logging.INFO, pathname=__file__, lineno=1,
         msg="order %s received", args=(1001,), exc_info=None,
     )
@@ -213,7 +222,10 @@ def test_queue_handler_preserves_exc_info_and_context(capsys):
             raise RuntimeError("kaboom")
         except RuntimeError:
             logger.exception("failed while charging")
-    logging.getHandlerByName("queue").listener.stop()  # flush before reading
+    handler = logging.getHandlerByName("queue")
+    assert isinstance(handler, logging.handlers.QueueHandler)
+    assert handler.listener is not None
+    handler.listener.stop()  # flush before reading
 
     line = [l for l in capsys.readouterr().out.splitlines() if l.startswith("{")][-1]
     out = json.loads(line)
