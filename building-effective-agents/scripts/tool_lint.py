@@ -29,7 +29,7 @@ import json
 import re
 import sys
 from dataclasses import dataclass, asdict
-from typing import Any, Sequence
+from typing import Any, Sequence, cast
 
 STOP = set("""a an the of to for and or in on with by from at is are be this that it its
 as use used using call returns return get given into via when your you can will all any
@@ -115,7 +115,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     p.add_argument("--json", action="store_true")
     a = p.parse_args(argv)
     data = json.load(open(a.file))
-    tools = data["tools"] if isinstance(data, dict) and "tools" in data else data
+    tools = cast("Sequence[dict[str, Any]]",
+                 data["tools"] if isinstance(data, dict) and "tools" in data else data)
     findings, stats = lint(tools, a.overlap)
     if a.json:
         print(json.dumps({"stats": stats, "findings": [asdict(f) for f in findings]}, indent=2))

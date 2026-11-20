@@ -30,10 +30,13 @@ import time
 import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable, Protocol
+from typing import TYPE_CHECKING, Any, Callable, Protocol, cast
 
 sys.path.insert(0, str(Path(__file__).parent))
 from tool_budget import budget_text  # noqa: E402
+
+if TYPE_CHECKING:
+    from anthropic.types import MessageParam, ToolParam
 
 FINISH = {
     "name": "finish",
@@ -285,7 +288,9 @@ class AnthropicModel:
                 else:
                     api_msgs.append({"role": "user", "content": [block]})
         r = self.client.messages.create(model=self.model, max_tokens=self.max_tokens,
-                                        system=self.system, messages=api_msgs, tools=tools)
+                                        system=self.system,
+                                        messages=cast("list[MessageParam]", api_msgs),
+                                        tools=cast("list[ToolParam]", tools))
         text = "".join(b.text for b in r.content if b.type == "text")
         calls = [ToolCall(b.id, b.name, dict(b.input)) for b in r.content if b.type == "tool_use"]
         return ModelTurn(text, calls, r.usage.input_tokens + r.usage.output_tokens)

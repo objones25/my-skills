@@ -94,7 +94,7 @@ def compare(old: Mapping[str, tuple[int, int]], new: Mapping[str, tuple[int, int
 def run_budget(tasks: int, trials: int, versions: int, cost_per_run: float | None = None) -> dict:
     """Agent runs (and optional dollars) an eval plan costs: tasks x trials x versions."""
     runs = tasks * trials * versions
-    out = {"runs": runs}
+    out: dict[str, int | float] = {"runs": runs}
     if cost_per_run is not None:
         out["cost"] = round(runs * cost_per_run, 2)
     return out

@@ -29,6 +29,7 @@ import sys
 from inspect_ai import Epochs, Task, task
 from inspect_ai.agent import react
 from inspect_ai.dataset import Sample
+from inspect_ai.log import EvalLog
 from inspect_ai.model import ChatMessageAssistant, ChatMessageTool
 from inspect_ai.scorer import (CORRECT, INCORRECT, PARTIAL, Score, Target, accuracy,
                                pass_at, pass_k, scorer, stderr)
@@ -121,7 +122,7 @@ def order_status(epochs: int = 4):
     )
 
 
-def _smoke() -> None:
+def _smoke() -> EvalLog:
     """Run offline with scripted mock outputs to check the plumbing (not the agent)."""
     from inspect_ai import eval as inspect_eval
     from inspect_ai.model import ModelOutput, get_model
@@ -134,7 +135,9 @@ def _smoke() -> None:
     def scripted(input, tools, tool_choice, config):
         # Decide from the conversation, not from call order: samples and epochs run concurrently.
         text = " ".join(str(m.content) for m in input)
-        oid = re.search(r"A\d+", text).group(0)
+        match = re.search(r"A\d+", text)
+        assert match is not None, "no order id in the conversation"
+        oid = match.group(0)
         if not any(isinstance(m, ChatMessageTool) for m in input):
             return ModelOutput.for_tool_call("mockllm/model", "get_order", {"order_id": oid})
         return ModelOutput.for_tool_call("mockllm/model", "submit", {"answer": answers[oid]})
@@ -144,6 +147,7 @@ def _smoke() -> None:
     logs = inspect_eval(t, model=model, display="none", log_dir=tempfile.mkdtemp(prefix="inspect-smoke-"))
     log = logs[0]
     print("status:", log.status)
+    assert log.results is not None
     for s in log.results.scores:
         print(s.reducer, {k: round(v.value, 3) for k, v in s.metrics.items()})
     return log
