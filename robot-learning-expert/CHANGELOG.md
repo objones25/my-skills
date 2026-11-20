@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-11-19, v0.4.1: Pyright type fixes
+
+Pyright now reports 0 errors on this skill (was 12). No intended change in behaviour apart from the one noted below.
+
+- `examples/ppo_pendulum.py`: the policy head and the Box action space are narrowed with `isinstance` asserts; `train()` raises `ValueError` for `--epochs` below 1 (it previously failed with an unbound variable) and initialises `new_lp` and `kl` before the epoch loop.
+- `scripts/local_sim.py`: `GymLocalSim.checkpoint()` before `reset()` now raises `ProtocolViolation`, as `TabularSim.checkpoint()` already did (it used to return a token with `h=None`). New test `test_gym_checkpoint_before_reset_is_a_protocol_violation`, which fails on the old code. `TabularSim.restore` and `GymLocalSim.restore` got type narrowing only.
+- `tests/test_examples.py`: the module loader asserts that the import spec and loader exist.
+
 ## 2026-11-16, v0.4.0: fixes from the 2026-11-16 audit
 
 Fixes the findings of the audit-skill report of 2026-11-16 (risk scope, 124 of 2460 items checked; see `AUDIT.md`). Item ids are the report's.

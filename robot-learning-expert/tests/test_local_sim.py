@@ -98,6 +98,13 @@ def _noisy_walk_env(gym):
     return NoisyWalk()
 
 
+def test_gym_checkpoint_before_reset_is_a_protocol_violation():
+    gym = pytest.importorskip("gymnasium")
+    sim = ls.GymLocalSim(gym.make("CartPole-v1"), H=50)
+    with pytest.raises(ls.ProtocolViolation, match="before reset"):
+        sim.checkpoint()
+
+
 @pytest.mark.parametrize("fresh", [True, False])
 def test_gym_restore_rng_policy(fresh):
     gym = pytest.importorskip("gymnasium")
