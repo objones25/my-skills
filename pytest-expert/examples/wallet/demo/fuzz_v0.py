@@ -6,9 +6,9 @@ Run from examples/wallet:  python demo/fuzz_v0.py -runs=100000 -artifact_prefix=
 import sys
 from decimal import Decimal
 
-import atheris
+import atheris  # pyright: ignore[reportMissingModuleSource]
 
-with atheris.instrument_imports():
+with atheris.instrument_imports():  # pyright: ignore[reportAttributeAccessIssue]
     import money_v0
 
 

@@ -47,6 +47,7 @@ def test_post_edit_blocks_with_audit_findings(project):
     path = project / "tests" / "test_x.py"
     path.write_text(BAD_AUDIT)
     out = fire(project, "pytest_expert_post_edit.py", edit_event(path))
+    assert out is not None
     assert out["decision"] == "block"
     assert "NO_ASSERT" in out["reason"]
 
@@ -55,6 +56,7 @@ def test_post_edit_reports_red_tests_as_context_not_block(project):
     path = project / "tests" / "test_x.py"
     path.write_text(RED)
     out = fire(project, "pytest_expert_post_edit.py", edit_event(path))
+    assert out is not None
     assert "decision" not in out
     assert "fails right now" in out["hookSpecificOutput"]["additionalContext"]
 
@@ -78,6 +80,7 @@ def stop_event(**extra):
 def test_stop_gate_blocks_on_a_red_suite(project):
     (project / "tests" / "test_x.py").write_text(RED)
     out = fire(project, "pytest_expert_stop_gate.py", stop_event())
+    assert out is not None
     assert out["decision"] == "block"
     assert "Fast suite failing" in out["reason"]
 
@@ -98,7 +101,8 @@ def test_stop_gate_gives_up_after_max_blocks(project, monkeypatch):
     monkeypatch.setenv("PYTEST_EXPERT_MAX_BLOCKS", "2")
     (project / "tests" / "test_x.py").write_text(RED)
     outcomes = [fire(project, "pytest_expert_stop_gate.py", stop_event()) for _ in range(3)]
-    assert [("decision" in o, "systemMessage" in o) for o in outcomes] == [(True, False), (True, False), (False, True)]
+    assert all(o is not None for o in outcomes)
+    assert [("decision" in o, "systemMessage" in o) for o in outcomes if o is not None] == [(True, False), (True, False), (False, True)]
 
 
 def git(project, *args):
@@ -124,6 +128,7 @@ def git_project(project, monkeypatch):
 def test_stop_gate_blocks_when_the_failing_test_was_deleted(git_project):
     (git_project / "tests" / "test_x.py").write_text(GOOD)
     out = fire(git_project, "pytest_expert_stop_gate.py", stop_event())
+    assert out is not None
     assert out["decision"] == "block"
     assert "TEST_DELETED" in out["reason"]
 
@@ -133,6 +138,7 @@ def test_stop_gate_blocks_when_the_failing_test_was_skipped(git_project):
         "import pytest\n" + GOOD + "\n\n@pytest.mark.skip(reason='later')\ndef test_red():\n    assert 1 + 1 == 3\n"
     )
     out = fire(git_project, "pytest_expert_stop_gate.py", stop_event())
+    assert out is not None
     assert "SKIP_ADDED" in out["reason"]
 
 
@@ -141,6 +147,7 @@ def test_session_start_base_survives_a_commit_of_the_weakened_tests(git_project)
     (git_project / "tests" / "test_x.py").write_text(GOOD)
     git(git_project, "commit", "-q", "-am", "make it green")
     out = fire(git_project, "pytest_expert_stop_gate.py", stop_event())
+    assert out is not None
     assert "TEST_DELETED" in out["reason"]
 
 
@@ -153,6 +160,7 @@ def test_diff_allow_env_lets_an_approved_deletion_through(git_project, monkeypat
 def test_subagent_stop_event_is_gated_the_same_way(git_project):
     (git_project / "tests" / "test_x.py").write_text(GOOD)
     out = fire(git_project, "pytest_expert_stop_gate.py", {**stop_event(), "hook_event_name": "SubagentStop"})
+    assert out is not None
     assert out["decision"] == "block"
 
 
@@ -168,6 +176,7 @@ NOTE = (
 def test_block_message_names_the_escalation_path(project):
     (project / "tests" / "test_x.py").write_text(RED)
     out = fire(project, "pytest_expert_stop_gate.py", stop_event())
+    assert out is not None
     assert "pytest-expert-escalation.md" in out["reason"]
     assert "Do not edit, skip, or delete a failing test" in out["reason"]
 
@@ -176,6 +185,7 @@ def test_complete_escalation_note_lets_claude_stop_and_reaches_the_user(project)
     (project / "tests" / "test_x.py").write_text(RED)
     (project / ".claude" / "pytest-expert-escalation.md").write_text(NOTE)
     out = fire(project, "pytest_expert_stop_gate.py", stop_event())
+    assert out is not None
     assert "decision" not in out
     assert "Claude escalated" in out["systemMessage"]
     assert "Recommendation: fix the expected value to 2" in out["systemMessage"]
@@ -189,6 +199,7 @@ def test_escalation_is_one_shot(project):
     (project / ".claude" / "pytest-expert-escalation.md").write_text(NOTE)
     fire(project, "pytest_expert_stop_gate.py", stop_event())
     second = fire(project, "pytest_expert_stop_gate.py", stop_event())
+    assert second is not None
     assert second["decision"] == "block"
 
 
@@ -196,5 +207,6 @@ def test_incomplete_escalation_note_is_sent_back(project):
     (project / "tests" / "test_x.py").write_text(RED)
     (project / ".claude" / "pytest-expert-escalation.md").write_text("Test: tests/test_x.py::test_red\nProblem: wrong\n")
     out = fire(project, "pytest_expert_stop_gate.py", stop_event())
+    assert out is not None
     assert out["decision"] == "block"
     assert "missing: issue type:, tried:, recommendation:" in out["reason"]

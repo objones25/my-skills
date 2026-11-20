@@ -22,6 +22,7 @@ import random
 import socket
 import sys
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -108,12 +109,12 @@ def _block_network(request: pytest.FixtureRequest, monkeypatch: pytest.MonkeyPat
     real_connect = socket.socket.connect
     real_getaddrinfo = socket.getaddrinfo
 
-    def guarded_connect(self: socket.socket, address: object) -> None:
+    def guarded_connect(self: socket.socket, address: Any) -> None:
         if self.family == getattr(socket, "AF_UNIX", None) or (isinstance(address, tuple) and _is_local(address[0])):
             return real_connect(self, address)
         raise blocked(address)
 
-    def guarded_getaddrinfo(host: object, *args: object, **kwargs: object):
+    def guarded_getaddrinfo(host: Any, *args: Any, **kwargs: Any):
         if _is_local(host):
             return real_getaddrinfo(host, *args, **kwargs)
         raise blocked(host)

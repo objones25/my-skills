@@ -15,9 +15,9 @@ import sys
 from decimal import Decimal
 
 if __name__ == "__main__":
-    import atheris
+    import atheris  # pyright: ignore[reportMissingModuleSource]
 
-    with atheris.instrument_imports(include=["wallet"]):
+    with atheris.instrument_imports(include=["wallet"]):  # pyright: ignore[reportAttributeAccessIssue]
         from wallet import money
 else:
     from wallet import money
@@ -37,5 +37,7 @@ def test_one_input(data: bytes) -> None:
 
 
 if __name__ == "__main__":
+    import atheris  # pyright: ignore[reportMissingModuleSource]
+
     atheris.Setup(sys.argv, test_one_input)
     atheris.Fuzz()
