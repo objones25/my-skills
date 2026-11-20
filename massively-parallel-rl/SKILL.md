@@ -5,7 +5,7 @@ license: MIT
 compatibility: Python 3.10+. Scripts need jax, flax, optax, distrax, gymnax, numpy, scipy, pandas (craftax optional). Tests last run 2026-11-03 on macOS arm64 (JAX CPU backend) with JAX 0.12.0.1 / Flax 0.12.12 / Optax 0.2.8 / gymnax 0.0.9. Reference files cite repo commits read on 2026-10-27.
 metadata:
   author: owenbeckettjones
-  version: '1.0.0'
+  version: '1.0.1'
   verified-against: "jax 0.12.0.1, flax 0.12.12, optax 0.2.8, distrax 0.1.9, gymnax 0.0.9, torch 2.14.1"
 ---
 

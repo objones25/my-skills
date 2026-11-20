@@ -40,6 +40,7 @@ import json
 import math
 import sys
 from collections import defaultdict
+from typing import cast
 
 import numpy as np
 import pandas as pd
@@ -75,18 +76,21 @@ def competitive_configs(df: pd.DataFrame, n_boot: int, seed: int) -> pd.DataFram
     rng = np.random.default_rng(seed)
     rows = []
     for c, g in df.groupby("flops"):
-        groups = [(k, v["score"].to_numpy()) for k, v in g.groupby(["model", "batch_size", "lr"])]
+        groups = [(cast(tuple, k), v["score"].to_numpy()) for k, v in g.groupby(["model", "batch_size", "lr"])]
         too_few = [k for k, v in groups if len(v) < 2]
         if too_few:
             print(f"warning: {len(too_few)} configs at C={c:g} have <2 seeds; bootstrap cannot reduce their noise",
                   file=sys.stderr)
         for _ in range(n_boot):
-            best_key, best_val = None, -math.inf
+            best_key: tuple | None = None
+            best_val = -math.inf
             for key, scores in groups:
                 sample = scores[rng.integers(0, len(scores), size=len(scores))]
                 val = iqm(sample)
                 if val > best_val:
                     best_key, best_val = key, val
+            if best_key is None:
+                raise ValueError("n_boot must be >= 1 and every budget needs at least one config")
             rows.append({"flops": c, "model": best_key[0], "batch_size": best_key[1], "lr": best_key[2]})
     return pd.DataFrame(rows)
 
@@ -99,7 +103,7 @@ def run_hparams(args) -> dict:
         raise SystemExit(f"hparams CSV missing columns: {sorted(missing)}")
     hold = parse_budgets(args.holdout)
     comp = competitive_configs(df, args.boot, args.seed)
-    fit = comp[~comp["flops"].isin(hold)]
+    fit = comp.loc[~comp["flops"].isin(list(hold))]
     if fit["flops"].nunique() < 3:
         raise SystemExit("need at least 3 fitted budgets for a power law (fewer cannot show curvature or noise)")
     a_b, d_b = fit_power_law(fit["flops"].to_numpy(), fit["batch_size"].to_numpy())
@@ -110,7 +114,8 @@ def run_hparams(args) -> dict:
     per_c = comp.groupby("flops").agg(batch_geo=("batch_size", lambda x: 10 ** np.log10(x).mean()),
                                       lr_geo=("lr", lambda x: 10 ** np.log10(x).mean()))
     print("\nbudget      mean B*    mean lr*   pred B*    pred lr*   role")
-    for c, r in per_c.iterrows():
+    for c_key, r in per_c.iterrows():
+        c = cast(float, c_key)  # index holds the float budgets from groupby("flops")
         role = "holdout" if c in hold else "fit"
         print(f"{c:<10.3g}  {r.batch_geo:9.4g}  {r.lr_geo:9.3g}  {a_b * c ** d_b:9.4g}  {a_lr * c ** d_lr:9.3g}   {role}")
 
@@ -119,7 +124,7 @@ def run_hparams(args) -> dict:
     for c in sorted(hold):
         g = df[df["flops"] == c]
         agg = g.groupby(["model", "batch_size", "lr"])["score"].agg(iqm)
-        bm, bb, bl = agg.idxmax()
+        bm, bb, bl = cast(tuple, agg.idxmax())
         pred_b, pred_lr = a_b * c ** d_b, a_lr * c ** d_lr
         print(f"\nholdout C={c:g}: empirical best model={bm}, B={bb:g}, lr={bl:.3g}, score {agg.max():.4g}; "
               f"predicted B={pred_b:.4g}, lr={pred_lr:.3g}. Check the grid cell nearest the prediction.")
@@ -158,7 +163,8 @@ def run_isoflops(args) -> dict:
         raise SystemExit(f"isoflops CSV missing columns: {sorted(missing)}")
     hold = parse_budgets(args.holdout)
     verts = {}
-    for c, g in df.groupby("flops"):
+    for c_key, g in df.groupby("flops"):
+        c = cast(float, c_key)  # groupby keys are the float budgets
         v = isoflop_vertex(g)
         verts[float(c)] = v
         if not v["bracketed"]:

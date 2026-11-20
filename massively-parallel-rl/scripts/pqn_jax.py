@@ -34,7 +34,7 @@ from __future__ import annotations
 import argparse
 import sys
 import time
-from typing import NamedTuple
+from typing import NamedTuple, cast
 
 import flax.linen as nn
 import jax
@@ -86,6 +86,9 @@ def make_train(cfg: dict):
     cfg.update(num_minibatches=n_mb, num_updates=num_updates)
     net = QNetwork(n_actions, cfg["hidden"], cfg["layers"])
 
+    def q_values(params, x) -> jnp.ndarray:
+        return cast(jnp.ndarray, net.apply(params, x))  # flax stub types apply() as Any | variable dict
+
     eps_sched = optax.linear_schedule(cfg["eps_start"], cfg["eps_finish"],
                                       int(cfg["eps_decay"] * num_updates))
     lr = (optax.linear_schedule(cfg["lr"], 1e-20, num_updates * cfg["num_epochs"] * n_mb)
@@ -105,12 +108,12 @@ def make_train(cfg: dict):
             def rollout_step(c, _):
                 obs, state, rng = c
                 rng, k_eps, k_rand, k_env = jax.random.split(rng, 4)
-                q = net.apply(ts.params, flat(obs))
+                q = q_values(ts.params, flat(obs))
                 greedy = jnp.argmax(q, axis=-1)
                 rand = jax.random.randint(k_rand, (n,), 0, n_actions)
                 action = jnp.where(jax.random.uniform(k_eps, (n,)) < eps, rand, greedy)
                 out = jax.vmap(wrapper.step)(jax.random.split(k_env, n), state, action)
-                q_final = jnp.max(net.apply(ts.params, flat(out.final_obs)), axis=-1)
+                q_final = jnp.max(q_values(ts.params, flat(out.final_obs)), axis=-1)
                 reward = out.reward + cfg["gamma"] * out.truncated * jax.lax.stop_gradient(q_final)
                 done = (out.terminated | out.truncated).astype(jnp.float32)
                 tr = Transition(obs, action, reward, done, q, out.episode_return, done)
@@ -119,7 +122,7 @@ def make_train(cfg: dict):
             (obs, state, rng), trs = jax.lax.scan(rollout_step, (obs, state, rng), None, t)
 
             # Q(lambda) targets, reverse scan (purejaxql pqn_minatar.py _get_target)
-            last_q = jnp.max(net.apply(ts.params, flat(obs)), axis=-1) * (1.0 - trs.done[-1])
+            last_q = jnp.max(q_values(ts.params, flat(obs)), axis=-1) * (1.0 - trs.done[-1])
             g_last = trs.reward[-1] + cfg["gamma"] * last_q
 
             def target(carry, tr):
@@ -145,7 +148,7 @@ def make_train(cfg: dict):
                     o, a, g = xs
 
                     def loss_fn(p):
-                        q = net.apply(p, o)
+                        q = q_values(p, o)
                         qa = jnp.take_along_axis(q, a[:, None], axis=-1).squeeze(-1)
                         return 0.5 * jnp.mean((qa - g) ** 2)
 
@@ -166,7 +169,7 @@ def make_train(cfg: dict):
         return ts.params, metrics
 
     def greedy(params, obs, key):
-        return jnp.argmax(net.apply(params, flat(obs)), axis=-1)
+        return jnp.argmax(q_values(params, flat(obs)), axis=-1)
 
     return train, wrapper, net, greedy, n_actions
 

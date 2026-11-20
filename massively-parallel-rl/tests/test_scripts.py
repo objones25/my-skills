@@ -183,9 +183,11 @@ def test_autoreset_separates_truncation_from_termination():
     w = AutoReset(env, params)
     obs, state = w.reset(jax.random.key(0))
     step = jax.jit(w.step)
+    out = None
     for t in range(params.max_steps_in_episode):
         out = step(jax.random.key(t + 1), state, jnp.zeros((1,)))
         state = out.state
+    assert out is not None  # the time limit is positive, so the loop ran
     assert bool(out.truncated) and not bool(out.terminated)
     assert not np.allclose(out.final_obs, out.obs)  # pre-reset obs differs from the new episode's
     assert int(out.episode_length) == params.max_steps_in_episode
@@ -194,11 +196,13 @@ def test_autoreset_separates_truncation_from_termination():
     w = AutoReset(env, params)
     obs, state = w.reset(jax.random.key(0))
     step = jax.jit(w.step)
+    out = None
     for t in range(200):
         out = step(jax.random.key(t), state, jnp.int32(1))  # always push right
         state = out.state
         if bool(out.terminated):
             break
+    assert out is not None
     assert bool(out.terminated) and not bool(out.truncated)
 
 
@@ -227,7 +231,7 @@ def test_ppo_learns_cartpole(tmp_path):
               "--results-csv", tmp_path / "res.csv", "--eval-csv", tmp_path / "ev.csv")
     assert out.returncode == 0, out.stderr
     df = pd.read_csv(tmp_path / "res.csv")
-    assert len(df) == 2 and df["score"].min() > 400, out.stdout
+    assert len(df) == 2 and df["score"].to_numpy().min() > 400, out.stdout
     assert {"flops", "fpf", "batch_size", "lr", "seed", "score", "model"} <= set(df.columns)
     assert sum(1 for _ in open(tmp_path / "ev.csv")) == 3  # header + 2 agents
 
@@ -254,8 +258,8 @@ def test_pqn_learns_cartpole(tmp_path):
               "--results-csv", tmp_path / "res.csv")
     assert out.returncode == 0, out.stderr
     df = pd.read_csv(tmp_path / "res.csv")
-    assert df["score"].median() > 400, out.stdout
-    assert (df["score"] < 100).sum() <= 2, out.stdout   # a rise in collapsed seeds is a regression
+    assert np.median(df["score"].to_numpy()) > 400, out.stdout
+    assert np.count_nonzero(df["score"].to_numpy() < 100) <= 2, out.stdout   # a rise in collapsed seeds is a regression
 
 
 def test_elo_warns_on_duplicate_instances(tmp_path):
