@@ -15,7 +15,7 @@ A quality finding needs proof the reviewer can rerun. "Might not handle unusual 
    python3 <this-skill>/scripts/mutate_check.py scripts/foo.py -- python3 -m pytest -x -q -p no:randomly tests/test_foo.py
    ```
 
-   Every surviving mutant gets one outcome with a one-line reason: **missing test** (a real gap: an item with `verdict: wrong` on the test), **equivalent** (no input can tell the mutant apart from the original), or **unproductive** (killable, but only by pinning an arbitrary detail such as a buffer size). Do not report every survivor as a gap; the reason line is what makes the outcome checkable. For a whole package, `mutmut` in the throwaway environment is the alternative.
+   Every surviving mutant gets one outcome with a one-line reason: **missing test** (a real gap: an item with `verdict: wrong` on the test), **equivalent** (no input can tell the mutant apart from the original), or **unproductive** (killable, but only by pinning an arbitrary detail such as a buffer size). Do not report every survivor as a gap; the reason line is what makes the outcome checkable. A mutant reported as `errored` (the test command exited with something other than a test failure, such as an import error) is neither a kill nor a survivor: it is left out of the score, so say how many there were. A `killed (timeout)` counts as a kill but is suspect on a loaded machine; rerun those alone before relying on them. For a whole package, `mutmut` in the throwaway environment is the alternative.
 6. **Check that each test can fail.** A test is only worth counting if breaking the code makes it fail. Watch for tautologies (`assert x or True`), assertions on a value the test itself set, and `pytest.raises` blocks whose match is too loose.
 
 ## What goes where
