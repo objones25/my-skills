@@ -199,6 +199,7 @@ class Checker:
         self.files = walk_files(root)
         self.skill_text = (root / "SKILL.md").read_text(encoding="utf-8")
         self._texts: dict[Path, str] = {}
+        self.fields: dict = {}
 
     def read(self, path: Path) -> str:
         """Text of a file, or empty after reporting SB015 once if it cannot be read."""
@@ -234,11 +235,12 @@ class Checker:
         return self.findings
 
     def check_frontmatter(self) -> None:
-        self.fields, problem = parse_frontmatter(self.skill_text)
-        if self.fields is None:
+        fields, problem = parse_frontmatter(self.skill_text)
+        if fields is None:
             self.add("SB002", "SKILL.md", problem or "")
             self.fields = {}
             return
+        self.fields = fields
         name = self.fields.get("name")
         if (name != self.root.name or not NAME_RE.fullmatch(str(name)) or len(str(name)) > 64
                 or name in RESERVED_NAMES):

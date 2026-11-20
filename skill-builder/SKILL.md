@@ -2,7 +2,7 @@
 name: skill-builder
 description: "Create a new Claude Code skill, or bring an existing one up to standard, with evals, tests, a changelog and a conformance check. Use when the user asks to build, write, scaffold, audit, update, harden or fix a skill, says a skill is stale or will not trigger, or asks what a skill is missing. Not for tuning a description or benchmarking through repeated runs; use skill-creator."
 metadata:
-  version: 0.2.0
+  version: 0.2.1
   test-command: "uv run --no-project --with pytest --with pyyaml python -m pytest tests"
 ---
 

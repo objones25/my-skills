@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.2.1, 2026-11-19
+
+Type-checking fix only; no change in behaviour. `pyright skill-builder` went from 1 error to 0.
+
+- `scripts/check_skill.py`: `Checker.fields` is declared as `dict` in `__init__`, and `check_frontmatter` assigns it only after the `None` case is handled.
+
+### Test results by machine
+
+| Date | Machine | Versions | Result |
+|---|---|---|---|
+| 2026-11-19 | macOS arm64 (Apple Silicon) | Python 3.13.2, pytest 9.2.0 | 200 passed, 1 skipped (same count before and after the change) |
+
 ## 0.2.0, 2026-11-07
 
 - Update mode step 2 runs the `audit-skill` skill when it is installed and works from its report, which adds domain-claim checking, source tiers, machine-checked quotes and a blind review loop. Without `audit-skill` the step is unchanged, so this skill stays self-contained.
