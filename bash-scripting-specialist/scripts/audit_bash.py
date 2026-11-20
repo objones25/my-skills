@@ -544,6 +544,7 @@ def parse_target(s: str) -> tuple[int, int]:
 
 
 def main(argv: list[str]) -> int:
+    assert __doc__ is not None  # module docstring is always present
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("files", nargs="*")
     ap.add_argument("--target", type=parse_target, default=(4, 4),
