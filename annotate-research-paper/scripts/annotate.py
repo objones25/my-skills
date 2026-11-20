@@ -22,6 +22,7 @@ import re
 import sys
 import unicodedata
 from pathlib import Path
+from typing import cast
 
 import pymupdf
 
@@ -403,7 +404,8 @@ def ref_cut(doc):
 
 def scope_words(page, pno, cut, keep_after=False):
     """Body words on a page (not the reference list): (x0,y0,x1,y1,text,block,line,wno)."""
-    ws = page.get_text("words", flags=SEARCH_FLAGS)
+    ws = cast(list[tuple[float, float, float, float, str, int, int, int]],
+              page.get_text("words", flags=SEARCH_FLAGS))
     if cut and not keep_after:
         cp, cb = cut
         if pno > cp:
@@ -627,7 +629,7 @@ def main():
     src_doc = pymupdf.open(args.pdf)
 
     norm = norm_text
-    raw_pages = [pg.get_text() for pg in src_doc]
+    raw_pages = [str(pg.get_text()) for pg in src_doc]
     paper_text = norm("\n".join(raw_pages))
     # second copy keeping the hyphen at line breaks ("state-of-\nthe-art")
     paper_text_h = norm(re.sub(r"-\n", "-", "\n".join(raw_pages)))
@@ -904,7 +906,8 @@ def main():
             titles_by_page.setdefault(pno_, []).append(plain(a_.get("title", "")).lower())
             if (a_.get("mark") or default_mark(a_, rs_)) == "highlight":
                 ann_hl.setdefault(pno_, []).extend(rs_)
-    review_marks, sec_concepts, density = [], {}, {}
+    review_marks, sec_concepts = [], {}
+    density: dict[int, float] = {}
     n_points = n_marked = 0
     thin_pages, cov_rows = [], []
     for pno in sorted(review):
@@ -984,8 +987,8 @@ def main():
             why = plain(pt.get("why", ""))
             if why:
                 check_quotes(why, ptag, attributed="note")
-                if WHY_DESC.match(why):
-                    errors.append(f"{ptag}: 'why' opens with {WHY_DESC.match(why).group(0)!r}, which says what the "
+                if why_desc := WHY_DESC.match(why):
+                    errors.append(f"{ptag}: 'why' opens with {why_desc.group(0)!r}, which says what the "
                                   "text does. Say why it matters: what it explains, enables, costs, or breaks.")
                 qw = set(content_words(q))
                 ww = content_words(why)
@@ -1214,14 +1217,14 @@ def main():
                                     "verbatim quote and without labeling it an inference. If the paper does not "
                                     "say this in these terms, mark it inferred or quote the text.")
             txt = plain(it.get("note", "")) + " " + plain(it.get("missing", ""))
-            if v == "cant-tell" and ABSENCE_RE.search(txt):
+            if v == "cant-tell" and (absence := ABSENCE_RE.search(txt)):
                 errors.append(f"critique item #{j}: verdict 'cant-tell' but the note says the paper omits "
-                              f"something ({ABSENCE_RE.search(txt).group(0)!r}). If a claim in the paper depends "
+                              f"something ({absence.group(0)!r}). If a claim in the paper depends "
                               "on that missing evidence, the verdict is 'concern' (or 'flaw' if the claim is "
                               "central). 'cant-tell' is only for evidence that may exist but you could not see.")
-            if v == "ok" and NEGATIVE_RE.search(plain(it.get("note", ""))):
+            if v == "ok" and (negative := NEGATIVE_RE.search(plain(it.get("note", "")))):
                 errors.append(f"critique item #{j}: verdict 'ok' but the note reports a problem "
-                              f"({NEGATIVE_RE.search(plain(it.get('note', ''))).group(0)!r}). Match the verdict "
+                              f"({negative.group(0)!r}). Match the verdict "
                               "to the text: 'concern' or 'flaw'.")
             if v in ("concern", "flaw") and re.search(r"(?i)\b(no (?:problem|issue)s?|is fine|well done|"
                                                      r"does this well)\b", plain(it.get("note", ""))):
@@ -1617,7 +1620,7 @@ li {margin-bottom: 4pt;} .muted {color: #666;}
                      f"<td>{it['note']}{basis(it)}</td></tr>")
         body += "</table>"
         spare, _ = cp.insert_htmlbox(pymupdf.Rect(50, 50, full_w - 50, H0 - 40), body,
-                                     css=css, archive=archive, scale_low=0.55)
+                                     css=css, archive=archive, scale_low=0.55)  # pyright: ignore[reportArgumentType]  # stub says int; pymupdf takes a float 0..1
         if spare < 0:
             errors.append("critique page overflows; shorten the notes")
 
@@ -1653,7 +1656,7 @@ li {margin-bottom: 4pt;} .muted {color: #666;}
                      f"<b>Why.</b> {cw['why']}<br>"
                      f"<span class='muted'><b>Link check.</b> {chk}</span></p>")
         spare, _ = kp.insert_htmlbox(pymupdf.Rect(60, 50, full_w - 60, H0 - 40), body,
-                                     css=css, archive=archive, scale_low=0.6)
+                                     css=css, archive=archive, scale_low=0.6)  # pyright: ignore[reportArgumentType]  # stub says int; pymupdf takes a float 0..1
         if spare < 0:
             errors.append("key references page overflows; link fewer works")
 
@@ -1691,7 +1694,7 @@ li {margin-bottom: 4pt;} .muted {color: #666;}
                  "A link tag marked 'not opened' was not opened during preparation (see Key references). "
                  "Page numbers refer to the original paper; this guide page is extra.</p>")
         spare, _ = gp.insert_htmlbox(pymupdf.Rect(60, 50, full_w - 60, H0 - 40), body,
-                                     css=css, archive=archive, scale_low=0.7)
+                                     css=css, archive=archive, scale_low=0.7)  # pyright: ignore[reportArgumentType]  # stub says int; pymupdf takes a float 0..1
         if spare < 0:
             errors.append("guide page overflows; shorten it")
         offset = 1
@@ -1728,7 +1731,7 @@ li {margin-bottom: 4pt;} .muted {color: #666;}
         if len(names) != len(out_doc):
             warnings.append("render names could not be matched to pages; renders are numbered by position")
             names = [f"out_{i}.png" for i in range(1, len(out_doc) + 1)]
-        for name, pg in zip(names, out_doc):
+        for name, pg in zip(names, out_doc.pages()):
             m = re.match(r"out_p(\d+)", name)
             if args.part and m and not (sel[0] <= int(m.group(1)) <= sel[1]):
                 continue   # --part: only the chunk's pages and their notes pages
@@ -1740,7 +1743,7 @@ li {margin-bottom: 4pt;} .muted {color: #666;}
     for lk in all_links:
         st_counts[eff_status(lk)] = st_counts.get(eff_status(lk), 0) + 1
     if density:
-        dmax = max(density, key=density.get)
+        dmax = max(density, key=lambda pno_: density[pno_])
         print(f"page review: {len(density)} pages, {n_points} key points, {n_marked} new highlights; "
               f"densest p{dmax} at {density[dmax]:.0%} of body text highlighted")
         # per-page coverage, so a sparse stretch is visible at a glance (and comparable across chunks)

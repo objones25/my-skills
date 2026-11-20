@@ -77,7 +77,7 @@ def main():
     meta = {"pages": []}
     rows = []
     thin_pages = []
-    for i, page in enumerate(doc, start=1):
+    for i, page in enumerate(doc.pages(), start=1):
         lines = page_lines(page)
         for n, (r, text) in enumerate(lines, start=1):
             rows.append(f"p{i} L{n} [{r.x0:.0f} {r.y0:.0f} {r.x1:.0f} {r.y1:.0f}] {text}")
@@ -117,7 +117,7 @@ def main():
     inv.append("# Terms set in bold (often newly defined; consider whether each needs unpacking)")
     skip_re = re.compile(r"^(Definition|Theorem|Lemma|Proposition|Corollary|Algorithm|Remark|"
                          r"Proof|Exercise|Example|Assumption|Claim|Figure|Table|\d)")
-    for i, page in enumerate(doc, start=1):
+    for i, page in enumerate(doc.pages(), start=1):
         spans = [sp for b in page.get_text("dict")["blocks"] for l in b.get("lines", []) for sp in l["spans"]]
         if not spans:
             continue
@@ -128,8 +128,7 @@ def main():
             for line in block.get("lines", []):
                 run = []  # consecutive bold spans on one line form one term
                 for sp in line["spans"] + [None]:
-                    bold = sp is not None and sp["flags"] & 16 and sp["size"] <= body + 0.6
-                    if bold:
+                    if sp is not None and sp["flags"] & 16 and sp["size"] <= body + 0.6:
                         run.append(sp["text"])
                         continue
                     t = " ".join("".join(run).split()).strip(" .,:;")
