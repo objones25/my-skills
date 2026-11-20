@@ -47,7 +47,7 @@ def main():
     if not file_path:
         return 0
     path = Path(file_path.replace("\\", "/"))
-    project_dir = Path(os.environ.get("CLAUDE_PROJECT_DIR", event.get("cwd", "."))).resolve()
+    project_dir = Path(os.environ.get("CLAUDE_PROJECT_DIR", str(event.get("cwd", ".")))).resolve()
 
     try:
         path.resolve().relative_to(project_dir)

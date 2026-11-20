@@ -62,7 +62,7 @@ def build_input(args, project_dir):
         if not args.tool:
             sys.exit(f"--tool is required for {args.event}")
         ev["tool_name"] = args.tool
-        tool_input = {}
+        tool_input: dict[str, object] = {}
         if args.command is not None:
             tool_input = {"command": args.command, "description": "dry run"}
         elif args.file is not None:
@@ -181,7 +181,7 @@ def select_handlers(configs, ev, project_dir):
         value = Path(value).name
     for source, config in configs:
         for evt, gi, group, hi, handler in hs.iter_handlers(config):
-            if evt != event or hi is None:
+            if evt != event or hi is None or handler is None:
                 continue
             matcher = None if event in hs.NO_MATCHER else group.get("matcher")
             if not hs.matcher_matches(event, matcher, value):
