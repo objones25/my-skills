@@ -3,7 +3,7 @@ name: documentation-expert
 description: Write, audit, and fix codebase documentation grounded in the source - READMEs, CONTRIBUTING guides, API reference, docstrings, and docs sites. Use when the user asks to write, improve, review, or fix any of these, mentions doc drift or stale docs, undocumented functions, or onboarding that fails, and before writing any documentation for a codebase even when the request sounds small, because the bundled scripts catch invented paths, flags, commands, and symbols. Not for changelogs, ADRs, RFCs, incident runbooks, marketing copy, or prose unrelated to a codebase.
 license: MIT
 metadata:
-  version: "1.1"
+  version: "1.1.1"
   test-command: "python3 scripts/test_scripts.py"
 ---
 

@@ -569,6 +569,7 @@ class Meta(unittest.TestCase):
         self.assertNotIn("when verified, a `file:line` citation", doc)
 
     def test_run_from_anywhere_commands_do_not_use_relative_paths(self):
+        assert __doc__ is not None
         doc = __doc__.split("Run from anywhere", 1)[1].split("Each test", 1)[0]
         commands = [ln.strip() for ln in doc.splitlines() if ln.strip().startswith("python3")]
         self.assertTrue(commands)
