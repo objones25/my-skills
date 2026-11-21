@@ -27,11 +27,11 @@ src/shop/pricing.py       10      0      4      0   100%
 
 $ python scripts/audit_tests.py tests/
 tests/test_pricing.py:4: WEAK_ASSERT: test_apply_discount: every assertion only checks existence or type  [warning]
-tests/test_pricing.py:9: NO_ASSERT: test_bad_percent asserts nothing
-tests/test_pricing.py:12: SWALLOWED_FAILURE: except Exception without re-raise hides failures
-tests/test_pricing.py:17: PRINT: print() in a test; assert instead, or use capsys/caplog  [warning]
-tests/test_pricing.py:21: NO_ASSERT: test_shipping_free asserts nothing
-tests/test_pricing.py:22: BARE_COMPARISON: `shipping_cents(5000) == 0` is not asserted
+tests/test_pricing.py:10: NO_ASSERT: test_bad_percent asserts nothing that can fail
+tests/test_pricing.py:13: SWALLOWED_FAILURE: except Exception without re-raise hides failures
+tests/test_pricing.py:18: PRINT: print() in a test; assert instead, or use capsys/caplog  [warning]
+tests/test_pricing.py:23: NO_ASSERT: test_shipping_free asserts nothing that can fail
+tests/test_pricing.py:24: BARE_COMPARISON: `shipping_cents(5000) == 0` is not asserted
 
 6 finding(s): BARE_COMPARISON=1, NO_ASSERT=2, PRINT=1, SWALLOWED_FAILURE=1, WEAK_ASSERT=1
 ```
@@ -67,7 +67,7 @@ to `>= 5000`:
 $ pytest -q
 9 passed
 $ python scripts/audit_tests.py tests/
-clean: no findings
+clean: no findings (1 file(s) checked)
 $ python scripts/mutate_check.py src/shop/pricing.py -- python -m pytest -x -q -p no:randomly tests/
 16/16 mutants killed (100%), baseline 2.3s
 ```

@@ -6,7 +6,9 @@ Run (needs pip install atheris):
 The oracle is the same contract the property tests check: parse_amount either
 raises AmountError or returns a positive, in-range, two-place Decimal. Any other
 exception, or a wrong value, is a crash. tests/security/test_fuzz_corpus_replay.py
-replays the corpus and every saved crash under plain pytest.
+replays the corpus and every saved crash under plain pytest. That oracle alone accepts
+AmountError for any input, so corpus files are named valid_* (must parse to the value
+the replay test lists) or invalid_* (must raise AmountError); keep that naming for new seeds.
 """
 
 from __future__ import annotations

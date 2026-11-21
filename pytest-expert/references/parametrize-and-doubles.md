@@ -281,12 +281,13 @@ The `assets/conftest.py` network blocker turns that silent failure into a loud o
 Audit code: `FAKE_MOCK_ASSERT`. This is the highest-severity trap in the whole skill because the
 test looks correct and passes forever.
 
-`Mock` auto-creates any attribute you touch. So all three of these assert nothing:
+A mock assertion that is never called, or that is misspelt on a Mock that accepts any name,
+asserts nothing:
 
 ```python
-m.called_once_with(3)          # not a real method. Returns a Mock. Truthy.
-assert m.called_once           # not a real attribute. A Mock. Truthy.
-m.assert_called_once_wtih(3)   # typo. Auto-created. Called. Returns a Mock. Passes.
+m.assert_called_once           # a bound method, never called. Truthy. Asserts nothing, on every Python.
+m.called_once_with(3)          # Python < 3.12: not a real method; returns a Mock. Asserts nothing.
+m.assert_called_once_wtih(3)   # typo: AttributeError on a default Mock, silent on Mock(unsafe=True).
 ```
 
 The real methods, every one of which raises `AssertionError` when unmet:
@@ -301,10 +302,12 @@ assert_has_calls         assert_has_awaits
 assert_not_called        assert_not_awaited
 ```
 
-Modern `unittest.mock` raises `AttributeError` for unknown *`assert_`-prefixed* names, which
-catches `assert_called_onc`. It does not catch `called_once_with`, and it does not help on a
-`MagicMock` you built by hand with those attributes set. `scripts/audit_tests.py` checks all of
-them, in both call and attribute form.
+A default `Mock` raises `AttributeError` for unknown *`assert_`-prefixed* names, which
+catches `assert_called_onc`. Since Python 3.12 it also raises for `called_once`,
+`called_once_with`, `called_with`, `not_called` and `has_calls`; on 3.11 those return a Mock
+(checked 2026-11-20 on 3.11.14, 3.12.16 and 3.13.2). A `Mock(unsafe=True)`, and an attribute of
+an object that is not a Mock, accept any name. `scripts/audit_tests.py` reports all of them,
+in call and attribute form, and the missing-parentheses form on every Python.
 
 Two real attributes that are *not* assertions, and read like they are: `m.called` (bool) and
 `m.call_count` (int). `assert m.called` is a valid assertion; `assert m.called_once` is not.

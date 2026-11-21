@@ -124,7 +124,7 @@
       "prompt": "Write tests for an async fetch_with_retry(fetch, attempts=3, base_delay=0.5) that sleeps with exponential backoff between attempts. The current tests take 4 seconds.",
       "expectations": [
         "Injects the sleep function (or clock) as a parameter instead of really sleeping",
-        "Asserts the exact delay sequence, e.g. [0.5, 1.0], with a fake sleep",
+        "Asserts the exact delay sequence, e.g. [0.5, 1.0], with a fake sleep, comparing the floats with pytest.approx",
         "Tests the final re-raise with pytest.raises and an anchored match",
         "Uses @pytest.mark.asyncio (or anyio) and does not use time.sleep or long asyncio.sleep"
       ],

@@ -86,20 +86,43 @@ cp pytest-expert/assets/claude/settings.json .claude/settings.json
 
 ## Checking the install
 
+In your project:
+
 ```
 python scripts/audit_tests.py tests/
 pytest
 pytest -m integration --no-cov
 ```
 
+The audit prints `clean: no findings (N file(s) checked)` and exits 0 when it found nothing.
+Exit 1 means findings; exit 2 means it could not check (no test files under the path, an
+unreadable file or config, an unknown `--ignore` code, an `--assert-helper` pattern that would match every call). The same three statuses apply to
+`diff_guard.py` (2 also covers "outside a git repository" and an unknown `--base`),
+`mutate_check.py` (2 also covers a red or flaky baseline) and `flake_hunt.py`. Treat 2 as a
+failure.
+
+If your suite asserts through its own helpers (`check_total(result)`), the audit reports those tests
+as `NO_ASSERT`. Name the helpers once, in `pyproject.toml` (`[tool.pytest-expert]`,
+`assert_helpers = ["check_*"]`) or with `--assert-helper 'check_*'`; a call to a match then counts as
+an assertion for `NO_ASSERT` only. The table is read on Python 3.11 or later.
+
 To check the skill itself:
 
 ```
 cd pytest-expert
-pytest selftest -q
+uv run --no-project --with pytest --with pytest-randomly --with hypothesis --with pytest-cov --with pytest-timeout python -m pytest selftest -q -rs
 cd examples/wallet
 pytest
 ```
+
+That is the `metadata.test-command` in `SKILL.md`. With plain `pytest selftest -q` in an
+environment that lacks one of those packages, the affected tests skip and `-rs` prints the
+reason: `pytest-randomly` is needed by the flake hunter's tests, and `hypothesis`,
+`pytest-cov` and `pytest-timeout` by the check that the wallet README's passed count matches
+the wallet suite. The diff guard's tests and the hook tests that build a git repository need `git` and fail loudly
+without it; `PYTEST_EXPERT_SKIP_GIT_TESTS=1` opts the diff guard's own tests out.
+In the wallet, `pytest` needs `pip install -e ".[test,symbolic]"` from `examples/wallet`
+(`hypothesis-crosshair` makes the symbolic test run; without it that module skips itself).
 
 ## What is in the box
 
@@ -141,3 +164,7 @@ hypothesis-crosshair 0.0.31, CrossHair 0.0.112, Atheris 3.1.0, mutmut 3.8.1, syr
 6.1.1, inline-snapshot 0.36.1, PyTorch 2.15.0 (CPU), ruff 0.17.3, zizmor 1.31.1,
 actionlint 1.7.12, pre-commit 4.7.0, Python 3.13, November 2026. GitHub Actions and
 pre-commit revs looked up with `git ls-remote` on 2026-11-02.
+
+The self-tests, the wallet example, the hooks and the four scripts were run again on
+2026-11-20 (macOS arm64, Python 3.13.2) with pytest 9.2.0, pytest-randomly 5.1.0, pytest-cov
+7.1.0, pytest-timeout 2.4.0, Hypothesis 6.170.17, CrossHair 0.0.114 and mutmut 3.8.1.

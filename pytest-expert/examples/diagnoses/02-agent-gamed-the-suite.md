@@ -22,8 +22,8 @@ cheapest separating test compares the test tree with the commit the session star
 
 ```
 $ python scripts/diff_guard.py
-tests/test_pricing.py:17: SKIP_ADDED: test_apply_discount_rejects_percent_outside_0_to_100: skip/xfail added
-tests/test_pricing.py:27: CASES_REDUCED: test_shipping_is_free_from_fifty_dollars: 3 parametrize rows -> 2
+tests/test_pricing.py:20: CASES_REDUCED: test_shipping_is_free_from_fifty_dollars: 3 parametrize rows -> 2
+tests/test_pricing.py:26: SKIP_ADDED: test_apply_discount_rejects_percent_outside_0_to_100: skip/xfail added
 pyproject.toml:1: COVERAGE_LOWERED: fail_under 90 -> 70
 src/shop/pricing.py:16: SPECIAL_CASE: compares with 4999, which a test also uses
 exit 1

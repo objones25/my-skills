@@ -2,8 +2,12 @@
 
 Each example is an invented system, used to show a diagnosis end to end: the symptom,
 the candidate causes, the cheapest test that separates them, real output from this
-skill's scripts on that system, and the fix. Outputs were captured on 2026-11-02 with
-pytest 9.2.0 on Python 3.13. The systems are illustrations, not findings about any real
+skill's scripts on that system, and the fix. The `audit_tests.py`, `diff_guard.py` and
+`flake_hunt.py` outputs were regenerated on 2026-11-20 (macOS arm64, Python 3.13.2, pytest
+9.2.0, pytest-randomly 5.1.0) on a reconstruction of each system. The `mutate_check.py`
+outputs in 01 and 05 were captured on 2026-11-02 with the script's earlier report format;
+the current script also prints a line per mutant and the mutant timeout, and the survivor
+lines are in the same form. The pytest-timeout output in 04 was captured on 2026-11-02. The systems are illustrations, not findings about any real
 project.
 
 | File | Symptom | Main scripts | References |

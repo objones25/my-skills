@@ -98,7 +98,7 @@ async def test_retry_backs_off_exponentially_then_succeeds(fake_sleep):
         return result
 
     assert await fetch_with_retry(flaky_fetch, sleep=fake_sleep) == "ok"
-    assert fake_sleep.delays == [0.5, 1.0]
+    assert fake_sleep.delays == pytest.approx([0.5, 1.0])
 
 
 @pytest.mark.asyncio
@@ -108,7 +108,7 @@ async def test_retry_reraises_after_last_attempt(fake_sleep):
 
     with pytest.raises(TransientError, match=r"^down$"):
         await fetch_with_retry(always_fails, attempts=2, sleep=fake_sleep)
-    assert fake_sleep.delays == [0.5]
+    assert fake_sleep.delays == pytest.approx([0.5])
 
 
 # --- 2. A hard timeout inside the test: a hang becomes a failure ----------------------
@@ -121,7 +121,7 @@ async def test_worker_processes_queued_items_within_a_deadline():
     for item in (1, 2, 3):  # audit: ignore[BRANCHING] arranging input, not driving cases
         worker.queue.put_nowait(item)
     async with asyncio.timeout(1.0):
-        while len(worker.processed) < 3:  # audit: ignore[BRANCHING] wait-until with a deadline
+        while len(worker.processed) < 3:
             await asyncio.sleep(0)
     task.cancel()
     with pytest.raises(asyncio.CancelledError):

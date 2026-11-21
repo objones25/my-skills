@@ -4,7 +4,8 @@ pytest imports conftest.py automatically, and fixtures defined here are visible
 to every test below this directory with no import statement.
 
 What it buys you:
-  * determinism  : stdlib and NumPy global RNGs reseeded before every test
+  * determinism  : stdlib and NumPy global RNGs reseeded before every test (during fixture
+                   setup; pytest-randomly, if installed, reseeds again before the test body)
   * isolation    : outbound network calls fail loudly (loopback and Unix sockets allowed)
   * hygiene      : cwd and app environment variables cannot leak between tests
   * hypothesis   : dev / ci / nightly / crosshair profiles, selected with --hypothesis-profile
@@ -91,9 +92,11 @@ def _block_network(request: pytest.FixtureRequest, monkeypatch: pytest.MonkeyPat
     """Make outbound network access fail immediately in unit tests.
 
     Blocks at the Python socket layer, which also catches calls made deep inside
-    dependencies. Loopback and Unix-domain sockets stay allowed so local test
-    servers and multiprocessing keep working. Known gaps: subprocesses (curl, git)
-    and C extensions that open sockets without the Python socket module.
+    dependencies. Patched: socket.connect, connect_ex, sendto and getaddrinfo (which
+    covers create_connection and UDP datagrams). Loopback and Unix-domain sockets stay
+    allowed so local test servers and multiprocessing keep working. Known gaps:
+    sendmsg, subprocesses (curl, git) and C extensions that open sockets without the
+    Python socket module.
 
     Tests marked integration or e2e are exempt.
     """
@@ -107,12 +110,28 @@ def _block_network(request: pytest.FixtureRequest, monkeypatch: pytest.MonkeyPat
         )
 
     real_connect = socket.socket.connect
+    real_connect_ex = socket.socket.connect_ex
+    real_sendto = socket.socket.sendto
     real_getaddrinfo = socket.getaddrinfo
 
+    def allowed(sock: socket.socket, address: Any) -> bool:
+        return sock.family == getattr(socket, "AF_UNIX", None) or (isinstance(address, tuple) and _is_local(address[0]))
+
     def guarded_connect(self: socket.socket, address: Any) -> None:
-        if self.family == getattr(socket, "AF_UNIX", None) or (isinstance(address, tuple) and _is_local(address[0])):
+        if allowed(self, address):
             return real_connect(self, address)
         raise blocked(address)
+
+    def guarded_connect_ex(self: socket.socket, address: Any) -> int:
+        if allowed(self, address):
+            return real_connect_ex(self, address)
+        raise blocked(address)
+
+    def guarded_sendto(self: socket.socket, data: Any, *args: Any) -> int:
+        # sendto(data, address) or sendto(data, flags, address): the address is always last.
+        if allowed(self, args[-1] if args else None):
+            return real_sendto(self, data, *args)
+        raise blocked(args[-1] if args else None)
 
     def guarded_getaddrinfo(host: Any, *args: Any, **kwargs: Any):
         if _is_local(host):
@@ -120,6 +139,8 @@ def _block_network(request: pytest.FixtureRequest, monkeypatch: pytest.MonkeyPat
         raise blocked(host)
 
     monkeypatch.setattr(socket.socket, "connect", guarded_connect)
+    monkeypatch.setattr(socket.socket, "connect_ex", guarded_connect_ex)
+    monkeypatch.setattr(socket.socket, "sendto", guarded_sendto)
     monkeypatch.setattr(socket, "getaddrinfo", guarded_getaddrinfo)
 
 
