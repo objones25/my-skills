@@ -11,6 +11,42 @@ Profiled with cProfile on audit-skill's `quote_match.py` (57 mutants): 98% of th
 
 Benchmark: 62.0 s to 15.4 s of test-run time, with an identical score (66.7%) and an identical verdict for every mutant. `references/mutation-testing.md` now describes the new behaviour. Two new tests in `selftest/test_mutate_check.py`, both seen failing before the fix. `selftest`: 259 passed, 3 skipped (257 before, plus the 2 new tests), macOS arm64, Python 3.13.2, pytest 9.2.0; measured before merging the 2026-11-20 entry below. After the merge the fix was re-applied to that entry's rewritten `run()` (Popen in its own process group) and to the default of its new `--timeout-floor` option, and `test_timeout_floor_is_a_minimum_and_is_reported` now expects the 2 s default instead of 10 s. `selftest` after the merge: 1431 passed (1430 plus that test after its update; `test_mutate_check.py` alone 181 passed), macOS arm64, Python 3.13.12, run with the skill's `test-command` and `-p no:randomly`.
 
+## 2026-11-21: final mutation run, and tests for the gaps it showed
+
+No script changed. The sequential mutation run on the 2026-11-20 tree finished (23 jobs, one at a time, no errored mutants, no timeouts); the full table and the survivor notes are in `AUDIT.md` section 7.
+
+| Target | Killed | Score |
+|---|---|---|
+| `scripts/audit_tests.py` | 631 of 698 | 90.4% |
+| `scripts/diff_guard.py`, 16 selected functions (no whole-file run) | 229 of 274 | 83.6% |
+| `scripts/mutate_check.py` | 185 of 204 | 90.7% |
+| `scripts/flake_hunt.py` | 85 of 89 | 95.5% |
+| Stop gate hook | 97 of 111 | 87.4% |
+| `_common.py` (hooks) | 71 of 80 | 88.8% |
+| Post-edit hook | 30 of 41 | 73.2% |
+| Session-start hook | 3 of 5 | 60.0% |
+
+### Tests added or strengthened (28 new tests, 2 strengthened)
+
+- `selftest/test_diff_guard.py` (462 to 484): which assertions count as able to run (`else` branches, conditional early returns, exits two blocks deep, `while False`, `break` and `continue`, `try` / `except*`); exit code 2 with a message for `FileNotFoundError`, other `OSError` and an internal error; deleting the only file the guard reads; a first test file in a repository that had none; a native `[tool.pytest]` table; a `pytest.ini` with no section; a special case already in the base commit.
+- `selftest/test_hooks.py` (111 to 115): the post-edit hook's "fails right now" and "pytest could not run" tests matched text anywhere in the output, so they passed when the hook crashed on the line that builds the message (the crash report quotes that line). They now assert the exact start of the message, pytest's own output, and that nothing else is emitted. New tests: a `file_path` that is not a usable string, and the hook reporting its own crash.
+- `selftest/test_audit_tests.py` (450 to 452): only an integration marker on a class excuses a network call; asserting an ordinary call's result is not a weak assertion.
+
+Seeing them fail: a rerun of the five affected `diff_guard.py` functions took `scan_block` from 9 of 26 to 23 of 26, `main` 17 to 19 of 23, `guard` 9 to 10 of 12, `pytest_config` 7 to 9 of 10 and `source_findings` 15 to 18 of 20 (the 16 functions together: 251 of 274, 91.6%). The post-edit hook mutants (5), the `audit_tests.py` mutants (2) and the internal-error mutant of `main` were applied by hand and each failed the new tests. These tests were written after the code they cover, because the code was already right.
+
+### Not done
+
+- No whole-file mutation run of `diff_guard.py`; no whole-job rerun of `audit_tests.py` or the post-edit hook after these tests.
+- The remaining survivors were read and grouped (`AUDIT.md` section 7), not each proven equivalent; a few lines in `audit_tests.py` and `diff_guard.py` are listed there as not examined.
+- `references/hooks.md` now says 115 hook tests.
+
+### Verification
+
+| Date | Machine | Versions | Check | Result |
+|---|---|---|---|---|
+| 2026-11-21 | macOS arm64 (Apple Silicon) | Python 3.13.2, pytest 9.2.0, Hypothesis 6.170.17 (pytest-randomly 5.1.0 switched off) | `pytest selftest -q -p no:cacheprovider -p no:randomly` | 1457 passed in 185 s (audit 452, diff guard 484, flake hunt 54, hooks 115, mutate_check 179, structure 173); 1429 on 2026-11-20 |
+| 2026-11-21 | same | same | `audit_tests.py selftest` | clean: no findings (7 files checked) |
+
 ## 2026-11-20: audit of the scripts, hooks, self-tests and wallet tests, and the fixes
 
 An `audit-skill` run (risk scope, stage 1 of 4) checked 311 of 3,323 inventoried items: the four scripts, the Claude Code hooks, their self-tests, the structure tests and the wallet example's tests. It found 48 wrong, 1 stale and 2 disputed items, plus 6 claims that the last review round reported missing and nobody checked, and 172 suggestions. This entry records every change made in response: 269 rows in ten fix logs, A to H (258 fixed, 7 not fixed, 4 already correct). Logs A to F (246 rows) answer the audit; G1, G2, G3 and H (23 rows) are owner-approved follow-ups that resolve 3 of the 7 not-fixed rows and 2 of the 5 partly fixed rows, so 4 rows remain not fixed and 3 remain partly fixed. The method, every finding and what is still unchecked are in `AUDIT.md`. The reference files, paper digests, `SKILL.md`, `INSTALL.md`, the asset templates and the workflows were not part of this audit; later stages cover them.

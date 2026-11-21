@@ -1492,3 +1492,92 @@ def test_the_new_warnings_pass_unless_warnings_as_errors_and_can_be_allowed(repo
 def test_the_new_codes_text_tells_the_reader_what_to_check(guard_mod):
     assert "confirm no cases were dropped" in guard_mod.CODES["PARAM_HOOK_CHANGED"][1]
     assert "confirm the skip condition is real" in guard_mod.CODES["SKIP_VIA_HELPER"][1]
+
+
+# ---------------------------------------------------------------------------
+# Follow-up to the sequential mutation run of 2026-11-21: behaviours whose mutants survived.
+# ---------------------------------------------------------------------------
+
+REACHABLE_CHECKS = [
+    ("if c:\n        pass\n    else:\n        assert a == 1", 1),  # an else branch that can run counts
+    ("if True:\n        pass\n    else:\n        assert a == 1", 0),  # the else of `if True` cannot run
+    ("if c:\n        return\n    assert a == 1", 1),  # only one branch exits, so the rest can run
+    ("if c:\n        pass\n    else:\n        return\n    assert a == 1", 1),
+    ("if c:\n        return\n    else:\n        return\n    assert a == 1", 0),  # both branches exit
+    ("if False:\n        pass\n    else:\n        return\n    assert a == 1", 0),  # the live branch exits
+    ("with x:\n        if True:\n            return\n    assert a == 1", 0),  # an exit two blocks deep ends the test
+    ("if True:\n        with x:\n            return\n    assert a == 1", 0),
+    ("while False:\n        assert a == 1", 0),
+    ("while c:\n        assert a == 1", 1),
+    ("for i in x:\n        if True:\n            break\n        assert a == 1", 0),  # nothing after an unconditional break runs
+    ("for i in x:\n        if True:\n            continue\n        assert a == 1", 0),
+    ("try:\n        assert a == 1\n    except* ValueError:\n        pass", 1),  # try/except* blocks are scanned like try/except
+]
+
+
+@pytest.mark.parametrize(("body", "expected"), REACHABLE_CHECKS)
+def test_unit_only_checks_that_can_run_are_counted(guard_mod, body, expected):
+    facts, _, _ = guard_mod.facts_for_tests(f"def test_a():\n    {body}\n")
+    assert facts["test_a"].checks == expected
+
+
+@pytest.mark.parametrize(("error", "words"), [
+    (FileNotFoundError("no such file: 'x'"), "cannot run git or read a file"),
+    (PermissionError("denied"), "I/O error"),
+    (RuntimeError("planted bug"), "internal error, nothing was checked: RuntimeError: planted bug"),
+])
+def test_an_error_inside_the_guard_exits_2_with_a_message(repo, guard_mod, monkeypatch, capsys, error, words):
+    def boom(*_args, **_kwargs):
+        raise error
+
+    monkeypatch.setattr(guard_mod, "guard", boom)
+    assert guard_mod.main([str(repo)]) == 2
+    captured = capsys.readouterr()
+    assert words in captured.err
+    assert captured.out == ""
+
+
+def test_deleting_the_only_file_the_guard_reads_is_a_finding_not_nothing_to_compare(tmp_path, guard_mod, require_git):
+    root = make_repo(tmp_path / "one", {TEST_FILE: BASE_TEST})
+    (root / TEST_FILE).unlink()
+    assert sorted((f.code, f.severity) for f in guard_mod.guard(root)) == expect("TEST_FILE_DELETED")
+
+
+def test_a_first_test_file_in_a_repository_that_had_none_is_clean(tmp_path, guard_mod, require_git):
+    root = make_repo(tmp_path / "none", {"README.md": "hi\n"})
+    write(root, TEST_FILE, BASE_TEST)
+    assert guard_mod.guard(root) == []
+
+
+NATIVE_PYPROJECT = '[tool.pytest]\ntestpaths = ["tests"]\naddopts = ["-ra"]\n'
+
+CONFIG_FOLLOW_UP = [
+    case("native-tool-pytest-table-gains-deselect", {"pyproject.toml": sub(NATIVE_PYPROJECT, '"-ra"]', '"-ra", "--deselect", "x"]')}, "CONFIG_NARROWED", base={"pyproject.toml": NATIVE_PYPROJECT}),
+    case("pytest-ini-without-a-section-shadows-pyproject", {"pytest.ini": "# empty on purpose\n"}, "CONFIG_NARROWED"),
+]
+
+
+@pytest.mark.parametrize(("edits", "base", "moves", "git_mv", "expected"), CONFIG_FOLLOW_UP)
+def test_config_read_from_the_file_pytest_would_use(run, edits, base, moves, git_mv, expected):
+    assert run(edits, base, moves, git_mv) == expected
+
+
+SPECIAL = "    if cents == 1000:\n        return 10\n"
+
+
+@pytest.fixture
+def repo_with_special_case(repo_with_src):
+    write(repo_with_src, "tests/test_big.py", "def test_big():\n    assert fee(1000) == 10\n")
+    write(repo_with_src, SRC, BASE_SRC.replace("    return cents // 100\n", SPECIAL + "    return cents // 100\n"))
+    commit(repo_with_src, "special case already in the base")
+    return repo_with_src
+
+
+def test_a_special_case_already_in_the_base_is_not_reported_again(repo_with_special_case, guard_mod):
+    new = BASE_SRC.replace("    return cents // 100\n", SPECIAL + "    return cents // 100  # unrelated edit\n")
+    assert source_findings(repo_with_special_case, guard_mod, new) == []
+
+
+def test_a_second_copy_of_a_special_case_in_the_base_is_reported_once(repo_with_special_case, guard_mod):
+    new = BASE_SRC.replace("    return cents // 100\n", SPECIAL + SPECIAL + "    return cents // 100\n")
+    assert source_findings(repo_with_special_case, guard_mod, new) == [("SPECIAL_CASE", "warning", "compares with 1000, which a test also uses")]

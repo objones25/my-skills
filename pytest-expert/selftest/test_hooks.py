@@ -85,8 +85,10 @@ def test_post_edit_reports_red_tests_as_context_not_block(project):
     path.write_text(RED)
     out = fire(project, "pytest_expert_post_edit.py", edit_event(path))
     assert out is not None
-    assert "decision" not in out
-    assert "fails right now" in out["hookSpecificOutput"]["additionalContext"]
+    assert set(out) == {"hookSpecificOutput"}  # no block, and no "hook crashed" system message
+    context = out["hookSpecificOutput"]["additionalContext"]
+    assert context.startswith("pytest-expert: test_x.py fails right now (fine if you are writing tests first):\n")
+    assert "test_red" in context
 
 
 def test_post_edit_is_silent_for_clean_passing_tests(project):
@@ -145,9 +147,10 @@ def test_post_edit_says_so_when_pytest_cannot_run_the_file(project):
     path.write_text("import module_that_does_not_exist\n\n\ndef test_x():\n    assert module_that_does_not_exist\n")
     out = fire(project, "pytest_expert_post_edit.py", edit_event(path))
     assert out is not None
+    assert set(out) == {"hookSpecificOutput"}
     context = out["hookSpecificOutput"]["additionalContext"]
-    assert "fails right now" not in context
-    assert "pytest could not run" in context
+    assert context.startswith("pytest-expert: pytest could not run test_x.py (exit 2):\n")
+    assert "module_that_does_not_exist" in context
 
 
 @pytest.mark.parametrize("stdin_text", ["{not json", "[1, 2]", ""])
@@ -935,3 +938,23 @@ def test_settings_block_the_stop_when_the_gate_itself_cannot_run(event, expected
     settings = json.loads((SKILL_ROOT / "assets" / "claude" / "settings.json").read_text())
     hooks = [hook for group in settings["hooks"][event] for hook in group["hooks"]]
     assert [hook.get("onFailure") for hook in hooks] == [expected]
+
+
+# Follow-up to the sequential mutation run of 2026-11-21.
+
+@pytest.mark.parametrize("file_path", [5, ["tests/test_x.py"], ""])
+def test_post_edit_is_silent_when_the_file_path_is_not_a_usable_string(project, file_path):
+    event = {"hook_event_name": "PostToolUse", "tool_name": "Write", "tool_input": {"file_path": file_path}}
+    assert fire(project, "pytest_expert_post_edit.py", event) is None
+
+
+def test_post_edit_reports_its_own_crash_with_the_traceback(project):
+    path = project / "tests" / "test_x.py"
+    path.write_text(GOOD)
+    with open(project / ".claude" / "hooks" / "_common.py", "a") as common:
+        common.write("\n\ndef find_script(name):\n    raise RuntimeError('planted crash')\n")
+    out = fire(project, "pytest_expert_post_edit.py", edit_event(path))
+    assert out is not None
+    assert out["systemMessage"].startswith("pytest-expert: the post-edit hook crashed, so the edit was not checked:\nTraceback")
+    assert "RuntimeError: planted crash" in out["systemMessage"]
+    assert "RuntimeError: planted crash" in out["hookSpecificOutput"]["additionalContext"]
