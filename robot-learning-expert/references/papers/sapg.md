@@ -81,7 +81,7 @@ Performance after 2×10¹⁰ samples [Table 1] (successes per episode for Allegr
 | Reorientation | 2.85 ± 0.05 | 23.2 ± 4.86 | 1.66 ± 0.11 | 33.2 ± 4.20 | 38.6 ± 0.63 |
 | Two Arms Reorientation | 1.73 ± 0.51 | 14.46 ± 2.91 | not reported | not reported | 28.58 ± 1.55 |
 
-- SAPG is 12-66% better than DexPBT on Regrasping, Throw and Reorientation (66% on Reorientation) and more than twice DexPBT on Two Arms Reorientation, even though DexPBT mutates reward scales to optimize success directly [§6.1].
+- SAPG is 12-66% better than DexPBT on Regrasping, Throw and Reorientation (66% on Reorientation) and about twice DexPBT on Two Arms Reorientation (28.58 vs 14.46 = 1.98x; the paper's wording is "more than twice"), even though DexPBT mutates reward scales to optimize success directly [§6.1].
 - The text says PPO and PQL learn no useful behavior on the AllegroKuka tasks [§6.1]; Table 1 bears this out except for PPO on Throw (16.8 vs SAPG's 23.7).
 - On the easier hand tasks PQL is more sample-efficient early, but SAPG beats it by 21% on Allegro Hand and matches it on Shadow Hand [§6.2].
 - Ablations [§6.3, Fig. 6]: symmetric aggregation is much worse everywhere; removing the off-policy term is much worse; using all follower data without subsampling ("high off-policy ratio") is worse on Allegro Hand and Shadow Hand, slightly worse on Regrasping and Throw, and more sample-efficient but lower asymptotically on Reorientation; entropy coefficient 5e-3 is up to 16.5% better on Reorientation.

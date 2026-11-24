@@ -17,6 +17,19 @@ Sources: `papers/fasttd3.md` (read in full), `papers/massively-parallel-survey.m
 | Normalization (LayerNorm, batch renorm in CrossQ, heavy normalization in FlashSAC) | lets larger networks and no-target-network training stay stable | PQN, CrossQ, FlashSAC (survey) |
 | Asymmetric critic with privileged state | same as on-policy | FastTD3 §2.2 |
 
+## Qualifiers on the FlashSAC wall-clock claim
+
+The "about 20 min vs about 3 h on G1" figure is one task in a larger comparison. FlashSAC reports parity with PPO on low-DoF state tasks and clear gains on high-DoF ones (humanoid, dexterous) [2604.04539 abstract, line 53]. Budgets differ: off-policy methods were trained for 50M environment steps and PPO for 200M, at about 3x FlashSAC's compute [2604.04539 lines 392-394]; FlashSAC uses one unified hyperparameter set while baselines were tuned per task [line 425]. Sabatini et al. find the opposite on quadrupeds: SAC matches PPO in return but stays slower in wall-clock, from larger networks, more loss terms, a higher UTD ratio and a learning rate about 10x smaller than PPO's [2605.24975 lines 426-445]; they also report higher seed variance than PPO.
+
+## SAC in Isaac Lab / rsl_rl checklist (Sabatini et al., arXiv 2605.24975)
+
+Setting: legged locomotion in Isaac Lab, 8192 envs, 24 rollout steps, 800 iterations [Table C9]. Values below are that paper's, not general defaults:
+- Action bounds from the soft joint limits (distance from the default pose to the soft limits, divided by the action scale), not the hard limits [lines 247-257].
+- Initial action noise std σ0 = 0.15, which concentrates exploration near the default pose; large σ0 gives near-uniform exploration [lines 277, Table C9].
+- Store the pre-reset next observation and handle time-outs by bootstrapping from it; the n-step target is masked over the window [lines 318-352]. n = 5.
+- Table C9: replay 5e6, 200 minibatches of 8192 per iteration, actor and critic lr 2e-4, temperature lr 2e-5, γ = 0.97, τ = 0.003, networks [1024, 512, 256] with SiLU, no layer norm.
+- Expect: SAC needs larger networks and higher UTD, is slower than PPO per second, and varies more across seeds; on G1 high reward did not always mean natural movement [lines 426-445].
+
 ## On-policy or off-policy for this kind of project
 
 - Throughput-bound, single GPU, a working PPO config exists (as for G1 walking on mjlab): PPO is the baseline; an off-policy run (FastTD3 or FastSAC on the same task) is the most informative second arm, because the surveyed G1 wall-clock claims are exactly that comparison.

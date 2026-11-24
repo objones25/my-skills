@@ -40,6 +40,8 @@ Read only the files the task needs.
 | DDPG, TD3, SAC, asymmetric actor-critic | `references/concepts/actor-critic.md` |
 | Behavior cloning, DAgger, IRL / GAIL / AMP, diffusion policies, VLAs | `references/concepts/imitation.md` |
 | Exploration with simulator resets: access protocols, RVFS, Go-Explore, reset distributions | `references/concepts/resets-and-exploration.md` |
+| No resets on hardware, goal-conditioned or unsupervised RL | `references/concepts/reset-free-and-goal-conditioned.md` |
+| Humanoid motion tracking (reference motions, adaptive sampling, delay and history on G1) | `references/training/motion-tracking.md` |
 | Massively parallel PPO: batch arithmetic, legged_gym recipe, G1 case study, fair wall-clock comparison | `references/training/on-policy-at-scale.md` |
 | Off-policy at scale: FastTD3, PQN, FlashSAC, when to pick it | `references/training/off-policy-at-scale.md` |
 | Rewards, observations, actions (PD targets), terminations vs truncation; G1 task as template | `references/training/reward-and-observation-design.md` |
@@ -47,7 +49,7 @@ Read only the files the task needs.
 | Simulators and libraries (mjlab, MuJoCo Warp/Playground, Isaac Lab, rsl_rl, Brax, ManiSkill, Genesis, Gymnasium): versions, when to pick | `references/training/simulators-and-tooling.md` |
 | Tests for RL code, PPO health metrics and fixes, training-system bugs | `references/training/diagnostics.md` |
 | Seeds, IQM, bootstrap intervals, fixed evaluators, robot metrics, write-ups | `references/training/evaluation.md` |
-| A specific paper (13 digests, a theory map, a massively parallel RL survey index, two verified canon lists) | `references/papers/README.md` |
+| A specific paper (14 digests, a theory map, a massively parallel RL survey index, two verified canon lists) | `references/papers/README.md` |
 
 ## Scripts (tested oracles and tools)
 

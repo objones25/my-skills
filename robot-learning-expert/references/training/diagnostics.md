@@ -45,6 +45,7 @@ RL code is numerical and randomized, so a wrong implementation often runs, print
 | grad norm (pre-clip) | below max_grad_norm most of the time | | always clipped: lr too high or exploding activations |
 | Episode length | rises to the time limit | (falls early) termination too strict or reward pays for dying | all envs hit the limit on the same iteration: episode lengths not randomized after reset or resume |
 | per-term Episode_Reward | tracking terms rise | | a penalty term dominates: policy learned to stand still |
+| plasticity (optional when scaling N or reusing a network across tasks): dormant-neuron fraction, feature rank, weight norm, gradient kurtosis | dormant fraction low and flat | rank collapsing, weight norm growing: lost plasticity [inference: metric sets from Mayor et al. 2506.03404 §5.1 and a 2026 simulator study, not re-read (unverified)] | |
 
 Numbers in the "healthy" column are rules of thumb, not sourced thresholds (the verified sources give only rsl_rl's desired_kl of 0.01 and the 37-details blog's approx_kl below 0.02, `papers/canon-algorithms.md`); calibrate them against your own known-good run, e.g. `examples/ppo_pendulum.py`, which logs all of them.
 
@@ -57,4 +58,5 @@ Numbers in the "healthy" column are rules of thumb, not sourced thresholds (the 
 | Throughput collapses at large N | per-step `.item()` / `.cpu()` syncs in the rollout, or a CPU-side env wrapper |
 | Resume gives a jump in curves | optimizer state, obs normalizer, lr schedule or curriculum state not saved in the checkpoint |
 | Big-N run is worse per sample and no better per minute | same 20 gradient steps per iteration but fewer iterations per minute, so extra data buys smoother gradients, not more updates (G1: 16384 used about 2× the env steps of 4096 for the same 45-min error); see `on-policy-at-scale.md` |
+| Same seed, different curve | GPU nondeterminism (atomics, kernel choice, physics solver ordering), not necessarily a bug; compare over several seeds before suspecting code (a 2026 simulator-determinism study reports this; 2411.04832 Table 3, not re-read (unverified)) |
 | Values right in sim eval, policy falls on hardware | sim-to-real gap, not a training bug (`sim-to-real.md`) |

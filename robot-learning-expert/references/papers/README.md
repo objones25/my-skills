@@ -20,6 +20,7 @@ One file per paper (plus two canon lists verified against arXiv and proceedings 
 | `supermimic.md` | Liao et al., SuperMimic: humanoid whole-body control with one differentiable world model (arXiv 2610.28480, Oct 2026) | humanoid motion tracking, world-model policy gradients vs PPO, G1 noise/DR/reward tables |
 | `rl-scaling-laws.md` | Zheng, Lyle, Khetarpal, Dabney, An Empirical Study of RL Scaling Laws (arXiv 2610.33420, Oct 2026) | how batch size (num_envs), learning rate and model size should grow with compute |
 | `massively-parallel-survey.md` | survey doc "RL Scaling Laws: References and Massively Parallel Training" (Oct 27, 2026) | index of 2024 to 2026 massively parallel work, ranked for a PPO-at-scale study |
+| `acl-teachers.md` | TeachMyAgent and other curriculum teachers (ALP-GMM, TSCL, ADR, GoalGAN), arXiv 2021 to 2017 | choosing or debugging a task or level sampler |
 | `canon-algorithms.md` | verified list: DQN, Double DQN, PER, DDPG, TD3, SAC, PPO, GAE, PPO implementation studies, DAgger, GAIL, DreamerV3, TD-MPC2, RLPD, PQL, PQN, CrossQ, KL estimators | equations and default hyperparameters you can cite |
 
 Known caveats from the distillation pass:
