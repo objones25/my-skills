@@ -217,6 +217,15 @@ def test_evaluate_uses_identical_instances():
     assert np.array_equal(np.asarray(a), np.asarray(b))
 
 
+def test_check_env_reports_jax_and_a_verdict():
+    import importlib.metadata as md
+    out = run("check_env.py")
+    assert out.returncode == 0, out.stderr
+    assert f"jax          {md.version('jax')}" in out.stdout  # installed version, padded as printed
+    assert "jax devices:" in out.stdout
+    assert out.stdout.strip().splitlines()[-1].startswith("verdict: ")
+
+
 def test_throughput_bench_runs():
     out = run("throughput_bench.py", "--n", "16", "32", "--steps", "8", "--reps", "1")
     assert out.returncode == 0, out.stderr

@@ -1,0 +1,20 @@
+[
+  {"query": "my purejaxrl PPO on Craftax plateaus when I go from 1024 to 16384 envs, same everything else. what should I change?", "should_trigger": true},
+  {"query": "how many num_envs should I use for Isaac Lab humanoid PPO on one 4090, and does the minibatch count need to change with it?", "should_trigger": true},
+  {"query": "write a jitted PQN for gymnax CartPole that vmaps 4096 envs and runs the whole training in one lax.scan", "should_trigger": true},
+  {"query": "I want to fit RL scaling laws like Zheng et al. for my Atari agent: compute-optimal model size, isoFLOPs, and Elo instead of mean return. how do I set it up?", "should_trigger": true},
+  {"query": "FastTD3 vs PPO vs FlashSAC for a G1 humanoid in mjlab when wall-clock is what matters?", "should_trigger": true},
+  {"query": "my return curve has a spike every 6 updates with 8192 envs and 16-step rollouts; all envs reset at the same time", "should_trigger": true},
+  {"query": "gymnax 1.0 changed env.step to return terminated and truncated, how do I update my vectorized PPO bootstrapping?", "should_trigger": true},
+  {"query": "sparse-reward manipulation with 4096 parallel envs: should I sample start configurations by success rate, PLR, or a reset bank of demo states?", "should_trigger": true},
+  {"query": "measure env steps per second vs number of envs on my GPU for a Brax / MJX environment and find where it saturates", "should_trigger": true},
+  {"query": "set up FSDP2 to train a 7B transformer across 8 GPUs, my DDP run runs out of memory", "should_trigger": false},
+  {"query": "derive the policy gradient theorem and explain why the baseline does not bias it", "should_trigger": false},
+  {"query": "my GRPO fine-tuning of a 1B LLM makes answers longer and longer each epoch, why?", "should_trigger": false},
+  {"query": "my PyTorch training loss goes NaN after 2000 steps with AMP on a CNN classifier", "should_trigger": false},
+  {"query": "design the reward terms and PD gains for a quadruped trot policy I will deploy on the real robot", "should_trigger": false},
+  {"query": "write pytest tests for my replay buffer class, including property-based tests with Hypothesis", "should_trigger": false},
+  {"query": "run tabular Q-learning on a 5-state chain MDP and compare with exact value iteration", "should_trigger": false},
+  {"query": "dockerize my Isaac Lab training script so it runs on a cloud GPU", "should_trigger": false},
+  {"query": "explain how the Bellman eluder dimension bounds sample complexity for online RL", "should_trigger": false}
+]

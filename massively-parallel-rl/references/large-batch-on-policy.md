@@ -165,7 +165,7 @@ desired KL 0.01, initial action std 0.05. The authors report that more GPUs at t
 iteration count gave a better asymptote for the tracker, whereas OpenHomie's velocity tracking
 plateaued beyond 8 GPUs (Fig. S6). The plateau therefore depends on data diversity as well
 as N [inference]. For a related saturation of simulator PPO from 4 to 8 GPUs, see
-robot-learning-expert `references/papers/supermimic.md`.
+robot-learning-expert's references/papers/supermimic.md.
 
 ## 4. Choosing among them
 

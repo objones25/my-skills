@@ -134,3 +134,10 @@ symptom to a fix.
 - Run the scaffold or script and quote its real output instead of describing what it
   would print.
 - Shell commands meant to be pasted carry no `#` comment lines.
+
+## Extend this skill
+
+1. A new paper: add a row to `references/papers.md`, put each number in the reference file it changes with its conditions (envs, seeds, benchmark), and record the source in `references/sources.md`.
+2. A new library version: run `metadata.test-command` against it, record the result with date and machine in `CHANGELOG.md`, and update the version split in `references/jax-stack.md` if behaviour changed.
+3. A new script: add its test to `tests/` (`tests/test_skill_structure.py` fails on an untested script). A new reference file must be routed from the table above.
+4. A new kind of question or a fixed mistake: add a case to `evals/evals.json`.
