@@ -70,8 +70,11 @@ def bench(env, params, n: int, steps: int, hidden: list[int] | None, reps: int) 
             action = jax.random.categorical(k_act, logits) if hasattr(space, "n") else jnp.tanh(logits[:, 0])
         else:
             action = jax.vmap(space.sample)(jax.random.split(k_act, n))
-        obs, state, reward, done, info = jax.vmap(env.step, in_axes=(0, 0, 0, None))(
+        # gymnax < 1.0 returns (obs, state, reward, done, info); >= 1.0 inserts
+        # terminated/truncated, so index the three fields used here.
+        out = jax.vmap(env.step, in_axes=(0, 0, 0, None))(
             jax.random.split(k_step, n), state, action, params)
+        obs, state, reward = out[0], out[1], out[2]
         return (key, obs, state), reward.sum()
 
     @jax.jit

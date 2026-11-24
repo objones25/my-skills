@@ -1,9 +1,11 @@
 """Shared pieces for the JAX scaffolds: a truncation-aware auto-reset wrapper,
 a fixed-instance evaluator, and result writers.
 
-Why a custom wrapper: gymnax's Environment.step auto-resets inside the call and
+Why a custom wrapper: gymnax < 1.0's Environment.step auto-resets inside the call and
 returns a single `done` that is True both when the task really ended (termination)
-and when the time limit ran out (truncation). Treating a truncation as a termination
+and when the time limit ran out (truncation). gymnax >= 1.0 returns terminated and
+truncated separately (6-tuple step, is_truncated()), but Craftax, Kinetix and the
+other repos built on the old API still merge them. Treating a truncation as a termination
 tells the critic the episode's future is worth 0, which biases values in any task
 whose episodes end by time limit (Pendulum never terminates, so every gymnax
 Pendulum "done" is a truncation). This wrapper calls step_env/reset_env itself so
@@ -18,7 +20,8 @@ from __future__ import annotations
 
 import csv
 import os
-from typing import Any, Callable, NamedTuple
+from typing import Any, NamedTuple
+from collections.abc import Callable
 
 import jax
 import jax.numpy as jnp
@@ -88,7 +91,11 @@ class AutoReset:
         done = jnp.asarray(done, bool)
         reward = jnp.asarray(reward, jnp.float32)
         if self.max_steps is not None and hasattr(s_st, "time"):
-            truncated = done & (s_st.time >= self.max_steps)
+            # gymnax < 1.0 and Craftax OR the time limit into step_env's done; gymnax >= 1.0
+            # reports only natural termination there (is_truncated() is separate), so the
+            # wrapper applies the time limit itself to behave the same under both.
+            truncated = s_st.time >= self.max_steps
+            done = done | truncated
         else:
             truncated = jnp.zeros_like(done)
         terminated = done & ~truncated
