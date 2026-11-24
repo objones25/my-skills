@@ -20,4 +20,4 @@
 
 - Repo file:line facts dated 2026-10-27 were not rechecked against newer commits.
 - Papers in the corpus that were only triaged contribute no numbers; claims from figures that did not survive text extraction (e.g. DRATS Fig. 13, the Kinetix Appendix L result, Moalla et al.'s env counts) were not re-verified.
-- The trigger evals have not been run (see `CHANGELOG.md` for the output-eval record).
+- The trigger evals have not been run. Output evals: one blind run per case (`CHANGELOG.md`).

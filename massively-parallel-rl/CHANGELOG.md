@@ -19,7 +19,23 @@ Added (from a 206-paper corpus; every number re-grepped against the paper text, 
 
 Review: an independent reviewer checked the diff (about 55 claim groups confirmed; 1 wrong, 2 miscited, 3 overstated, 3 missing a qualifier, 1 unsupported); all fixed except one PACE item whose cited numbers could not be found in the paper text, left as it was.
 
-Not done: an optional `--stagger` warm-up in the scaffolds; a measured throughput table; evals and trigger evals (the skill has none).
+Evals (v1.1.0 adds `evals/evals.json` with 8 cases, one a control, and 18 trigger cases): each case was answered once with the skill (reading this branch's SKILL.md) and once without (no skill files), by fresh subagents, 4 cases per subagent; a separate subagent graded the 16 answers blind (shuffled X/Y labels, seeded) against the expectations. Blinding was imperfect: some with-skill answers mention reference files. One run per case, so this shows direction, not a measured improvement.
+
+| Date and machine | Case | With skill | Without |
+|---|---|---|---|
+| 2026-11-24, macOS arm64, Python 3.13.12 | ppo-plateau-more-envs | 5/5 | 4/5 |
+| 2026-11-24, macOS arm64, Python 3.13.12 | scaling-law-study-plan | 7/7 | 6/7 |
+| 2026-11-24, macOS arm64, Python 3.13.12 | jax-pqn-truncation | 6/6 | 6/6 |
+| 2026-11-24, macOS arm64, Python 3.13.12 | gymnax-1x-truncation | 5/5 | 5/5 |
+| 2026-11-24, macOS arm64, Python 3.13.12 | staggered-resets | 5/5 | 5/5 |
+| 2026-11-24, macOS arm64, Python 3.13.12 | ued-easy-start-control | 5/5 | 3/5 |
+| 2026-11-24, macOS arm64, Python 3.13.12 | epo-vs-sapg-number | 4/4 | 1/4 |
+| 2026-11-24, macOS arm64, Python 3.13.12 | control-correct-truncation-gae | 4/4 | 4/4 |
+| 2026-11-24, macOS arm64, Python 3.13.12 | total | 41/41 | 34/41 |
+
+The grader flagged one inconsistency in a with-skill answer (8,192 envs as the largest sampler scale, next to SGS at 1M); it came from `reset-and-task-sampling.md`, now reworded. The trigger evals were not run.
+
+Not done: an optional `--stagger` warm-up in the scaffolds; a measured throughput table; trigger-eval runs.
 
 Tests:
 | Date and machine | Versions | Result |

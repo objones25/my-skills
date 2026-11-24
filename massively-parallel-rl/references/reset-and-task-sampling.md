@@ -91,8 +91,9 @@ learned-score replay methods lost to plain DR there.
   concentrates sampling on a few levels as the buffer grows; staleness coefficient 0.1-0.3 as in
   earlier work; no single score dominated across scales, and among regret scores MaxMC was the
   most reliable because it does not depend on value accuracy (§5, line 874).
-- Do not scale these numbers with N. The largest env count among the sampler papers read for
-  this section is 8,192 (the quadruped benchmark) [inference from the papers read].
+- Do not scale these numbers with N. The replay and UED settings above were tested at no more
+  than 8,192 envs (the quadruped benchmark) [inference from the papers read]; the one sampler
+  run far beyond that is Success Guided Sampling, up to 2^20 envs (`large-batch-on-policy.md`).
 
 **Teacher signals and their blind spots** (small-scale evidence):
 - Success band p(1-p): blind to tasks that are far from solved but flat, and to forgetting.
