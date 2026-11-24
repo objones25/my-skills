@@ -1,5 +1,23 @@
 # Changelog
 
+## 2026-11-24, v0.5.0: paper corpus and lecture notes 8 and 9
+
+Sources: a 206-paper corpus of RL papers (plain-text extractions; curricula, UED, resets, continual and multi-task RL, parallel robot RL, motion tracking, manipulation), analyzed by 10 thematic read-only agents plus 1 agent that audited the skill's existing citations of the 20 corpus papers it already cited; and J. A. Preiss's Notes 8 and 9 (policy gradient). Every added number was re-grepped against the paper text by the editing agent, then an independent reviewer checked the diff (about 95 claims confirmed; 1 wrong, 1 unsupported, 2 miscited, 10 overstated or missing a qualifier, all fixed; see `AUDIT.md`).
+
+Wrong claims fixed
+- EPO vs SAPG in `papers/massively-parallel-survey.md`: "35.8 vs 2.2 successes" was wrong. EPO reports 35.8 at 1e10 steps (Table 1 row M:TR: EPO 37.0, SAPG 4.4 and 3.9) and compares with SAPG's published 28.58; the 2.2 is PBT on M:ST. The two papers disagree on the step count behind 28.58 (5e10 in EPO, 2e10 in SAPG's caption).
+- `papers/sapg.md`: "more than twice" DexPBT now carries the ratio (28.58 / 14.46 = 1.98x). Survey: FlashSAC's network is 12.5x the ~0.2M it attributes to FastTD3 (about 1.4x FastTD3's own 1.83M model); Seo et al.'s 16,384 envs is the whole-body tracking run; PQN's "up to 50x" is per-game training time vs Rainbow.
+- `concepts/resets-and-exploration.md`: "a generative model means no exploration problem" and "local simulator: polynomial under coverability" now carry their conditions (value-class realizability; agnostic policy learning stays 2^Omega(H), 2504.05405 Thm 2).
+
+Added
+- `concepts/policy-gradient.md` from Notes 8 and 9: score-function vs zeroth-order gradients, finite-horizon REINFORCE and reward-to-go, the optimal constant baseline (checked numerically), the softmax-bandit example, the TRPO step derivation, PPO clipping facts, NPG vs TRPO, Bhandari-Russo optimality, PC-PG, entropy and exploration. `sources.md`: Notes 8 and 9 in the `Notes N` key and 8 errata (among them the sign of the TRPO step and of the PPO update).
+- New files: `concepts/reset-free-and-goal-conditioned.md`, `papers/acl-teachers.md`, `training/motion-tracking.md`.
+- Access-protocol spectrum (reset-free, mu-resets, hybrid resets) in `resets-and-exploration.md` and `theory-map.md`; start-state families; Go-Explore detail; non-stationary bandits; on-policy recipe conflicts (rollout floor, minibatch size, sparse-reward caveat past 4096 envs); SAC-in-Isaac-Lab checklist; Patterson seed counts and cross-fitted CVaR; DORAEMON, RAPP, ADR failure modes and hyperparameters, the teacher-student realizability caveat, EAGLE, FORGE; plasticity and nondeterminism rows in `diagnostics.md`; ManiSkill3 PPO recipe; PopArt; the dense-vs-sparse reward disagreement (AlphaNIST vs DrS / StructRL).
+
+Not done: digests for OmniReset / X-Reset, AlphaNIST / DexMimic and environment-access theory (folded into existing files instead), a DR-ranges table, CLEAR / REPAIR / PCGrad paragraphs, new evals. Evals were not run.
+
+Tests: 222 passed (On 2026-11-24 on macOS arm64 with Python 3.13.12; `uv run --no-project --with numpy --with pytest python -m pytest tests`).
+
 ## 2026-11-19, v0.4.1: Pyright type fixes
 
 Pyright now reports 0 errors on this skill (was 12). No intended change in behaviour apart from the one noted below.
