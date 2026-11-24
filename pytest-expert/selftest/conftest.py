@@ -27,17 +27,43 @@ def audit_mod():
 
 
 @pytest.fixture
-def run_audit(tmp_path, audit_mod):
-    """Write a test module (and optional extra files) and return the codes found."""
+def run_findings(tmp_path, audit_mod):
+    """Write a test module (and optional extra files) into a hermetic project and audit it.
 
-    def _run(source: str, name: str = "test_case.py", extra: dict[str, str] | None = None) -> list[str]:
+    The project root carries a `.git` marker, so the audit never looks above it: a seeding
+    conftest.py, a strict pyproject.toml or a directory called `integration` above `tmp_path`
+    (for example under `--basetemp`) cannot change the result. `under` places the project
+    below `tmp_path`, `root` narrows the audited path below the project, and `extra` maps
+    relative paths to file text.
+    """
+
+    def _run(
+        source: str,
+        name: str = "test_case.py",
+        extra: dict[str, str] | None = None,
+        *,
+        under: str = "",
+        root: str = "",
+    ):
+        project = tmp_path / under if under else tmp_path
+        (project / ".git").mkdir(parents=True, exist_ok=True)
         for rel, text in (extra or {}).items():
-            target = tmp_path / rel
+            target = project / rel
             target.parent.mkdir(parents=True, exist_ok=True)
-            target.write_text(text)
-        target = tmp_path / name
+            target.write_text(text, encoding="utf-8")
+        target = project / name
         target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_text(source)
-        return [f.code for f in audit_mod.audit(tmp_path)]
+        target.write_bytes(source.encode("utf-8"))
+        return audit_mod.audit(project / root if root else project)
+
+    return _run
+
+
+@pytest.fixture
+def run_audit(run_findings):
+    """Same as run_findings, but returns the sorted list of codes found."""
+
+    def _run(*args, **kwargs) -> list[str]:
+        return sorted(f.code for f in run_findings(*args, **kwargs))
 
     return _run

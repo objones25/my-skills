@@ -5,7 +5,8 @@ difference is measurable. Every output below is from a real run on
 `examples/wallet` (Hypothesis 6.168.3, CrossHair 0.0.111, hypothesis-crosshair
 0.0.30, Atheris 3.1.0, Python 3.12, October 2026). Re-run November 2026 on Hypothesis
 6.170.14, CrossHair 0.0.112, hypothesis-crosshair 0.0.31, Python 3.13: same findings;
-the solver search took about 0.4 s of test time in 3 of 3 runs (was about 1.7 s).
+the solver search took about 0.4 s of test time in 3 of 3 runs (was about 1.7 s). The random-search
+miss was rerun 2026-11-20 on Hypothesis 6.170.17 (see the table).
 
 ## Contents
 
@@ -43,11 +44,23 @@ the solver search took about 0.4 s of test time in 3 of 3 runs (was about 1.7 s)
 | `parse_amount("")` leaks `decimal.InvalidOperation` instead of `AmountError` | missed | **found** | n/a | **found** (first input) |
 | `parse_amount("0.001")` rounds to `0.00` after the positivity check | missed | **found** | n/a | found if the oracle checks positivity |
 | `withdraw(nan)` corrupts the balance (NaN fails both comparisons) | missed | **found only sometimes** | n/a | n/a |
-| Partner-bank fee goes negative, but only for accounts that pass a mod-97 check | missed | **missed, 3 of 3 runs at 1,000 examples** | **found in ~0.4 s, 3 of 3 runs** (1.7 s on CrossHair 0.0.111) | not tried |
+| Partner-bank fee goes negative, but only for accounts that pass a mod-97 check | missed | **missed with unconstrained ten-digit accounts: 3 of 3 runs at 1,000 examples (October), 14 of 15 runs, then 15 of 15 in a second batch (2026-11-20)** | **found in ~0.4 s, 3 of 3 runs** (1.7 s on CrossHair 0.0.111) | not tried |
 
 The pattern: random generation finds malformed-input bugs quickly. A bug behind an
 exact-value condition (a checksum, a magic constant, a narrow numeric band) is
 nearly invisible to random draws and trivial for a solver. Use both.
+
+The miss is a property of the strategy, not of Hypothesis. A strategy that draws any
+ten-digit integer passes the mod-97 check one time in 97, so most draws never reach the fee
+computation, and the demo test (`demo/test_v0_findings.py`) uses that strategy. Both
+2026-11-20 batches reran that one test in fresh processes on Hypothesis 6.170.17 (the first is
+in `demo/README.md`). The wallet's own fee property
+(`tests/property/test_money_properties.py`) builds account numbers that already satisfy the
+check (`97 * k + 1`, regular and partner-bank), so every draw reaches the fee code. Aimed at the
+v0 fee function with 1,000 examples, that property failed with `assert -1 >= 0` in 3 of 3 runs
+(2026-11-20, Hypothesis 6.170.17: its strategies copied into a scratch test against
+`demo/money_v0.py`). The solver test in `tests/symbolic` finds the same bug without being told
+the check rule, which is the contrast kept in the example.
 
 The solver run, as reported by pytest:
 

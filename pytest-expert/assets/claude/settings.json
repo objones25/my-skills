@@ -26,7 +26,8 @@
               "${CLAUDE_PROJECT_DIR}/.claude/hooks/pytest_expert_stop_gate.py"
             ],
             "timeout": 600,
-            "statusMessage": "pytest-expert: audit, diff guard, and fast suite before stopping"
+            "statusMessage": "pytest-expert: audit, diff guard, and fast suite before stopping",
+            "onFailure": "block"
           }
         ]
       }
@@ -41,7 +42,8 @@
               "${CLAUDE_PROJECT_DIR}/.claude/hooks/pytest_expert_stop_gate.py"
             ],
             "timeout": 600,
-            "statusMessage": "pytest-expert: audit, diff guard, and fast suite before the subagent stops"
+            "statusMessage": "pytest-expert: audit, diff guard, and fast suite before the subagent stops",
+            "onFailure": "block"
           }
         ]
       }

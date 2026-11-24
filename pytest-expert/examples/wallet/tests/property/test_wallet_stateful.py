@@ -9,6 +9,13 @@ from wallet.core import InsufficientFunds, Wallet, transfer
 money = st.decimals(min_value=Decimal("0.01"), max_value=Decimal("1000.00"), places=2)
 
 
+class _RefusesDeposits(Wallet):
+    """A target whose deposit fails after the source was already debited."""
+
+    def deposit(self, amount: Decimal) -> Decimal:
+        raise RuntimeError("deposit refused")
+
+
 class WalletMachine(RuleBasedStateMachine):
     wallets = Bundle("wallets")
 
@@ -43,6 +50,20 @@ class WalletMachine(RuleBasedStateMachine):
             transfer(source, dest, amount)
         except InsufficientFunds:
             return
+
+    @rule(source=wallets, amount=money)
+    def move_to_a_target_that_refuses(self, source, amount):
+        target = _RefusesDeposits(owner="refuses")
+        self.all_wallets.append(target)
+        before = source.balance
+        try:
+            transfer(source, target, amount)
+        except InsufficientFunds:
+            return
+        except RuntimeError:
+            assert source.balance == before, "a failed transfer must not debit the source"
+            return
+        raise AssertionError("transfer to a target that refuses deposits cannot succeed")
 
     @invariant()
     def money_is_conserved(self):

@@ -23,8 +23,9 @@ Their rerun numbers depend on the kind of flakiness and the question
 | Was this one observed failure flaky (95% confidence, most tests)? | 1 rerun | 3 reruns |
 
 So two runs prove almost nothing about a test being clean, but they are often enough
-to classify a single failure. `flake_hunt.py --runs 30` matches the order-dependent
-figure, the common case; it says little about rare non-order-dependent flakiness.
+to classify a single failure. `flake_hunt.py` defaults to `--runs 31`, which matches the
+order-dependent figure, the common case; it says little about rare non-order-dependent
+flakiness.
 
 ## Hunting: `scripts/flake_hunt.py`
 
@@ -36,24 +37,42 @@ changes. `--repeat-seed` reruns each order to separate the two kinds:
 | order-dependent | fails for specific seeds, every time | shared state between tests |
 | nondeterministic | fails at random, even with the same order | randomness, time, threads, network |
 
+Without `--repeat-seed`, pytest-randomly reseeds `random` per test from the run's seed, so a
+test that draws from `random` fails for particular seeds every time and is labelled
+`order-dependent or nondeterministic (use --repeat-seed 3 to tell apart)`. With
+`--repeat-seed N` (N > 1) the repeats of each seed reseed the random number generators from
+OS entropy, so the draw changes between repeats while the order stays fixed, and the test is
+labelled `nondeterministic`. Without pytest-randomly nothing is shuffled, so only
+nondeterminism can show: the header says `pytest-randomly not installed; order fixed`, and a
+flake is `nondeterministic; fails in runs [20, 23, 25, 36, 52] of 60` (the coin flip above,
+`--runs 60`, 2026-11-20).
+
 Real output on a planted suite (a test that relies on a module-level list being
-empty, and a 1-in-10 coin flip):
+empty, and a 1-in-10 coin flip), 2026-11-20, macOS arm64, Python 3.13, pytest 9.2.0,
+pytest-randomly 5.1.0. The coin flip's seeds differ from run to run; the order-dependent
+test's do not:
 
 ```
-3 tests x 12 seeds x 2 repeat(s)
+3 tests x 31 seeds x 2 repeat(s)
 FLAKY tests.test_cache::test_coin_flip_that_fails_one_time_in_ten
-      nondeterministic; fails with --randomly-seed in [1, 2, 7, 12]
+      nondeterministic; fails with --randomly-seed in [2, 6, 12, 21, 25, 28, 30]
 FLAKY tests.test_cache::test_first_remembered_item_has_count_one
-      order-dependent; fails with --randomly-seed in [1, 5, 6, 8, 9, 11, 12]
+      order-dependent; fails with --randomly-seed in [1, 5, 8, 12, 13, 15, 16, 18]
 
 2 flaky test(s)
 ```
 
-Command:
+Command (the default is `--runs 31`). An `xfail` test that fails counts as a failure and one that passes counts as a pass, so an `xfail` test that flips between the two is reported:
 
 ```
-python scripts/flake_hunt.py --runs 30 --repeat-seed 2 -- tests/
+python scripts/flake_hunt.py --runs 31 --repeat-seed 2 -- tests/
 ```
+
+Exit status: 0 = every test behaved consistently, 1 = at least one flaky test, 2 = could not
+hunt (bad `--runs` or `--repeat-seed`, a path or `-k` that selects no test, a pytest usage,
+internal or collection error or crash, nothing executed). Exit 2 is never a clean result. Do
+not pass pytest-xdist's `-n`: tests in different worker processes cannot interfere, so an
+order-dependent pair would look clean, and the script refuses it with exit 2.
 
 Reproduce one failing order:
 
@@ -61,7 +80,7 @@ Reproduce one failing order:
 pytest -p randomly --randomly-seed=5
 ```
 
-The nightly workflow runs a 30-seed hunt; treat a clean result as evidence, not proof.
+The nightly workflow runs a 31-seed hunt; treat a clean result as evidence, not proof.
 
 ## Causes, in the order to check them
 

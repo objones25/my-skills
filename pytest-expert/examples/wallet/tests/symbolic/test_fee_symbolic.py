@@ -1,6 +1,11 @@
-"""The fee property from tests/property, driven by an SMT solver instead of random draws.
+"""The fee property from tests/property, driven by an SMT solver instead of a strategy.
 
-Deselected by default. Run: pytest -m symbolic -p no:randomly
+tests/property builds valid accounts with a strategy that knows the mod-97 rule. This
+test knows nothing about it: it draws plain ten-digit integers and lets the solver find
+the ones that pass the check, so it also guards the day the strategy and the code drift apart.
+
+Deselected by default. Needs hypothesis-crosshair (the "symbolic" extra); without it the
+module is skipped. Run: pytest -m symbolic --no-cov -p no:randomly
 """
 
 import pytest
