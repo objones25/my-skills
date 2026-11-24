@@ -39,7 +39,6 @@ import argparse
 import json
 import math
 import sys
-from collections import defaultdict
 from typing import cast
 
 import numpy as np

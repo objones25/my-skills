@@ -61,15 +61,16 @@ errored mutant (text) or adds an `output_tail` string to every mutant (json).
 The score is killed / (killed + survived). If nothing could be evaluated the exit status is 2.
 
 The mutant timeout is max(--timeout-floor, baseline * --timeout-factor). The floor defaults to
-10 s, so a --timeout-factor that gives less than 10 s has no effect unless you lower the floor.
+2 s, so a --timeout-factor that gives less than 2 s has no effect unless you lower the floor.
 The baseline test command runs twice and must pass both times (a flaky suite cannot be
 scored); the slower run sets the timeout. The test command runs in its own process group, and
 the whole group is killed on timeout, on SIGINT/SIGTERM and when it exits (POSIX).
 
 The file is edited in place and always restored (a .mutate_check.bak copy exists
 while it runs; if one is left behind after a crash, the script refuses to start
-until you restore it). Each run gets a fresh PYTHONPYCACHEPREFIX so a stale .pyc
-cannot make a mutant look like it survived.
+until you restore it). Test runs get PYTHONDONTWRITEBYTECODE=1, so no mutant is ever cached as a .pyc
+and a stale one cannot make a later mutant look like it survived; the existing cache for
+pytest and the stdlib is still read, so each run does not recompile them.
 
 Exit status: 0 if no mutant survived (or survivors <= --max-survivors), 1 otherwise, 130 after
 SIGINT/SIGTERM (the source is restored first), 2 when the check could not be done: usage
@@ -90,7 +91,6 @@ import shutil
 import signal
 import subprocess
 import sys
-import tempfile
 import threading
 import time
 from dataclasses import asdict, dataclass
@@ -134,7 +134,7 @@ OUTPUT_LINES_SHOWN = 10
 
 
 BASELINE_TIMEOUT_S = 600.0
-MUTANT_TIMEOUT_FLOOR_S = 10.0
+MUTANT_TIMEOUT_FLOOR_S = 2.0  # infinite-loop mutants stop after max(floor, baseline * factor)
 
 
 @dataclass
@@ -320,32 +320,32 @@ def _drain(fd: int, sink: bytearray) -> None:
 
 def run(command: list[str], timeout: float) -> RunResult:
     """Run the test command; raises OSError if it cannot be started."""
+    # Read the existing bytecode cache but never write one: a fresh, empty PYTHONPYCACHEPREFIX
+    # per run made every run recompile pytest and the stdlib (about 3x slower per run).
     env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1")
-    with tempfile.TemporaryDirectory(prefix="mutate-pyc-") as cache:
-        env["PYTHONPYCACHEPREFIX"] = cache
-        start = time.monotonic()
-        proc = subprocess.Popen(command, env=env, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
-                                stderr=subprocess.STDOUT, start_new_session=True)
-        if proc.stdout is None:
-            raise RuntimeError("Popen(stdout=PIPE) returned no stdout")
-        sink = bytearray()
-        reader = threading.Thread(target=_drain, args=(proc.stdout.fileno(), sink), daemon=True)
-        reader.start()
+    start = time.monotonic()
+    proc = subprocess.Popen(command, env=env, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+                            stderr=subprocess.STDOUT, start_new_session=True)
+    if proc.stdout is None:
+        raise RuntimeError("Popen(stdout=PIPE) returned no stdout")
+    sink = bytearray()
+    reader = threading.Thread(target=_drain, args=(proc.stdout.fileno(), sink), daemon=True)
+    reader.start()
+    try:
         try:
-            try:
-                returncode = proc.wait(timeout=timeout)
-            except subprocess.TimeoutExpired:
-                status, code = "timeout", None
-            else:
-                status, code = ("passed" if returncode == 0 else "failed"), returncode
-            seconds = time.monotonic() - start
-        finally:
-            _kill_group(proc)  # also reached on SIGINT/SIGTERM, which raise SystemExit here
-            proc.wait()
-            reader.join(timeout=5)  # EOF arrives once the whole group is dead
-            proc.stdout.close()
-        output = bytes(sink[-OUTPUT_TAIL_BYTES:]).decode("utf-8", errors="replace")
-        return RunResult(status, code, seconds, output)
+            returncode = proc.wait(timeout=timeout)
+        except subprocess.TimeoutExpired:
+            status, code = "timeout", None
+        else:
+            status, code = ("passed" if returncode == 0 else "failed"), returncode
+        seconds = time.monotonic() - start
+    finally:
+        _kill_group(proc)  # also reached on SIGINT/SIGTERM, which raise SystemExit here
+        proc.wait()
+        reader.join(timeout=5)  # EOF arrives once the whole group is dead
+        proc.stdout.close()
+    output = bytes(sink[-OUTPUT_TAIL_BYTES:]).decode("utf-8", errors="replace")
+    return RunResult(status, code, seconds, output)
 
 
 _ANSI = re.compile(r"\x1b\[[0-9;]*m")
@@ -428,7 +428,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--max-survivors", type=int, default=0)
     parser.add_argument("--timeout-factor", type=float, default=5.0, help="mutant timeout as a multiple of the baseline")
     parser.add_argument("--timeout-floor", type=float, default=MUTANT_TIMEOUT_FLOOR_S,
-                        help="the mutant timeout is at least this many seconds (default 10)")
+                        help="the mutant timeout is at least this many seconds (default 2)")
     parser.add_argument("--kill-codes", type=_kill_codes, default=frozenset({1}),
                         help="comma-separated test-command exit codes that count as a kill (default 1, pytest's 'tests failed')")
     kinds = parser.add_mutually_exclusive_group()

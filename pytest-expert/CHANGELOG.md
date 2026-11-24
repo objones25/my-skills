@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-11-24: mutate_check.py about 4x faster
+
+Profiled with cProfile on audit-skill's `quote_match.py` (57 mutants): 98% of the time was spent waiting on test runs, and under 1 s in the script itself.
+
+| Cause | Evidence | Fix |
+|---|---|---|
+| Each test run got a new, empty `PYTHONPYCACHEPREFIX` while `PYTHONDONTWRITEBYTECODE=1` was set, so every run recompiled pytest and the stdlib from source | One pytest run took 0.81-0.90 s that way, 0.28-0.32 s without the prefix | Dropped the prefix; kept `PYTHONDONTWRITEBYTECODE=1`, which already stops a mutant from being cached |
+| Timeout floor of 10 s | Two infinite-loop mutants took 10.0 s each against a 0.3 s baseline | `--timeout-floor` now defaults to 2 s (`MUTANT_TIMEOUT_FLOOR_S = 2.0`) |
+
+Benchmark: 62.0 s to 15.4 s of test-run time, with an identical score (66.7%) and an identical verdict for every mutant. `references/mutation-testing.md` now describes the new behaviour. Two new tests in `selftest/test_mutate_check.py`, both seen failing before the fix. `selftest`: 259 passed, 3 skipped (257 before, plus the 2 new tests), macOS arm64, Python 3.13.2, pytest 9.2.0; measured before merging the 2026-11-20 entry below. After the merge the fix was re-applied to that entry's rewritten `run()` (Popen in its own process group) and to the default of its new `--timeout-floor` option, and `test_timeout_floor_is_a_minimum_and_is_reported` now expects the 2 s default instead of 10 s. `selftest` after the merge: 1431 passed (1430 plus that test after its update; `test_mutate_check.py` alone 181 passed), macOS arm64, Python 3.13.12, run with the skill's `test-command` and `-p no:randomly`.
+
 ## 2026-11-20: audit of the scripts, hooks, self-tests and wallet tests, and the fixes
 
 An `audit-skill` run (risk scope, stage 1 of 4) checked 311 of 3,323 inventoried items: the four scripts, the Claude Code hooks, their self-tests, the structure tests and the wallet example's tests. It found 48 wrong, 1 stale and 2 disputed items, plus 6 claims that the last review round reported missing and nobody checked, and 172 suggestions. This entry records every change made in response: 269 rows in ten fix logs, A to H (258 fixed, 7 not fixed, 4 already correct). Logs A to F (246 rows) answer the audit; G1, G2, G3 and H (23 rows) are owner-approved follow-ups that resolve 3 of the 7 not-fixed rows and 2 of the 5 partly fixed rows, so 4 rows remain not fixed and 3 remain partly fixed. The method, every finding and what is still unchecked are in `AUDIT.md`. The reference files, paper digests, `SKILL.md`, `INSTALL.md`, the asset templates and the workflows were not part of this audit; later stages cover them.

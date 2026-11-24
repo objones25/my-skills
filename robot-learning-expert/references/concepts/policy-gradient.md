@@ -2,7 +2,7 @@
 
 Optimize a parameterized policy π_θ by gradient ascent on its return, using only samples: the gradient needs ∇log π_θ, never a derivative of the dynamics. That is why it works for contact-rich robots where the simulator is not differentiable, and why PPO trains most legged-robot controllers today.
 
-Sources: AJKS ch. 9 to 12 and SB ch. 13 (section numbers checked against the books; keys in `../sources.md`). Implementation facts tagged [rsl_rl 5.4.2] were read from an installed rsl-rl-lib 5.4.2 (`rsl_rl/algorithms/ppo.py`). Paper facts and default hyperparameters: `papers/canon-algorithms.md` (verified) and `papers/trpo.md`.
+Sources: AJKS ch. 9 to 12 and SB ch. 13 (section numbers checked against the books; keys in `../sources.md`); Notes 8 (policy gradient part I) and Notes 9 (advanced: TRPO, PPO, optimality, PC-PG), which use a finite horizon t = 1..H with no discount, so their Q_t^π is the undiscounted reward-to-go from step t (errata for both in `../sources.md`). Implementation facts tagged [rsl_rl 5.4.2] were read from an installed rsl-rl-lib 5.4.2 (`rsl_rl/algorithms/ppo.py`). Paper facts and default hyperparameters: `papers/canon-algorithms.md` (verified) and `papers/trpo.md`.
 
 ## Notation
 
@@ -22,6 +22,10 @@ Sources: AJKS ch. 9 to 12 and SB ch. 13 (section numbers checked against the boo
 
 ## 1. The policy gradient theorem
 
+Why not differentiate the return directly: with deterministic P and π, ∇J already needs ∂r/∂a at step 1, and from step 2 on the chain rule pulls in the Jacobians of P, i.e. a model (Notes 8 §2, warm-up). Two model-free answers:
+- Zeroth-order: smooth J by averaging over a ball, Ĵ(θ) = E_{v~Unif(ball)}[J(θ + σv)]; then ∇Ĵ(θ) = (n/σ) E_{ε~Unif(sphere)}[J(θ + σε) ε] for θ ∈ ℝⁿ (Notes 8 Thm 1). Needs only return evaluations, but J itself is a noisy expectation, so it needs care (the evolution-strategies family).
+- Score function (log-derivative trick, Notes 8 Thm 2): ∇_θ E_{z~p_θ}[f(z)] = E_{z~p_θ}[∇_θ log p_θ(z) f(z)], under differentiability and regularity conditions. Needs: sampling from p_θ, ∇log p_θ, and the value f(z). Does not need ∇f or samples from any other distribution. With z a trajectory this is the policy gradient below.
+
 ∇J(θ) = (1/(1−γ)) E_{(s,a)~d^{π_θ}_μ} [ Q^{π_θ}(s,a) ∇_θ log π_θ(a|s) ]   (AJKS §9.1; SB §13.2)
 
 Mechanism in three steps:
@@ -29,7 +33,11 @@ Mechanism in three steps:
 2. The dynamics cancel: log p_θ(τ) = log μ(s_0) + Σ_t [log π_θ(a_t|s_t) + log P(s_{t+1}|s_t,a_t)], and only the π terms depend on θ.
 3. Causality: an action cannot affect earlier rewards, so a_t's score multiplies only the return from t on, which in expectation is γ^t Q^π(s_t, a_t); summing the γ^t weights over t is what turns the state distribution into d^π_μ and produces the 1/(1−γ).
 
-Any b(s) can be subtracted from Q without bias, because E_{a~π}[∇log π(a|s)] = ∇Σ_a π(a|s) = ∇1 = 0. Choosing b = V^π gives the advantage form, a standard and good variance reducer (SB §13.4), though not the exactly variance-minimizing baseline.
+Finite-horizon, undiscounted form (Notes 8 §2.2 to 2.3): REINFORCE ĝ = (Σ_t r_t)(Σ_t ∇log π_θ(a_t|s_t)) is unbiased; dropping the rewards before t gives ĝ' = Σ_t ∇log π_θ(a_t|s_t) Σ_{s≥t} r_s with E[ĝ'] = E[Σ_t ∇log π_θ(a_t|s_t) Q_t^π(s_t,a_t)]. The causality step needs the return to be a sum of per-step rewards. The full-return REINFORCE works for any trajectory score R(s_1, a_1, ..., s_H, a_H), e.g. the best reward reached, max_t r(s_t, a_t).
+
+Any b(s) can be subtracted from Q without bias, because E_{a~π}[∇log π(a|s)] = ∇Σ_a π(a|s) = ∇1 = 0. Choosing b = V^π gives the advantage form, a standard and good variance reducer (SB §13.4), though not the exactly variance-minimizing baseline. For a constant b and the full-return estimator, the variance-minimizing value is b⋆ = E[‖g‖²R] / E[‖g‖²] with g = Σ_t ∇log π_θ(a_t|s_t), the return weighted by the squared score norm; an exponential moving average of R approximates it (Notes 8 §4; Greensmith, Bartlett and Baxter 2004). (Derivation: E[g] = 0, so tr Cov[g(R − b)] = E[‖g‖²(R − b)²] − ‖E[gR]‖², a quadratic in b.)
+
+Softmax bandit, the smallest worked example (Notes 8 §3): π_θ(a) = exp(θ_a)/Σ exp(θ_a'), ∇log π_θ(a) = e_a − π. A single sample gives ĝ = r(a)(e_a − π), so its component on a is r(a)(1 − π(a)) > 0 whenever r(a) > 0: every sampled action is made more likely, however small its reward, and only the average cancels this. That is variance; an advantage can be negative, which fixes the sign. Initializing θ = C(1, −1, ..., −1) with large C makes π ≈ e_1, so a_1 is nearly always sampled and e_{a_1} − π ≈ 0: tiny steps, no exploration.
 
 ## 2. Estimators, from high variance to biased
 
@@ -45,12 +53,25 @@ GAE is computed backward over the rollout: Â_t = δ_t + γλ(1 − done_t) Â_{
 
 ## 3. Trust regions: from NPG to TRPO to PPO
 
-A raw gradient step can change the policy's action distribution a lot for a small change in θ. Three answers, each cheaper than the last:
+A raw gradient step is steepest ascent over parameter steps of fixed Euclidean length (Notes 9 §2), but equal-length steps in θ do not give equal changes in the action distribution. Notes 9 §3's example: π(a_1) ∝ e^{θ_1}, π(a_2) ∝ e^{Cθ_2} with C ≫ 1 is far more sensitive to θ_2. The fix is steepest ascent measured by KL between distributions.
+
+Derivation of the TRPO step (Notes 9 §3):
+1. Objective: linearize at θ, giving ⟨E[Σ_t ∇log π_θ(a_t|s_t) Q_t^π(s_t,a_t)], θ' − θ⟩, an expectation under the old policy.
+2. Constraint: KL(d^{π_θ} ‖ d^{π_θ'}) ≤ ε over trajectory distributions. Its gradient is zero at θ' = θ (a minimum), so keep the quadratic term.
+3. The Hessian of KL(p ‖ q_θ) at q_θ = p is the Fisher matrix E_p[∇log q ∇log qᵀ], with no second derivatives needed (Notes 9 Lemma 2, App. A). For trajectories the dynamics drop out as in §1, leaving F = E[Σ_t ∇log π ∇log πᵀ]. The cross terms between steps vanish in expectation because each step's score has conditional mean zero.
+4. Maximize aᵀx subject to xᵀFx ≤ ε: x⋆ = sqrt(ε / (aᵀF⁻¹a)) F⁻¹a (Notes 9 prints a spurious minus sign; see `../sources.md`). Solve F⁻¹a by conjugate gradient. The sample F is singular unless N·H ≥ d (N trajectories, d parameters), which fails for large networks. Finish with a line search because the quadratic model is only local.
+
+Three answers, each cheaper than the last:
 - Natural policy gradient: precondition with the Fisher information F(θ) = E[∇log π ∇log πᵀ], θ ← θ + η F⁻¹∇J (AJKS §10.4). Invariant to how π is parameterized.
 - TRPO: maximize the surrogate E[ρ_t Â_t] subject to average KL(π_old ‖ π_θ) ≤ δ_KL (a trust-region radius; 0.01 in TRPO), solved with conjugate gradient on Fisher-vector products plus a line search (`papers/trpo.md`; AJKS §12.2). The monotone-improvement story comes from conservative policy iteration (AJKS §12.1) and the performance difference lemma below.
 - PPO: drop the constraint and clip the ratio instead,
   L^CLIP(θ) = E_t[ min( ρ_t Â_t, clip(ρ_t, 1−ε, 1+ε) Â_t ) ].
   The min makes the objective a pessimistic bound: once ρ_t leaves [1−ε, 1+ε] in the direction that would help, the gradient through that sample is zero. Several epochs of minibatch SGD reuse each batch.
+  Three facts from Notes 9 §4 that are easy to miss:
+  - Reuse is importance sampling, E_{p_θ}[f] = E_p[(p_θ/p) f]. One rare sample with a large f can blow up the ratio.
+  - On the first gradient step ρ_t = 1 everywhere, so the clip is invisible and the step is the plain policy gradient. Clipping only acts from the second step on the same batch.
+  - The advantages Â_t are computed once and held fixed through all inner steps; only ρ_t changes. With Â_t < 0 the ratio is never clipped from above: making a bad action more likely is always penalized (Notes 9 Fig. 1).
+- NPG versus TRPO: NPG uses the same direction F⁻¹∇J but a fixed step size, so it does not enforce the KL radius each iteration (Notes 9 §3; the notes add that TRPO "generally performs better").
 
 ## 4. PPO as actually run on robots [rsl_rl 5.4.2]
 
@@ -71,8 +92,16 @@ Mechanisms worth knowing because each one changes results:
 - Nonconvexity (AJKS §9.3): J is nonconvex in θ even for tabular softmax policies, yet softmax policy gradient converges to the global optimum (§10.2), possibly very slowly.
 - Vanishing gradients and coverage (§10.1): if the start distribution μ rarely reaches the rewarding states, gradients are exponentially small; rates depend on a distribution-mismatch coefficient ‖d^{π⋆}_μ/μ‖_∞. Same lesson as the exploration lower bounds in Q-learning: policy gradient does not explore strategically.
 - Log-barrier regularization (§10.3) and NPG (§10.4, ch. 11 with function approximation) fix the rate; Q-NPG and compatible function approximation are ch. 11.
+- Stationary points (Notes 9 Thm 4, citing Zhang et al. 2020): under Lipschitz and smoothness assumptions, with step sizes satisfying Σ η_k = ∞ and Σ η_k² < ∞ (Robbins-Monro), policy gradient converges to a stationary point of J. That says nothing yet about optimality.
+- Restricted policy classes can have bad local optima (Notes 9 §5, from Bhandari and Russo 2019). In a two-state cost MDP with the class "play R with probability θ in every state", the cost is nonconvex in θ, and a small initial θ descends to a bad local minimum at θ = 0. The missing property is *closure under policy improvement*: one policy-iteration step from any π_θ must land back in the class (Notes 9 Def. 5).
+- Global optimality (Notes 9 Thm 6, Bhandari and Russo 2019): suppose the one-step improvement objective has no suboptimal stationary points, the class is closed under policy improvement, and further exploration and smoothness conditions hold. Then J has no suboptimal stationary points. If that objective is gradient-dominated (f(z) ≤ min f + (c/2)‖∇f‖² for a cost f), J is too, which gives convergence rates. Tabular MDPs satisfy these conditions. So does LQR, with care about unbounded cost: its cost is nonconvex and the set of stabilizing gains is nonconvex, yet the cost is gradient-dominated (Fazel et al. 2018; `continuous-trajopt.md`). These results assume exact gradients and a start distribution μ with full support, so they sidestep exploration.
+- Provable exploration with policy gradient, PC-PG (Notes 9 §6.1, Agarwal, Henaff, Kakade and Sun 2020): in a linear MDP, keep a policy cover, i.e. the mixture of all previous policies, with feature covariance Σ̂_cov = Σ_i Σ̂^i + λI. Each episode, add the bonus 1{φ(s,a)ᵀ Σ̂_cov⁻¹ φ(s,a) ≥ β}/(1−γ) for rarely visited pairs, and optimize the next policy for r + bonus with starts drawn from the cover's distribution. The policy step is itself NPG on estimated Q. The bonus has the same shape as LSVI-UCB's (`q-learning.md`), and it is the first policy gradient result in these notes that does not rely on a good initial state distribution.
 
-## 6. Policy parameterizations for robots `[practice]`
+## 6. Exploration comes from the policy class
+
+Policy gradient explores only through the randomness of π_θ (Notes 8 §5). A class that never takes some actions never learns about them, so check that π_θ(a|s) > 0 for all θ, s, a. Notes 9 §6 adds: initialize with high action entropy and do not let it collapse. Entropy regularization adds a bonus to the objective, J(θ) = E_s[E_{a~π}[r(s,a)] + α H(π(·|s))] with α > 0 (Notes 8 §5.1). For a scalar Gaussian, H = ½ log(2πeσ²), so the bonus directly rewards keeping σ large. Entropy regularization can also make policies more robust to changes in the dynamics (Eysenbach and Levine 2021, cited in Notes 8 §5.1). In rsl_rl this is entropy_coef (§4).
+
+## 7. Policy parameterizations for robots `[practice]`
 
 - Gaussian over joint-position targets, fed to a PD controller (the action space nearly every locomotion paper uses; see `training/sim-to-real.md`). State-independent log std (rsl_rl "scalar" std) is the default; watch it in logs, since std collapsing early ends exploration and std growing means the critic is useless.
 - Actions are usually scaled residuals around a default pose: q_target = q_default + scale·a. mjlab sets scale per joint to 0.25·effort_limit/stiffness (`g1_constants.py`).

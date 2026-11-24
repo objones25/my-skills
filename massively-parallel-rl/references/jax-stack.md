@@ -63,7 +63,7 @@ jax.jit(train)(rng)
 
 | Library | What it offers | Notes |
 | --- | --- | --- |
-| gymnax | classic control, MinAtar, bsuite in JAX | MinAtar games have 1-2 start states and key-independent steps (tested: Breakout 2, SpaceInvaders 1, Asterix 1, Freeway 256), and gymnax omits MinAtar's default sticky actions (p = 0.1); use `AutoReset(..., sticky_prob=0.1)`. `Environment.step` auto-resets: it runs `step_env` and `reset_env` every step, then selects per leaf with `lax.select` (environment.py:37-47). The returned obs on a done step is the reset obs. |
+| gymnax | classic control, MinAtar, bsuite in JAX | Breakout, SpaceInvaders and Asterix have 1-2 start states (distinct resets over 2,000 keys: 2, 1, 1); Freeway's start state is random (2,000 distinct of 2,000, on both 0.0.9 and 1.0.1; measured 2026-11-24), and gymnax omits MinAtar's default sticky actions (p = 0.1); use `AutoReset(..., sticky_prob=0.1)`. `Environment.step` auto-resets: it runs `step_env` and `reset_env` every step, then selects per leaf with `lax.select`, so the returned obs on a done step is the reset obs. **Version split.** gymnax 0.0.9: `step` returns `(obs, state, reward, done, info)` and `done` ORs the time limit (environment.py:35-60; cartpole.py:132). gymnax 1.0.1 (needs jax < 0.12): `step` returns `(obs, state, reward, terminated, truncated, info)` with the pre-reset obs in `info["final_observation"]` (environment.py:64-100); `is_truncated(state, params)` is `state.time >= params.max_steps_in_episode` (:150-152), and `step_env`'s `done` is natural termination only (its `is_terminal` docstring: "Legacy natural-terminal helper; no longer includes time limits", :154-156). `mprl_common.AutoReset` tests the time limit itself and so reports the two separately under either version. |
 | Craftax 1.7.0 | Craftax and Craftax-Classic, symbolic or pixels | `make_craftax_env_from_name(name, auto_reset)`; names `Craftax-Symbolic-v1`, `Craftax-Pixels-v1`, `Craftax-Classic-Symbolic-v1`, `Craftax-Classic-Pixels-v1` (craftax_env.py:1-55). Symbolic obs is a flat [0,1] vector; achievements logged as `info["Achievements/<name>"]`, nonzero only on the done step (envs/common.py:5-11). `max_timesteps` 100000 (Craftax), 10000 (Classic). |
 | Kinetix | procedurally generated 2D physics tasks (Jax2D) | done also fires on reward != 0 and on NaN state (env.py:120-141); long compile, use `train_levels=dummy env.dummy_env=True` to debug shapes (README.md:335) |
 | MuJoCo Playground | MJX locomotion, manipulation, DM Control | `wrap_for_brax_training` = vmap (or domain-randomization vmap) -> Brax EpisodeWrapper -> its own `BraxAutoResetWrapper` (wrapper.py:87-132). Default auto-reset restores a cached first state and does not reset `info`; `full_reset=True` calls `env.reset` and is slower (:161-248). |
@@ -104,12 +104,31 @@ step and handed to the envs that finished (craftax_wrappers.py:83-148; ratio 16 
 pqn_craftax.yaml:25-26). Its docstring notes the trade: a higher ratio is faster but
 more likely to hand two envs the same reset.
 
+Level samplers and heterogeneous tasks inside one vmapped loop:
+- Kinetix's own authors trained with SFL; they ran PLR and ACCEL only in preliminary
+  experiments and found no improvement over domain randomization (2410.23208 main text; the
+  paper points to its Appendix L, not opened). That is one benchmark's preliminary result.
+- Recompilation is the cost to budget. DiCode (2602.08194 App. A.4-A.5, Craftax, one
+  setup) injected LLM-written environment logic during training: RL training ran about
+  1.8x the fixed-environment baseline because lanes execute task-specific logic in one
+  vmapped kernel, JAX recompilation took 14.4 h of 32.2 h total, and about 60% of
+  generated candidates compiled. Overlapping generation with training cut the blocked
+  time from about 23.7 h to 1.9 h.
+- MuJoCo Playground (2502.08844 §VI): JIT compile takes 1-3 minutes on its tasks, and
+  contact cost scales with the number of possible contacts, not active ones, because JAX
+  needs static shapes. Brax PPO and RSL-RL PPO reached successful gaits in similar wall-clock
+  time (Fig. 8; each library with its own tuned hyperparameters).
+
 ## 4. Termination vs truncation
 
-None of PureJaxRL, rejax, purejaxql, gymnax, Craftax or Kinetix separates them: the time
-limit is ORed into `done` (gymnax cartpole.py:124-125; Craftax game_logic.py:4-9; Kinetix
+None of PureJaxRL, rejax, purejaxql, gymnax < 1.0, Craftax or Kinetix separates them: the time
+limit is ORed into `done` (gymnax 0.0.9 cartpole.py:124-125; Craftax game_logic.py:4-9; Kinetix
 env.py:141), and GAE stops bootstrapping wherever `done` is set (purejaxrl ppo.py:150-153).
 Where episodes end by time limit, the critic learns that the last steps are worth zero.
+gymnax >= 1.0 is the exception: `Environment.step` returns `terminated` and `truncated` separately plus
+`info["final_observation"]` (see the gymnax row in section 3), so a loop written for the 4-tuple API
+breaks on it, and a loop that unpacks the 6-tuple but still sets `done = terminated | truncated`
+for GAE reintroduces the bias. Read `truncated` into the bootstrap, not into `done`.
 
 Correct handling seen elsewhere:
 - Brax PPO masks the truncated step: `deltas *= 1 - truncation` and the GAE accumulator is
@@ -220,7 +239,7 @@ envs with random actions in a jitted scan and reports where steps/s stops growin
 | Craftax_Baselines PPO / PPO-RNN (ppo.py:670-707) | 1024 | 64 | 4 | 8 | 2e-4 annealed | 0.99 / 0.8 | ent 0.01, grad norm 1.0, width 512, optimistic resets 16 |
 | Transformer-XL PPO, Craftax (train_PPO_trXL_pmap.py:11-37) | 1024 | 128 | 4 | 8 | 2e-4 annealed | 0.999 / 0.8 | ent 0.002, 2-layer TrXL, memory 128 |
 | rsl_rl PPO, Isaac Lab / mjlab velocity (`pytorch-gpu-sim.md`) | 4096 | 24 | 5 | 4 | 1e-3 adaptive-KL | 0.99 / 0.95 | desired KL 0.01, [512,256,128] ELU |
-| purejaxql PQN MinAtar (pqn_minatar.yaml) | 128 | 32 | 2 | 32 | 5e-4 decayed | 0.99 / 0.65 | RAdam, grad norm 10, eps 1 -> 0.05 over 10% |
+| purejaxql PQN MinAtar (pqn_minatar.yaml) | 128 | 32 | 2 | 32 | 5e-4 decayed | 0.99 / 0.65 | RAdam, grad norm 10, eps 1 -> 0.05 over 10% (repo yaml values; the PQN paper has only an Atari table) |
 | purejaxql PQN Craftax RNN (pqn_rnn_craftax.yaml) | 1024 | 128 | 4 | 4 | 3e-4 | 0.99 / 0.5 | LSTM 512, input norm, optimistic resets 16 |
 | Playground Brax PPO locomotion base (locomotion_params.py:30-53) | 8192 | 20 | 4 | 32 | 3e-4 | 0.97 | batch 256, ent 1e-2, obs norm; G1/T1 use 200M steps, ent 0.005 |
 | Playground Brax SAC DM Control (dm_control_suite_params.py:113-137) | 128 | n/a | 8 grad steps per env step | batch 512 | 1e-3 | 0.99 | buffer 4.2M, LayerNorm on Q |
@@ -233,6 +252,8 @@ envs with random actions in a jitted scan and reports where steps/s stops growin
 - `jax.tree_map` is gone in current JAX (`hasattr(jax, "tree_map")` is False on 0.12);
   2022-era code that calls it fails. The gymnax GitHub clone studied (last commit Dec 2022)
   calls it; the PyPI release 0.0.9 ran fine on JAX 0.12 here.
+- gymnax 1.0.1 requires jax < 0.12 (checked this session by running its source), so it cannot sit next to JAX 0.12.
+  It also changes the `step` return from 5 to 6 values (section 3), so old unpacking code fails at the first step.
 - purejaxql pins `jax>=0.4.16,<=0.4.38` (pyproject.toml:27-28).
 - scaling-crl pins jax 0.4.23 and brax 0.10.1 and requires two hand patches to brax
   (`mjx.ncon` removed after MuJoCo 3.1.5; an `rgba` comparison in brax/io/json.py)

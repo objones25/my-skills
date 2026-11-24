@@ -24,6 +24,16 @@ at the end; product facts link the page they came from.
 | MJX / MuJoCo Playground | JAX accelerators | see `jax-stack.md`; `wrap_for_torch_training` exposes `info["truncation"]` as `time_outs` (Playground _src/wrapper_torch.py:176-179) |
 | Isaac Gym (legacy) | NVIDIA GPU, Linux | [Makoviychuk et al. 2021](https://arxiv.org/abs/2108.10470): physics and policy both on GPU, 2-3 orders of magnitude faster than a CPU simulator with a GPU learner. SAPG's code still uses it; holosoma dropped it after v0.0.3. |
 
+Determinism: GPU-batched simulators are not reproducible at the reported precision even with fixed seeds and
+randomization off. GPUSimBench (2607.13059, §IV) sorts seven simulators into four regimes on a
+single RTX 5070 (12 GB) with Isaac Lab 2.2.1, MJX (MuJoCo 3.4.0), Playground 0.1.0, Genesis
+0.3.11 and ManiSkill 3.0.0b22, using toy scenes: Type 1 (Isaac Lab, ManiSkill) differs between
+envs within a run but not between runs, Type 2 (Genesis, MJX) neither, Type 3 (Madrona, MuJoCo
+Warp) both, Type 4 (Playground) between runs only. The paper has no mjlab row, and the result
+may change with GPU, driver and version. So average over runs, and do not read a single-run
+gap as an algorithm effect. (Throughput numbers in different papers use different definitions,
+physics-only FPS vs end-to-end steps/s; say which one when quoting.)
+
 On a Mac: PyTorch's MPS backend runs networks on the Apple GPU, but none of the GPU
 simulators above train there. Apple's [jax-metal](https://developer.apple.com/metal/jax/)
 plugin is labelled experimental, does not pass all JAX tests, lacks float64, and its
@@ -187,7 +197,7 @@ the paper's.
 
 ## 5. FlashSAC ([paper](https://arxiv.org/abs/2604.04539), repo MIT)
 
-SAC made stable at about 10x the usual network size.
+SAC made stable at a larger network size: 2.5M parameters, 12.5x the roughly 0.2M that the FlashSAC paper attributes to FastTD3 and FastSAC (2604.04539 introduction). FastTD3's own largest tested critic, D1024, has 1.83M parameters (2505.22642, Fig. 6), so against that model the factor is about 1.4x.
 
 - Blocks: inverted bottleneck residual (Linear h to 4h, BatchNorm, ReLU, Linear 4h to h,
   BatchNorm, ReLU, add) (flash_rl/agents/flashSAC/layer.py:91-108). Input BatchNorm stands
@@ -208,10 +218,19 @@ SAC made stable at about 10x the usual network size.
   for them, so `compile_mode: auto` picks max-autotune on torch 2.9+ (README.md:151-154;
   agent.py:326-333).
 - Paper: sim-to-real on a Unitree G1 walked in about 20 minutes of training vs about 3
-  hours for PPO on flat ground.
+  hours for PPO on flat ground; stair climbing took about 4 hours vs nearly 20 for PPO
+  (Fig. 6 caption). In its simulation benchmark the off-policy methods trained for 50M
+  steps and PPO for 200M, about 3x FlashSAC's compute (2604.04539 §5).
 - Caveat for copying its loop: it moves env I/O to NumPy every step and calls `.item()`
   on every metric every update (isaaclab.py:171-177; agent.py:507-513). Those syncs are
   avoidable (section 7).
+
+RSL-RL-SAC (Sabatini, Li, Hutter, ETH Zurich; 2605.24975) is a third off-policy option inside
+the rsl_rl and Isaac Lab stack. It names four changes: small initial actor sigma, action
+bounds from the robot's joint limits, timeout-aware bootstrapping that separates timeouts from
+failures, and n-step returns, and reports closing the gap with PPO on legged locomotion
+across several robots. The text has no per-change ablation, so each change's contribution
+is unquantified. Read the paper before adopting it; this skill has not run it.
 
 FastSAC vs FlashSAC on the same question, so the choice is explicit: FastSAC averages
 its two critics and keeps small LayerNorm MLPs (768/512); FlashSAC takes the per-sample

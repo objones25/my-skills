@@ -1,0 +1,119 @@
+{
+  "skill_name": "massively-parallel-rl",
+  "note": "Cases 1-3 also exist as claude-plugin-eval folders (evals/<id>/), whose grader files hold the same expectations. Cases 4-8 were added in v1.1.0 for the fixes and additions of that release.",
+  "evals": [
+    {
+      "id": "ppo-plateau-more-envs",
+      "type": "targeted",
+      "prompt": "my PPO on Craftax-Symbolic-v1 (purejaxrl style, jitted, one A100) was improving fine with NUM_ENVS=1024, NUM_STEPS=64, UPDATE_EPOCHS=4, NUM_MINIBATCHES=8, LR=2.5e-4. I bumped NUM_ENVS to 16384 to use the GPU better and kept everything else the same, and now at the same number of env steps the return is lower and it seems to plateau earlier. what's going on and what exactly should I change? give me the configs to run",
+      "expected_output": "Explains that the minibatch grew 16x and optimizer steps per frame fell; recommends holding minibatch size and LR fixed and adding minibatches; gives runnable configs with batch arithmetic; compares over several seeds.",
+      "expectations": [
+        "Computes that the minibatch grew from 8192 (1024*64/8) to 131072 (16384*64/8) observations, or states an equivalent 16x minibatch increase",
+        "Recommends holding the minibatch size (about 8192) fixed and increasing the number of minibatches (to about 128) rather than keeping NUM_MINIBATCHES=8",
+        "Gives at least one complete config (NUM_ENVS, NUM_STEPS, UPDATE_EPOCHS, NUM_MINIBATCHES, LR) to run",
+        "Recommends comparing configurations over 3 or more seeds at the same frame budget",
+        "Does not claim a specific throughput or score number for Craftax without citing a source or a measurement"
+      ]
+    },
+    {
+      "id": "scaling-law-study-plan",
+      "type": "targeted",
+      "prompt": "I want to do what the Zheng et al. RL scaling laws paper (arXiv 2610.33420) did but for PPO on gymnax Breakout-MinAtar instead of A2C on Craftax. I have about 200 A100-hours. Plan the study for me: which compute budgets, what grid, how many seeds, what metric, how to validate, and the actual commands or code I'd run to fit the laws.",
+      "expected_output": "A two-stage plan (hyperparameter laws, then an isoFLOPs model-size sweep) using an Elo league on fixed instances, FLOPs per frame, IQM over seeds, a held-out larger budget, and runnable commands.",
+      "expectations": [
+        "The plan has two stages: batch-size and learning-rate laws first, then a model-size isoFLOPs sweep that uses the fitted hyperparameters",
+        "Uses an Elo rating from a league on a fixed shared set of evaluation instances, anchored to a random policy, instead of mean return",
+        "Measures model size in FLOPs per frame (or an explicitly defined compute-per-frame unit) and defines compute as FPF times frames",
+        "Holds out at least one larger compute budget to validate predictions",
+        "Specifies at least 3 seeds per configuration and aggregates with IQM or another robust statistic",
+        "Includes concrete runnable commands or code for fitting the laws",
+        "Notes that Breakout-MinAtar in gymnax has very few distinct start states (2) and deterministic steps, so the evaluation instances need sticky actions or another source of randomness to differ"
+      ]
+    },
+    {
+      "id": "jax-pqn-truncation",
+      "type": "targeted",
+      "prompt": "write me a single-file jitted PQN (parallelized Q-learning, no replay buffer) for gymnax Acrobot-v1 that I can test on my Mac CPU now and run with thousands of envs on a GPU later. save it as pqn_acrobot.py and run it briefly to show it works.",
+      "expected_output": "A single-file JAX PQN with LayerNorm, no replay or target network, lambda-returns by reverse scan, vmapped envs in a jitted scan, truncation handled separately from termination, run briefly with real output.",
+      "expectations": [
+        "pqn_acrobot.py applies LayerNorm (or another normalization) after hidden layers of the Q-network",
+        "pqn_acrobot.py uses no replay buffer and no target network",
+        "pqn_acrobot.py computes lambda-returns or n-step targets with a reverse scan over the rollout",
+        "pqn_acrobot.py steps environments with jax.vmap inside a jitted lax.scan training loop",
+        "pqn_acrobot.py distinguishes time-limit truncation from true termination when bootstrapping",
+        "The response reports actual output from running pqn_acrobot.py"
+      ]
+    },
+    {
+      "id": "gymnax-1x-truncation",
+      "type": "targeted",
+      "targets": "v1.1.0 fix: gymnax 1.0 moved the time limit out of done",
+      "prompt": "I upgraded to gymnax 1.0.1 and my PureJaxRL PPO broke: `obs, env_state, reward, done, info = jax.vmap(env.step, in_axes=(0, 0, 0, None))(rng_step, env_state, action, env_params)` now raises 'too many values to unpack'. On Pendulum-v1 I just want it working again with correct value targets. What changed and what should the step and GAE code look like now?",
+      "expected_output": "Explains that gymnax 1.x step returns (obs, state, reward, terminated, truncated, info) with the pre-reset obs in info['final_observation'], that Pendulum episodes end only by the time limit, and that truncated steps should bootstrap from V(final_observation) while terminated steps do not; gives corrected code.",
+      "verified_facts": "gymnax 1.0.1 Environment.step returns a 6-tuple and puts the pre-reset observation in info['final_observation']; is_truncated(state, params) is state.time >= params.max_steps_in_episode; Pendulum never terminates naturally (checked 2026-11-24 from the installed source).",
+      "expectations": [
+        "States that gymnax 1.x step returns six values: obs, state, reward, terminated, truncated, info",
+        "States that every Pendulum episode ends by the time limit (truncation), never by termination",
+        "Says a truncated step should bootstrap from the value of the pre-reset observation (info['final_observation']), not from the returned obs, which belongs to the next episode",
+        "Gives corrected step code that unpacks six values",
+        "Gives GAE code (or a reward-folding change) in which terminated steps get no bootstrap and truncated steps get gamma * V(final observation)"
+      ]
+    },
+    {
+      "id": "staggered-resets",
+      "type": "targeted",
+      "targets": "v1.1.0 addition: staggered resets (2511.21011)",
+      "prompt": "PPO on a manipulation task, 8192 envs, NUM_STEPS=16, every episode is exactly 100 steps, all envs reset together at the start. The return and value loss curves have a sawtooth: a spike roughly every 6 to 7 updates, and it gets worse when I go to more envs. LR and clip are standard. What is causing the periodic spikes and how do I fix it?",
+      "expected_output": "Identifies synchronous resets: with all envs in phase and rollout length much shorter than the episode, each batch contains a single episode phase, so batch composition cycles with period H/K = 100/16 (about 6.25 updates). Fix by staggering initial episode offsets across envs (or a warm-up with randomized step counts) and re-randomizing on resume; cites the staggered-resets paper.",
+      "expectations": [
+        "Attributes the spikes to all envs being in the same episode phase because they reset together",
+        "Computes the period as episode length over rollout length, 100/16 = 6.25 updates, matching the observed 6 to 7",
+        "Recommends staggering the envs' initial step offsets (or randomizing initial episode progress) so each batch mixes episode phases",
+        "Suggests a check, such as a histogram of episode step counts per batch",
+        "Does not attribute the problem primarily to learning rate or clip range"
+      ]
+    },
+    {
+      "id": "ued-easy-start-control",
+      "type": "targeted",
+      "targets": "v1.1.0 addition: UED controls and score caveats (2610.40364, 2408.15099)",
+      "prompt": "Sparse binary-success manipulation in Isaac Lab, 4096 envs, 2000 procedurally generated object/goal configurations. Uniform sampling barely learns. I'm planning to implement Prioritized Level Replay with the positive value loss score. Good plan? Anything I should do first?",
+      "expected_output": "Recommends running cheap controls first (an easy-start or mixed-difficulty sampler, a success-driven curriculum), warns that positive-value-loss and MaxMC scores track success rate rather than regret, recommends learnability p(1-p) or moderate-success sampling for binary success, keeps a uniform floor, and counts scoring rollouts in the env budget.",
+      "expectations": [
+        "Recommends an easy-start or mixed-difficulty control (or a success-driven curriculum) before or alongside PLR",
+        "States that positive value loss (and MaxMC) scores have been found to track success rate rather than regret",
+        "Recommends a success-variance score such as learnability p(1-p) or moderate-success sampling for binary outcomes",
+        "Recommends keeping a nonzero sampling floor (uniform share) so no configuration is starved",
+        "Notes that the sampler settings in the papers were tested at no more than about 8,192 envs, or otherwise flags that they are starting points rather than results at this scale"
+      ]
+    },
+    {
+      "id": "epo-vs-sapg-number",
+      "type": "targeted",
+      "targets": "v1.1.0 fix: EPO vs SAPG two-arm reorientation number",
+      "prompt": "Quick check for a related-work paragraph: how much better was EPO than SAPG on the two-arm reorientation task, according to the EPO paper? Give the numbers and the step counts.",
+      "expected_output": "EPO reports 35.8 episode successes at 1e10 steps (Table 1 row M:TR: 37.0) and compares with SAPG's published 28.58; in EPO's own Table 1, SAPG reaches 4.4 (64 agents) and 3.9 (6 agents). The papers disagree on the step count behind 28.58.",
+      "verified_facts": "2503.19037 text lines 495-496; Table 1 row M:TR (SAPG 64 4.4, SAPG 6 3.9, EPO 37.0); SAPG 2407.20230 Table 1 caption gives 2e10 samples (checked 2026-11-24).",
+      "expectations": [
+        "Gives EPO's 35.8 successes at 1e10 steps (or the Table 1 value 37.0)",
+        "Gives SAPG's numbers from EPO's Table 1 (4.4 and 3.9) or the published 28.58, saying which is which",
+        "Does not state that SAPG scored 2.2",
+        "Flags the step-count discrepancy for SAPG's 28.58 or otherwise says the comparison is not at matched steps"
+      ]
+    },
+    {
+      "id": "control-correct-truncation-gae",
+      "type": "control",
+      "files": ["evals/files/gae_truncation.py"],
+      "prompt": "Can you review evals/files/gae_truncation.py? It computes GAE for my PureJaxRL rollout using mprl_common.AutoReset outputs (terminated, truncated, final_obs). Is the truncation handling right, or am I bootstrapping through resets somewhere? Only change it if something is actually wrong.",
+      "expected_output": "The code is correct: truncated steps fold gamma * V(final_obs) into the reward and then cut the trace, terminated steps get no bootstrap, and the next-step value never crosses an episode boundary. Nothing needs changing.",
+      "verified_facts": "The function matches a per-step reference loop (bootstrap 0 on terminated, V(final_obs) on truncated, V(next obs) otherwise; trace cut at every episode end) to 1.1e-7 on random inputs (checked 2026-11-24, jax 0.11.2).",
+      "expectations": [
+        "Concludes that the truncation handling is correct",
+        "Explains that truncated steps bootstrap from V(final_obs) via the reward fold and that the (1 - done) mask stops bootstrapping across the reset",
+        "Does not propose a change to the truncation or done handling as a bug fix",
+        "Does not claim the code bootstraps from the post-reset observation"
+      ]
+    }
+  ]
+}

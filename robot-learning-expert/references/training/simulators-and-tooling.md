@@ -190,6 +190,7 @@ From https://github.com/mujocolab/mjlab/blob/v1.6.0/src/mjlab/asset_zoo/robots/u
 - Install: `pip install --upgrade mani_skill`, then `pip install torch`, then set up Vulkan. (source: https://raw.githubusercontent.com/haosulab/ManiSkill/main/README.md, checked 2026-11-02)
 - License: Apache 2.0 (repo LICENSE; PyPI metadata has no license field). (source: https://raw.githubusercontent.com/haosulab/ManiSkill/main/LICENSE, checked 2026-11-02)
 - When to pick: manipulation with camera observations at scale; not a locomotion tool.
+- Paper's PPO recipe [2410.00425 lines 1070-1090, RTX 4090]: up to 4096 envs for state-based and about 256 to 1024 for RGB; default discount 0.8 (raised to 0.99 if that fails); 16 or 32 rollout steps per env (some tasks such as PegInsertionSide need more); partial resets always on. Replay buffer 1M for state and 200K for vision tasks (off-policy baselines).
 
 ## Genesis
 

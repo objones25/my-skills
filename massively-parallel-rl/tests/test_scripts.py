@@ -207,7 +207,6 @@ def test_autoreset_separates_truncation_from_termination():
 
 
 def test_evaluate_uses_identical_instances():
-    import jax
     import jax.numpy as jnp
     from mprl_common import AutoReset, evaluate, make_env
     env, params = make_env("CartPole-v1")
@@ -216,6 +215,15 @@ def test_evaluate_uses_identical_instances():
     a = evaluate(w, act, None, 16, eval_seed=7)
     b = evaluate(w, act, None, 16, eval_seed=7)
     assert np.array_equal(np.asarray(a), np.asarray(b))
+
+
+def test_check_env_reports_jax_and_a_verdict():
+    import importlib.metadata as md
+    out = run("check_env.py")
+    assert out.returncode == 0, out.stderr
+    assert f"jax          {md.version('jax')}" in out.stdout  # installed version, padded as printed
+    assert "jax devices:" in out.stdout
+    assert out.stdout.strip().splitlines()[-1].startswith("verdict: ")
 
 
 def test_throughput_bench_runs():

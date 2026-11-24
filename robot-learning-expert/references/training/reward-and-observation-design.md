@@ -26,6 +26,16 @@ Randomization: foot friction 0.3 to 1.2 (shared across foot geoms), encoder bias
 - Log every reward term separately (`Episode_Reward/*`) and check which one is moving. A term that dominates the sum is the one the policy optimizes.
 - Reward scale interacts with the value function: Q magnitudes scale like r_max/(1−γ); observation and reward normalization keep the critic's targets well conditioned.
 
+## Multi-task and multi-embodiment batches
+
+When one batch mixes tasks or robots with different reward scales, per-task value scaling matters. PopArt keeps per-task mean and standard deviation, scales both the value and the policy-gradient signal, and rewrites the last layer to preserve outputs when the statistics change [1809.04474 lines 44, 210-212]. Its evidence is IMPALA on Atari and DmLab (and SAC in later continual-learning work), not PPO at scale. EAGLE-style multi-humanoid training used shared reward weights with per-robot targets and no per-robot value normalization [2602.02960 lines 266-268, from the findings report (unverified)].
+
+## Dense shaping vs sparse reward: the sources disagree
+
+- Dense shaping is the default above for locomotion tracking. In heterogeneous assembly with reset coverage, AlphaNIST found a single binary success reward plus control cost beat dense reach/align shaping: dense shaping stayed at 11.8 to 12.0% success over 1K to 4K envs while the binary reward reached 38.6% at 1K, 78.9% at 4K, 86.9% at 8K evaluation success with beta sampling; the 98.2% at 64K is training success [2610.13354 lines 448, 456-459]. The cited lines do not say which reset sampler the dense arm used.
+- Staged or stage-gated rewards (DrS, StructRL) are reported to help on other manipulation tasks, and over-fine decomposition (52 subtasks) fell below terminal-only reward there (37.6% vs 40.2%) [2404.16779, 2609.36352, from the findings report, not re-read (unverified)].
+- Reconcile [inference]: shaping helps when the reward is the only exploration signal; large reset coverage and many parallel envs can substitute for it. Test both arms.
+
 ## Observation design rules `[practice]`
 
 - Give the actor only what the robot will have (IMU, joint encoders, last action, command); give the critic anything (asymmetric actor-critic).

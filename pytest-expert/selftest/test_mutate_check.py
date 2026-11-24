@@ -548,7 +548,7 @@ def test_timeout_floor_is_a_minimum_and_is_reported(proj):
     assert payload["timeout_seconds"] == pytest.approx(30.0)
     assert "mutant timeout 30.0s" in cli(project, "--timeout-floor", "30").stdout
     _, default = cli_json(project)
-    assert default["timeout_seconds"] == pytest.approx(10.0)  # the documented default floor
+    assert default["timeout_seconds"] == pytest.approx(2.0)  # the documented default floor (10 s before 2026-11-24)
 
 
 # ---------------------------------------------------------------------------
@@ -1051,3 +1051,31 @@ def test_source_is_restored_after_the_run(project):
 def test_red_baseline_exits_2(project):
     (project / "tests" / "test_shop.py").write_text("def test_red():\n    assert 1 + 1 == 3\n")
     assert run(project).returncode == 2
+
+
+def test_children_reuse_the_bytecode_cache_without_writing_to_it(project):
+    # A fresh, empty PYTHONPYCACHEPREFIX per run made every child recompile pytest and the
+    # stdlib (about 3x slower per run). Not writing bytecode is enough to keep mutants fresh.
+    log = project / "probe.log"
+    (project / "tests" / "test_a_probe.py").write_text(
+        "import sys\n\n\ndef test_probe():\n"
+        f"    with open({str(log)!r}, 'a') as f:\n"
+        "        f.write(f'{sys.pycache_prefix} {sys.flags.dont_write_bytecode}\\n')\n"
+    )
+    (project / "tests" / "test_shop.py").write_text(STRONG)
+    assert run(project).returncode == 0
+    lines = log.read_text().splitlines()
+    assert len(lines) > 1
+    assert set(lines) == {"None 1"}
+
+
+def test_infinite_loop_mutant_is_killed_without_waiting_ten_seconds(tmp_path):
+    (tmp_path / "shop.py").write_text("def count_down(n):\n    while n > 0:\n        n -= 1\n    return n\n")
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "test_shop.py").write_text(
+        "from shop import count_down\n\n\ndef test_reaches_zero():\n    assert count_down(3) == 0\n"
+    )
+    payload = json.loads(run(tmp_path, "--format", "json").stdout)
+    timed_out = [m for m in payload["mutants"] if m["status"] == "killed (timeout)"]
+    assert [m["description"] for m in timed_out] == ["-= -> +="]
+    assert timed_out[0]["seconds"] < 9.0

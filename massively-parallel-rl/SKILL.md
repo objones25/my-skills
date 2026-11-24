@@ -2,11 +2,12 @@
 name: massively-parallel-rl
 description: Massively parallel reinforcement learning - thousands to millions of GPU/JAX environments stepped in lockstep - grounded in 2024-2026 papers and verified against 22 repos (PureJaxRL, PQN, Craftax, Kinetix, Brax/Playground, Isaac Lab, rsl_rl, mjlab, FastTD3, FastSAC, FlashSAC, SAPG, PufferLib and others). Use when writing, scaling, tuning or debugging RL that runs many vectorized environments (jax.vmap env.step, gymnax, Craftax, Brax, MJX, Isaac Lab, num_envs in the thousands), when choosing num_envs / batch size / minibatches / learning rate as compute grows, when PPO plateaus or stops improving with more environments, when fitting or applying RL scaling laws (compute-optimal model size, isoFLOPs, Elo instead of mean return), or when picking between PPO, PQN, FastTD3 and FlashSAC for fast training. Ships runnable JAX PPO/A2C and PQN scaffolds, a single-agent Elo league, a scaling-law fitter and throughput/FLOPs tools. Not for distributed training of one large model across GPUs.
 license: MIT
-compatibility: Python 3.10+. Scripts need jax, flax, optax, distrax, gymnax, numpy, scipy, pandas (craftax optional). Tests last run 2026-11-03 on macOS arm64 (JAX CPU backend) with JAX 0.12.0.1 / Flax 0.12.12 / Optax 0.2.8 / gymnax 0.0.9. Reference files cite repo commits read on 2026-10-27.
+compatibility: Python 3.10+. Scripts need jax, flax, optax, distrax, gymnax, numpy, scipy, pandas (craftax optional). Tests last run 2026-11-24 on macOS arm64 (JAX CPU backend), 25 passed on each of JAX 0.11.2 + gymnax 1.0.1 and JAX 0.12.0.1 + gymnax 0.0.9 (Flax 0.12.12, Optax 0.2.8, distrax 0.1.9); gymnax 1.0.1 needs jax < 0.12. Reference files cite repo commits read on 2026-10-27.
 metadata:
   author: owenbeckettjones
-  version: '1.0.1'
-  verified-against: "jax 0.12.0.1, flax 0.12.12, optax 0.2.8, distrax 0.1.9, gymnax 0.0.9, torch 2.14.1"
+  version: '1.1.0'
+  verified-against: "jax 0.12.0.1 and 0.11.2, flax 0.12.12, optax 0.2.8, distrax 0.1.9, gymnax 0.0.9 and 1.0.1, torch 2.14.1"
+  test-command: "uv run --no-project --with jax==0.11.2 --with gymnax==1.0.1 --with flax==0.12.12 --with optax==0.2.8 --with distrax==0.1.9 --with numpy --with scipy --with pandas --with pytest python -m pytest tests -q -p no:asyncio"
 ---
 
 # Massively parallel RL
@@ -24,7 +25,8 @@ about N and wall-clock. Quote its output.
 | --- | --- |
 | `references/jax-stack.md` | writing or reading jitted JAX RL (PureJaxRL loop, gymnax, Craftax, Kinetix, Brax/Playground), reset and truncation semantics, RNN rollouts, multi-device, shipped defaults per repo |
 | `references/pytorch-gpu-sim.md` | Isaac Lab, rsl_rl, mjlab, MuJoCo Warp, FastTD3, FastSAC (holosoma), FlashSAC, PufferLib, keeping a PyTorch loop on the GPU, off-policy scaling results |
-| `references/large-batch-on-policy.md` | PPO/A2C with very large N, plateaus, SAPG, EPO, curriculum resets, batch schedules |
+| `references/large-batch-on-policy.md` | PPO/A2C with very large N, plateaus, SAPG, EPO, CPO, staggered resets, batch schedules |
+| `references/reset-and-task-sampling.md` | reset distributions, level and task samplers (SGS, PLR/ACCEL, SFL, teachers), reset banks, UED controls, reset hygiene |
 | `references/scaling-laws.md` | predicting hyperparameters, model size or performance at larger compute; Elo league; reading Zheng et al. 2026 |
 | `references/debugging.md` | any symptom: plateau, NaN, slow steps, OOM, results that change with N |
 | `references/papers.md` | which paper or repo says what, with verified links and licenses |
@@ -64,13 +66,15 @@ transition) becomes the knob.
 Each of these, when violated, produces a run that trains but quietly learns less.
 
 1. **Separate termination from truncation.** A time limit is not the end of the task.
-   PureJaxRL, rejax, purejaxql, gymnax, Craftax and Kinetix all OR the time limit into
-   `done`, which zeroes the bootstrap. Bootstrap truncated steps from the pre-reset
+   PureJaxRL, rejax, purejaxql, gymnax < 1.0, Craftax and Kinetix all OR the time limit into
+   `done`, which zeroes the bootstrap (gymnax >= 1.0 returns `terminated` and `truncated`
+   separately; use them that way). Bootstrap truncated steps from the pre-reset
    observation (`mprl_common.AutoReset`), or mask them out as Brax does. The obs returned
    on a done step belongs to the next episode; never bootstrap from it.
 2. **Scale N without changing three things at once.** More envs change batch size,
    minibatch count and update count together. Default recipe (Beukman et al. 2026):
-   hold minibatch size and learning rate fixed and let the number of minibatches grow.
+   hold minibatch size and learning rate fixed and let the number of minibatches grow
+   (evidence is dense-reward tasks; Rudin et al. and SGS grow the minibatch instead).
    Grow the minibatch only for hardware utilization, and say so.
 3. **Keep the loop on the device.** JAX: jit the entire `train` function, vmap seeds,
    no Python inside the scan. PyTorch: no `.item()`, `.cpu()` or NumPy env I/O per step;
@@ -82,8 +86,8 @@ Each of these, when violated, produces a run that trains but quietly learns less
 6. **Fit scaling laws on Elo, not mean return.** Evaluate every agent on the same fixed
    instances, build one league including a random policy, anchor random at 0. Mean
    return extrapolated poorly in Starpilot and did not even fit the fitting range in Craftax.
-   The instances must actually differ: gymnax MinAtar has 1-2 start states and
-   deterministic steps, so add sticky actions (`--sticky-prob 0.1`) there.
+   The instances must actually differ: gymnax Breakout, SpaceInvaders and Asterix have 1-2
+   start states (Freeway's are random), so add sticky actions (`--sticky-prob 0.1`) there.
 7. **Normalize what grows.** LayerNorm after hidden layers for PQN and deep critics;
    observation normalization (running mean/var, outside the vmap) for continuous control.
 8. **Never quote a default, throughput or benchmark number from memory.** Use the
@@ -106,7 +110,7 @@ Each of these, when violated, produces a run that trains but quietly learns less
 | Model size as compute grows | fit it; published FPF laws give about x2.7 per 10x compute | `scaling-laws.md` |
 | Optimizer | Adam, eps 1e-5, global-norm clip 0.5 (PPO); RAdam, clip 10 (PQN MinAtar) | `jax-stack.md` |
 | Performance metric for scaling | single-agent Elo league | `scaling-laws.md` section 3 |
-| PPO plateau at large N | add minibatches, then diversity (SAPG/EPO) or reset curricula | `large-batch-on-policy.md` |
+| PPO plateau at large N | add minibatches (dense-reward evidence), then staggered resets, diversity (SAPG/EPO) or a reset or level sampler, with an easy-start control | `large-batch-on-policy.md`, `reset-and-task-sampling.md` |
 
 ## Debugging protocol
 
@@ -130,3 +134,10 @@ symptom to a fix.
 - Run the scaffold or script and quote its real output instead of describing what it
   would print.
 - Shell commands meant to be pasted carry no `#` comment lines.
+
+## Extend this skill
+
+1. A new paper: add a row to `references/papers.md`, put each number in the reference file it changes with its conditions (envs, seeds, benchmark), and record the source in `references/sources.md`.
+2. A new library version: run `metadata.test-command` against it, record the result with date and machine in `CHANGELOG.md`, and update the version split in `references/jax-stack.md` if behaviour changed.
+3. A new script: add its test to `tests/` (`tests/test_skill_structure.py` fails on an untested script). A new reference file must be routed from the table above.
+4. A new kind of question or a fixed mistake: add a case to `evals/evals.json`.

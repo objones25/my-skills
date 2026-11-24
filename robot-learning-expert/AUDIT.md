@@ -1,3 +1,16 @@
+# Audit, 2026-11-24 (version 0.5.0)
+
+## What was checked
+- Existing citations: one agent audited every claim the skill made about the 20 corpus papers it already cited (report: scratchpad `findings/Z_citation_audit.md`, not kept in the repo). Result for both RL skills together: 41 table rows correct (about 270 numbers), 2 wrong (the same EPO vs SAPG error, here in `papers/massively-parallel-survey.md`), 2 overstated, 7 missing a qualifier, 8 not checkable from the paper text. All wrong, overstated and missing-qualifier items in this skill were fixed.
+- New content: an independent reviewer that wrote none of it checked the v0.5.0 diff against the paper texts. About 95 claims confirmed; 1 wrong (Go-Exploit's lambda is the initial-state probability), 1 unsupported (TeachMyAgent "Oracle" numbers), 2 miscited (PSDP is 2504.05405 Thm 1; the nondeterminism source is GPUSimBench, not 2411.04832), 4 overstated and 6 missing a qualifier. All fixed; the coordinator re-checked the wrong, unsupported and miscited items and found one more error in the reviewer's own reading (ALP-GMM leads on 4 of 5 TeachMyAgent challenges, not 5).
+- Policy-gradient additions: checked against the Notes 8 and 9 PDFs page by page; the optimal-baseline formula and the corrected TRPO step were checked numerically.
+
+## Not verified
+- Items still tagged (unverified) in the files (e.g. Radosavovic's KL direction, 2303.03381 not in the corpus; AutoMate and DextrAH-G real-robot numbers; DemoBot and POISE randomization ranges; the GPUSimBench nondeterminism row).
+- Papers the analysis agents only triaged from abstracts (listed in each findings file) contribute no numbers here.
+- Notes 9 Fig. 2b's "gamma = 1.8" was not checked against Bhandari and Russo (2019).
+- Evals and trigger evals were not run.
+
 # Audit, 2026-11-16 (version 0.4.0)
 
 ## Fact-check

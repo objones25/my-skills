@@ -86,15 +86,16 @@ python scripts/mutate_check.py src/wallet/money.py --function transfer_fee_cents
 ```
 
 Everything after `--` is your test command. The file is edited in place and
-restored on exit, Ctrl-C, or SIGTERM (exit 130). Each run gets a fresh `PYTHONPYCACHEPREFIX`:
-a same-size mutation written within the same second can otherwise be masked by a
-stale `.pyc`, making a mutant look like it survived.
+restored on exit, Ctrl-C, or SIGTERM (exit 130). Test runs get `PYTHONDONTWRITEBYTECODE=1`,
+so no mutant is ever cached as a `.pyc` that could mask a later same-size mutant and make
+it look like it survived. The existing cache for pytest and the stdlib is still read,
+so each run does not recompile them.
 
 The test command runs in its own process group, and the whole group is killed on a timeout,
 on SIGINT or SIGTERM, and when it exits. The baseline run happens twice and must pass both
 times, so the baseline cost is doubled; a flaky suite cannot be scored. The mutant timeout is
-`max(--timeout-floor, baseline * --timeout-factor)`, with a floor of 10 s: a
-`--timeout-factor` that gives less than 10 s changes nothing unless you also lower
+`max(--timeout-floor, baseline * --timeout-factor)`, with a floor of 2 s: a
+`--timeout-factor` that gives less than 2 s changes nothing unless you also lower
 `--timeout-floor`.
 
 Each mutant gets one status, from the test command's exit code (pytest's):
