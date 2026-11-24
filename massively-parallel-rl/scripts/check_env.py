@@ -10,7 +10,6 @@ Usage: python check_env.py
 """
 from __future__ import annotations
 
-import importlib
 import importlib.metadata as md
 import platform
 import sys

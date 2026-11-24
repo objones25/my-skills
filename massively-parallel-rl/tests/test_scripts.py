@@ -207,7 +207,6 @@ def test_autoreset_separates_truncation_from_termination():
 
 
 def test_evaluate_uses_identical_instances():
-    import jax
     import jax.numpy as jnp
     from mprl_common import AutoReset, evaluate, make_env
     env, params = make_env("CartPole-v1")
