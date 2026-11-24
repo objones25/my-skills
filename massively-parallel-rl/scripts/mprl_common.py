@@ -64,7 +64,7 @@ class AutoReset:
 
     sticky_prob > 0 repeats the previous action with that probability, as the
     original MinAtar does (sticky_action_prob=0.1 by default; gymnax drops it).
-    gymnax MinAtar games have 1 or 2 start states and key-independent dynamics,
+    gymnax Breakout, SpaceInvaders and Asterix have 1 or 2 start states and key-independent dynamics,
     so without stickiness every "evaluation instance" replays the same game.
     The last action carries over across episodes, as in MinAtar.
     """

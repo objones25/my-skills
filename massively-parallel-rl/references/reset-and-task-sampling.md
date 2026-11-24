@@ -89,8 +89,8 @@ learned-score replay methods lost to plain DR there.
 - CL4AD (2608.22549, autonomous driving, scenario sets of 1K to 80K, PLR): buffer as large as
   the dataset; score temperature 2 or 4 instead of the usual 0.1-1.0, because a low temperature
   concentrates sampling on a few levels as the buffer grows; staleness coefficient 0.1-0.3 as in
-  earlier work; among regret scores MaxMC was the most reliable across scales because it does
-  not depend on value accuracy.
+  earlier work; no single score dominated across scales, and among regret scores MaxMC was the
+  most reliable because it does not depend on value accuracy (§5, line 874).
 - Do not scale these numbers with N. The largest env count among the sampler papers read for
   this section is 8,192 (the quadruped benchmark) [inference from the papers read].
 

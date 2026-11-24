@@ -115,8 +115,8 @@ Procedure (Section 3.3):
    that scale).
 4. Subtract the random policy's rating so random = 0.
 
-Check that the instances really differ. gymnax MinAtar games have 1 or 2 start
-states (Breakout 2; SpaceInvaders and Asterix 1) and their step ignores the random key,
+Check that the instances really differ. gymnax Breakout, SpaceInvaders and Asterix
+have 1 or 2 start states (Breakout 2; SpaceInvaders and Asterix 1; Freeway's are random) and their step ignores the random key,
 so a greedy policy replays the same one or two games on all 1024 instances; the league
 then rests on 2 games while looking like 1024. The original MinAtar adds randomness with
 sticky actions (`sticky_action_prob=0.1` by default,

@@ -85,8 +85,8 @@ Each of these, when violated, produces a run that trains but quietly learns less
 6. **Fit scaling laws on Elo, not mean return.** Evaluate every agent on the same fixed
    instances, build one league including a random policy, anchor random at 0. Mean
    return extrapolated poorly in Starpilot and did not even fit the fitting range in Craftax.
-   The instances must actually differ: gymnax MinAtar has 1-2 start states and
-   deterministic steps, so add sticky actions (`--sticky-prob 0.1`) there.
+   The instances must actually differ: gymnax Breakout, SpaceInvaders and Asterix have 1-2
+   start states (Freeway's are random), so add sticky actions (`--sticky-prob 0.1`) there.
 7. **Normalize what grows.** LayerNorm after hidden layers for PQN and deep critics;
    observation normalization (running mean/var, outside the vmap) for continuous control.
 8. **Never quote a default, throughput or benchmark number from memory.** Use the

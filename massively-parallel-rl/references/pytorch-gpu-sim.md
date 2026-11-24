@@ -24,7 +24,7 @@ at the end; product facts link the page they came from.
 | MJX / MuJoCo Playground | JAX accelerators | see `jax-stack.md`; `wrap_for_torch_training` exposes `info["truncation"]` as `time_outs` (Playground _src/wrapper_torch.py:176-179) |
 | Isaac Gym (legacy) | NVIDIA GPU, Linux | [Makoviychuk et al. 2021](https://arxiv.org/abs/2108.10470): physics and policy both on GPU, 2-3 orders of magnitude faster than a CPU simulator with a GPU learner. SAPG's code still uses it; holosoma dropped it after v0.0.3. |
 
-Determinism: GPU-batched simulators are not bitwise reproducible even with fixed seeds and
+Determinism: GPU-batched simulators are not reproducible at the reported precision even with fixed seeds and
 randomization off. GPUSimBench (2607.13059, §IV) sorts seven simulators into four regimes on a
 single RTX 5070 (12 GB) with Isaac Lab 2.2.1, MJX (MuJoCo 3.4.0), Playground 0.1.0, Genesis
 0.3.11 and ManiSkill 3.0.0b22, using toy scenes: Type 1 (Isaac Lab, ManiSkill) differs between
@@ -197,7 +197,7 @@ the paper's.
 
 ## 5. FlashSAC ([paper](https://arxiv.org/abs/2604.04539), repo MIT)
 
-SAC made stable at a larger network size: 2.5M parameters, about 10x the roughly 0.2M that the FlashSAC paper attributes to FastTD3 and FastSAC (2604.04539 introduction). FastTD3's own largest tested critic, D1024, has 1.83M parameters (2505.22642, Fig. 6), so against that model the factor is about 1.4x.
+SAC made stable at a larger network size: 2.5M parameters, 12.5x the roughly 0.2M that the FlashSAC paper attributes to FastTD3 and FastSAC (2604.04539 introduction). FastTD3's own largest tested critic, D1024, has 1.83M parameters (2505.22642, Fig. 6), so against that model the factor is about 1.4x.
 
 - Blocks: inverted bottleneck residual (Linear h to 4h, BatchNorm, ReLU, Linear 4h to h,
   BatchNorm, ReLU, add) (flash_rl/agents/flashSAC/layer.py:91-108). Input BatchNorm stands
