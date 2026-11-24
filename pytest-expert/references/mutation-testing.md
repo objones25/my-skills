@@ -65,9 +65,11 @@ python scripts/mutate_check.py src/wallet/money.py --function transfer_fee_cents
 ```
 
 Everything after `--` is your test command. The file is edited in place and
-restored on exit, Ctrl-C, or SIGTERM. Each run gets a fresh `PYTHONPYCACHEPREFIX`:
-a same-size mutation written within the same second can otherwise be masked by a
-stale `.pyc`, making a mutant look like it survived.
+restored on exit, Ctrl-C, or SIGTERM. Test runs get `PYTHONDONTWRITEBYTECODE=1`, so
+no mutant is ever cached as a `.pyc` that could mask a later same-size mutant and make
+it look like it survived. The existing cache for pytest and the stdlib is still read,
+so each run does not recompile them. A mutant that loops forever is killed after
+`max(2 s, baseline × --timeout-factor)`.
 
 First run on the example's unit tests:
 

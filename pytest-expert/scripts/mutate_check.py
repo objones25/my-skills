@@ -12,8 +12,9 @@ Usage:
 
 The file is edited in place and always restored (a .mutate_check.bak copy exists
 while it runs; if one is left behind after a crash, the script refuses to start
-until you restore it). Each run gets a fresh PYTHONPYCACHEPREFIX so a stale .pyc
-cannot make a mutant look like it survived.
+until you restore it). Test runs get PYTHONDONTWRITEBYTECODE=1, so no mutant is ever cached as a .pyc
+and a stale one cannot make a later mutant look like it survived; the existing cache for
+pytest and the stdlib is still read, so each run does not recompile them.
 
 Exit status: 0 if no mutant survived (or survivors <= --max-survivors), 1 otherwise,
 2 for usage errors or a failing baseline.
@@ -30,7 +31,6 @@ import shutil
 import signal
 import subprocess
 import sys
-import tempfile
 import time
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -45,6 +45,8 @@ BINOP_SWAPS = {
     ast.Add: ast.Sub, ast.Sub: ast.Add, ast.Mult: ast.FloorDiv, ast.FloorDiv: ast.Mult,
     ast.Div: ast.Mult, ast.Mod: ast.FloorDiv, ast.Pow: ast.Mult,
 }
+# Mutants that loop forever are killed after max(floor, baseline * --timeout-factor).
+TIMEOUT_FLOOR_S = 2.0
 BOOLOP_SWAPS = {ast.And: ast.Or, ast.Or: ast.And}
 NAME_SWAPS = {"max": "min", "min": "max", "any": "all", "all": "any"}
 SYMBOLS = {
@@ -191,14 +193,14 @@ def _replace(tree: ast.Module, old: ast.AST, replacement: ast.AST) -> ast.Module
 
 
 def run(command: list[str], timeout: float) -> tuple[str, float]:
+    # Read the existing bytecode cache but never write one: a fresh, empty
+    # PYTHONPYCACHEPREFIX per run made every run recompile pytest and the stdlib (about 3x slower).
     env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1")
-    with tempfile.TemporaryDirectory(prefix="mutate-pyc-") as cache:
-        env["PYTHONPYCACHEPREFIX"] = cache
-        start = time.monotonic()
-        try:
-            proc = subprocess.run(command, env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=timeout, check=False)
-        except subprocess.TimeoutExpired:
-            return "timeout", time.monotonic() - start
+    start = time.monotonic()
+    try:
+        proc = subprocess.run(command, env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=timeout, check=False)
+    except subprocess.TimeoutExpired:
+        return "timeout", time.monotonic() - start
     elapsed = time.monotonic() - start
     return ("passed" if proc.returncode == 0 else "failed"), elapsed
 
@@ -254,7 +256,7 @@ def main(argv: list[str] | None = None) -> int:
         for index, (node_id, line, kind, description) in enumerate(sites, start=1):
             mutant = Mutant(index, line, description)
             source_path.write_text(ast.unparse(mutate(tree, node_id, kind)) + "\n", encoding="utf-8")
-            result, mutant.seconds = run(command, timeout=max(10.0, baseline * args.timeout_factor))
+            result, mutant.seconds = run(command, timeout=max(TIMEOUT_FLOOR_S, baseline * args.timeout_factor))
             mutant.status = {"failed": "killed", "timeout": "killed (timeout)", "passed": "SURVIVED"}[result]
             mutants.append(mutant)
             if args.format == "text":

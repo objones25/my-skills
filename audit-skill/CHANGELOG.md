@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.1.3, 2026-11-24
+
+`scripts/mutate_check.py` is about 4x faster, with the same verdicts (resynced from pytest-expert, which has the same fix). Profiled with cProfile on `scripts/quote_match.py` and `tests/test_quote_match.py` (57 mutants): 98% of the time was spent waiting on test runs, and under 1 s in the script itself.
+
+| Cause | Evidence | Fix |
+|---|---|---|
+| Each test run got a new, empty `PYTHONPYCACHEPREFIX` while `PYTHONDONTWRITEBYTECODE=1` was set, so every run recompiled pytest and the stdlib from source | One pytest run took 0.81-0.90 s that way, 0.28-0.32 s without the prefix | Dropped the prefix; kept `PYTHONDONTWRITEBYTECODE=1`, which already stops a mutant from being cached |
+| Timeout floor of 10 s | Two infinite-loop mutants (`+ -> -`) took 10.0 s each against a 0.3 s baseline | Floor is now `TIMEOUT_FLOOR_S = 2.0` |
+
+The benchmark went from 62.0 s to 15.4 s of test-run time; score 66.7% and every mutant's verdict were identical before and after. New tests: `test_children_reuse_the_bytecode_cache_without_writing_to_it` and `test_infinite_loop_mutant_is_killed_without_waiting_ten_seconds`, both seen failing before the fix.
+
+### Test results by machine
+
+| Date | Machine | Versions | Result |
+|---|---|---|---|
+| 2026-11-24 | macOS arm64 (Apple Silicon) | Python 3.13.2, pytest 9.2.0 | 217 passed, 0 skipped (215 before, plus the 2 new tests) |
+
 ## 0.1.2, 2026-11-19
 
 Type-checking fixes only; no change in behaviour. `pyright audit-skill` went from 16 errors to 0.

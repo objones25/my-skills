@@ -50,7 +50,7 @@ Where this skill's method comes from. Checked means how much was read: Full, Par
 | Source | Date checked | Checked | Supports |
 |---|---|---|---|
 | `pdftotext` (poppler), Homebrew build on macOS arm64 | 2026-11-07 | Installed; exercised by `tests/test_fetch_source.py` | PDF to text in `fetch_source.py` |
-| `pytest-expert/scripts/mutate_check.py` | 2026-11-07 | Full; copied with its tests | `scripts/mutate_check.py` |
+| `pytest-expert/scripts/mutate_check.py` | 2026-11-24 | Full; copied with its tests (first 2026-11-07, resynced with the speed fix) | `scripts/mutate_check.py` |
 
 ## Not verified
 
