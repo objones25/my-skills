@@ -10,7 +10,7 @@ Where the concept files' citations point, and the known errors in those sources.
 | SB | Sutton and Barto, *Reinforcement Learning: An Introduction*, 2nd ed., free at incompleteideas.net/book | value-function methods, TD, Q-learning; little on modern policy gradient |
 | BBC | Bagnell, Boots, Choudhury, *Modern Adaptive Control and Reinforcement Learning* (draft) | trajectory optimization, imitation, control-flavored RL |
 | Åström and Murray | *Feedback Systems* | control intuition (stabilization, tracking) |
-| Notes N | J. A. Preiss, *Introduction to Robot Learning* lecture notes (UC Santa Barbara, 2026): 0 intro, 1 MDPs, 2 continuous states (LQR, trajectory optimization), 3 bandits, 4 model-based RL, 5 tabular Q-learning, 6 linear function approximation, 7 deep Q-learning | concise derivations in AJKS notation; drafts, so check the errata below |
+| Notes N | J. A. Preiss, *Introduction to Robot Learning* lecture notes (UC Santa Barbara, 2026): 0 intro, 1 MDPs, 2 continuous states (LQR, trajectory optimization), 3 bandits, 4 model-based RL, 5 tabular Q-learning, 6 linear function approximation, 7 deep Q-learning, 8 policy gradient part I (score function, REINFORCE, baselines, entropy), 9 policy gradient advanced (TRPO, NPG, PPO, optimality, PC-PG) | concise derivations in AJKS notation; drafts, so check the errata below. Notes 8 and 9 (Winter 2026, revision A) use a finite horizon, t = 1..H, no discount, and write Q_t^π, V_t^π with a step index |
 | `[Paper §x]` | the paper digests in `papers/` | located claims; `papers/README.md` indexes them |
 
 ## Errata in the lecture notes
@@ -41,6 +41,14 @@ Where the concept files' citations point, and the known errors in those sources.
 | Notes 6 Alg. 2 l. 14 | v_h accumulates targets computed with the Q_{h+1} of the episode they were collected in | Jin et al. recompute every past target with the current Q_{h+1} each episode; the incremental version is cheaper but its old targets go stale |
 | Notes 6 §5 | β = C d sqrt(log(2dH³T/δ)) | Jin et al. Thm 3.1: β = c·d·H·sqrt(ι), ι = log(2dT/p). The "extra |S||A|" the notes puzzle over comes from the uniform-concentration (covering) argument over the value class (Jin et al. §4, Lemma B.3) |
 | Notes 6 §5 | lower bound Õ(√(dH²T)) | Ω̃ (a lower bound) |
+| Notes 8 Thm 1 | "An unbiased estimate of the gradient of f̂" | of Ĵ (the smoothed objective defined just above) |
+| Notes 8 §3, Challenge 1 | "Since π ∈ △(d)" | △(K) (the bandit has K arms) |
+| Notes 8 §3, Challenge 2 | "The e_i − π term will be very close to 0" | e_{a_1} − π: only the near-always sampled action a_1 makes it small; a rarely sampled a_i gives e_i − π ≈ e_i − e_1 |
+| Notes 8 §4 | b⋆ = min_b tr(Cov[ĝ_b]) | argmin (b⋆ is the minimizer); the closed form E[‖g‖²R]/E[‖g‖²] is for a constant b and the full-return estimator |
+| Notes 9 §3 | x⋆ = −sqrt(ε/(aᵀΣ⁻¹a)) Σ⁻¹a | no minus sign: maximizing aᵀx subject to xᵀΣx ≤ ε gives x⋆ = +sqrt(ε/(aᵀΣ⁻¹a)) Σ⁻¹a (then aᵀx⋆ = sqrt(ε aᵀΣ⁻¹a) > 0) |
+| Notes 9 §3 | LineSearch takes one shrink step x + αδ | a simplification: TRPO backtracks repeatedly (α^j δ, j = 0, 1, ...) and accepts the first step that improves the surrogate and satisfies the KL constraint (`papers/trpo.md`) |
+| Notes 9 Alg. 1 l. 7 | θ ← θ − ∇_θ Σ_t min{...} | θ ← θ + η ∇_θ Σ_t min{...}: the clipped objective is maximized, and the learning rate η from the Require line is missing |
+| Notes 9 Fig. 2b caption | "γ = 1.8" | a discount factor must be below 1 (the quoted text says the optimal policy needs γ > 1/2); likely a typo, not checked against Bhandari and Russo (2019) |
 
 ## Errata found in papers
 
