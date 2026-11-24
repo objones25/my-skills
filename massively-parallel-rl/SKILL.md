@@ -24,7 +24,8 @@ about N and wall-clock. Quote its output.
 | --- | --- |
 | `references/jax-stack.md` | writing or reading jitted JAX RL (PureJaxRL loop, gymnax, Craftax, Kinetix, Brax/Playground), reset and truncation semantics, RNN rollouts, multi-device, shipped defaults per repo |
 | `references/pytorch-gpu-sim.md` | Isaac Lab, rsl_rl, mjlab, MuJoCo Warp, FastTD3, FastSAC (holosoma), FlashSAC, PufferLib, keeping a PyTorch loop on the GPU, off-policy scaling results |
-| `references/large-batch-on-policy.md` | PPO/A2C with very large N, plateaus, SAPG, EPO, curriculum resets, batch schedules |
+| `references/large-batch-on-policy.md` | PPO/A2C with very large N, plateaus, SAPG, EPO, CPO, staggered resets, batch schedules |
+| `references/reset-and-task-sampling.md` | reset distributions, level and task samplers (SGS, PLR/ACCEL, SFL, teachers), reset banks, UED controls, reset hygiene |
 | `references/scaling-laws.md` | predicting hyperparameters, model size or performance at larger compute; Elo league; reading Zheng et al. 2026 |
 | `references/debugging.md` | any symptom: plateau, NaN, slow steps, OOM, results that change with N |
 | `references/papers.md` | which paper or repo says what, with verified links and licenses |
@@ -64,13 +65,15 @@ transition) becomes the knob.
 Each of these, when violated, produces a run that trains but quietly learns less.
 
 1. **Separate termination from truncation.** A time limit is not the end of the task.
-   PureJaxRL, rejax, purejaxql, gymnax, Craftax and Kinetix all OR the time limit into
-   `done`, which zeroes the bootstrap. Bootstrap truncated steps from the pre-reset
+   PureJaxRL, rejax, purejaxql, gymnax < 1.0, Craftax and Kinetix all OR the time limit into
+   `done`, which zeroes the bootstrap (gymnax >= 1.0 returns `terminated` and `truncated`
+   separately; use them that way). Bootstrap truncated steps from the pre-reset
    observation (`mprl_common.AutoReset`), or mask them out as Brax does. The obs returned
    on a done step belongs to the next episode; never bootstrap from it.
 2. **Scale N without changing three things at once.** More envs change batch size,
    minibatch count and update count together. Default recipe (Beukman et al. 2026):
-   hold minibatch size and learning rate fixed and let the number of minibatches grow.
+   hold minibatch size and learning rate fixed and let the number of minibatches grow
+   (evidence is dense-reward tasks; Rudin et al. and SGS grow the minibatch instead).
    Grow the minibatch only for hardware utilization, and say so.
 3. **Keep the loop on the device.** JAX: jit the entire `train` function, vmap seeds,
    no Python inside the scan. PyTorch: no `.item()`, `.cpu()` or NumPy env I/O per step;
@@ -106,7 +109,7 @@ Each of these, when violated, produces a run that trains but quietly learns less
 | Model size as compute grows | fit it; published FPF laws give about x2.7 per 10x compute | `scaling-laws.md` |
 | Optimizer | Adam, eps 1e-5, global-norm clip 0.5 (PPO); RAdam, clip 10 (PQN MinAtar) | `jax-stack.md` |
 | Performance metric for scaling | single-agent Elo league | `scaling-laws.md` section 3 |
-| PPO plateau at large N | add minibatches, then diversity (SAPG/EPO) or reset curricula | `large-batch-on-policy.md` |
+| PPO plateau at large N | add minibatches (dense-reward evidence), then staggered resets, diversity (SAPG/EPO) or a reset or level sampler, with an easy-start control | `large-batch-on-policy.md`, `reset-and-task-sampling.md` |
 
 ## Debugging protocol
 

@@ -47,8 +47,8 @@ measures the tuning error, not the model-size trade-off.
 1. Pick budgets spanning about 3 orders of magnitude. Paper: 7 budgets, 1e14 to 1e17.
 2. At each budget, grid over batch size and learning rate for a few model sizes.
    Paper: 7 batch sizes (powers of 2) x 7 learning rates (half-octave steps of
-   2^-0.5) x 4 widths, several seeds each (Figure 2 aggregates 5). The grids shift
-   upward with C (Appendix Tables 4 and 5).
+   2^-0.5) x 4 widths, several seeds each (Figure 2 aggregates 5). The batch-size grid
+   shifts upward with C; the learning-rate grid does not (Appendix Tables 4 and 5).
 3. Fix the other hyperparameters first with a coarse low-compute search. The paper
    found the A2C entropy coefficient optimal at the same value at every budget, so it
    was not scaled.
