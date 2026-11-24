@@ -1438,3 +1438,37 @@ def test_list_codes_text_for_the_new_code(audit_mod, capsys):
     (row,) = [ln for ln in capsys.readouterr().out.splitlines() if ln.startswith("SUPPRESSION_INERT")]
     assert row.split(None, 2)[1] == "warning"
     assert "suppresses nothing" in row
+
+
+# Follow-up to the sequential mutation run of 2026-11-21: two behaviours whose mutants survived.
+
+NETWORK_IN_CLASSES = '''import pytest
+import requests
+
+
+@pytest.mark.slow
+class TestDecorated:
+    def test_net(self):
+        assert requests.get("http://x").status_code == 200
+
+
+class TestPytestmark:
+    pytestmark = [pytest.mark.slow]
+
+    def test_net(self):
+        assert requests.get("http://x").status_code == 200
+
+
+@pytest.mark.integration
+class TestIntegration:
+    def test_net(self):
+        assert requests.get("http://x").status_code == 200
+'''
+
+
+def test_only_an_integration_marker_on_the_class_excuses_a_network_call(run_findings):
+    assert [(f.code, f.line) for f in run_findings(NETWORK_IN_CLASSES)] == [("NETWORK", 8), ("NETWORK", 15)]
+
+
+def test_asserting_the_result_of_an_ordinary_call_is_not_a_weak_assertion(run_findings):
+    assert run_findings("def test_a():\n    assert is_valid(make())\n") == []

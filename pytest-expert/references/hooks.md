@@ -267,7 +267,7 @@ and its effect on `Stop` is taken from the general rule.
 ## Testing hooks
 
 `selftest/test_hooks.py` drives the three hooks exactly as Claude Code does: JSON on
-stdin, JSON on stdout, in a temporary project. Its 111 tests (collected 2026-11-20) cover the
+stdin, JSON on stdout, in a temporary project. Its 115 tests (collected 2026-11-21) cover the
 audit block, red tests as context, silence on clean files, non-test files ignored, a post-edit
 audit that exits 2, crashes, times out or is missing, the Stop block, the fingerprint skip
 (and its rerun after a `.py` or config change), a red suite that keeps blocking through the whole
