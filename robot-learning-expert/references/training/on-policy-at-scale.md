@@ -43,7 +43,7 @@ Seed-mean vel_error_xy (m/s, lower is better) by training-clock minute:
 
 What it shows:
 - 0.50 is "standing still": the mean commanded speed over the 6 evaluation commands is (0.5 + 1.0 + 0.5 + 0.5 + 0.5 + 0)/6 = 0.5 m/s, so a robot that balances but never walks scores 0.50. Small-N runs learn not to fall (no_fall_fraction reaches 1.0) and sit in that local optimum; larger N leaves it sooner [inference from results.csv].
-- 16384 envs matches 4096 at 45 min with half the iterations; past ~4096 the extra data mostly buys smoother gradients (a dense-reward locomotion result; for heterogeneous sparse-reward manipulation with reset coverage, AlphaNIST reports success still rising with parallel experience, e.g. 38.6% at 1K to 86.9% at 8K envs with beta sampling, and 98.2% at 64K [2610.13354 lines 440-441, 258]). Per wall-clock minute the two are equal; per sample 16384 is about 2× worse (about 502M vs 253M env steps to reach the same 45-min error).
+- 16384 envs matches 4096 at 45 min with half the iterations; past ~4096 the extra data mostly buys smoother gradients (a dense-reward locomotion result; for heterogeneous sparse-reward manipulation with reset coverage, AlphaNIST reports success still rising with parallel experience, e.g. 38.6% at 1K to 86.9% at 8K envs with beta sampling, and 98.2% training success at 64K [2610.13354 lines 448, 456-459]). Per wall-clock minute the two are equal; per sample 16384 is about 2× worse (about 502M vs 253M env steps to reach the same 45-min error).
 - Training reward misleads across N: compare with a fixed offline evaluator (same commands, seeds, horizon, env count for every checkpoint).
 
 Fairness rules the sweep adopted (worth reusing in any scaling comparison):

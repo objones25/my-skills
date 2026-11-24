@@ -23,7 +23,7 @@ How the learner gets data, from least to most powerful (AJKS §1.4 for episodic 
 | Coverage: GOLF [Coverage Thm 1, Thm 12] | Online episodic | Coverability C_cov; more generally SEC | Completeness | Reg ≤ O(H sqrt(C_cov T log(TH|F|/δ) log T)) |
 | Resets: SimGolf [Resets Thm 3.1] | Local simulator | Coverability C_cov | Q*-realizability only | Õ(H^5 C_cov² log(|Q|/δ) / ε^4) samples; computationally inefficient |
 | Resets: RVFS [Resets Thm 4.1] | Local simulator | Pushforward coverability C_push | (V*, π*)-realizability + gap Δ, or V^π and π-realizability | Õ(C_push^8 H^23 A ε^{−13}) samples; reduces to regression (efficient) |
-| PSDP [Access App. B] | μ-resets | C_conc of μ | Policy completeness | poly in C_conc, A, H, 1/ε, log(class size); (C_conc)^O(H) tight for admissible μ; fails without completeness |
+| PSDP [Access App. B] | μ-resets | C_conc of μ | Policy completeness (Thm 1); (C_conc)^Θ(H) needs realizability plus admissible μ (App. B) | poly in C_conc, A, H, 1/ε, log(class size) with completeness; PSDP can fail under realizability alone when μ is not admissible [Fig. 1, C_conc = 4] |
 | Agnostic lower bounds [Access Thm 2, Thm 3] | local simulator or generative (Thm 2); μ-resets (Thm 3) | C_cov = 2 (Thm 2); C_conc = 6 (Thm 3) | Π policy-complete (Thm 2), agnostic (Thm 3) | 2^Ω(H) samples, proper deterministic learner |
 | PLHR [Access Thm 4] | Hybrid resets | Pushforward concentrability C_push of μ, Block MDP | Any Π, no decoder realizability | poly(C_push, S, A, H, 1/ε, log(class size), log 1/δ) |
 | Seed sampling [CE §3.2, §4] | Concurrent online | None (Bayesian prior over a tabular or Gaussian model) | Correct prior | No bound; Props 1, 2 (posterior-correct, martingale); simulations |

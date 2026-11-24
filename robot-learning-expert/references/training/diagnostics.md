@@ -58,5 +58,5 @@ Numbers in the "healthy" column are rules of thumb, not sourced thresholds (the 
 | Throughput collapses at large N | per-step `.item()` / `.cpu()` syncs in the rollout, or a CPU-side env wrapper |
 | Resume gives a jump in curves | optimizer state, obs normalizer, lr schedule or curriculum state not saved in the checkpoint |
 | Big-N run is worse per sample and no better per minute | same 20 gradient steps per iteration but fewer iterations per minute, so extra data buys smoother gradients, not more updates (G1: 16384 used about 2× the env steps of 4096 for the same 45-min error); see `on-policy-at-scale.md` |
-| Same seed, different curve | GPU nondeterminism (atomics, kernel choice, physics solver ordering), not necessarily a bug; compare over several seeds before suspecting code (a 2026 simulator-determinism study reports this; 2411.04832 Table 3, not re-read (unverified)) |
+| Same seed, different curve | GPU nondeterminism (atomics, kernel choice, physics solver ordering), not necessarily a bug; compare over several seeds before suspecting code (GPUSimBench 2607.13059 quantifies run-to-run variability; claim not re-read in detail (unverified)) |
 | Values right in sim eval, policy falls on hardware | sim-to-real gap, not a training bug (`sim-to-real.md`) |

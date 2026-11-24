@@ -32,7 +32,7 @@ When one batch mixes tasks or robots with different reward scales, per-task valu
 
 ## Dense shaping vs sparse reward: the sources disagree
 
-- Dense shaping is the default above for locomotion tracking. In heterogeneous assembly with reset coverage, AlphaNIST found a single binary success reward plus control cost beat dense reach/align shaping: dense shaping stayed at 11.8 to 12.0% success over 1K to 4K envs while the binary reward reached 38.6% at 1K, 78.9% at 4K, 86.9% at 8K, and 98.2% at 64K [2610.13354 lines 438, 456-458, 258].
+- Dense shaping is the default above for locomotion tracking. In heterogeneous assembly with reset coverage, AlphaNIST found a single binary success reward plus control cost beat dense reach/align shaping: dense shaping stayed at 11.8 to 12.0% success over 1K to 4K envs while the binary reward reached 38.6% at 1K, 78.9% at 4K, 86.9% at 8K evaluation success with beta sampling; the 98.2% at 64K is training success [2610.13354 lines 448, 456-459]. The cited lines do not say which reset sampler the dense arm used.
 - Staged or stage-gated rewards (DrS, StructRL) are reported to help on other manipulation tasks, and over-fine decomposition (52 subtasks) fell below terminal-only reward there (37.6% vs 40.2%) [2404.16779, 2609.36352, from the findings report, not re-read (unverified)].
 - Reconcile [inference]: shaping helps when the reward is the only exploration signal; large reset coverage and many parallel envs can substitute for it. Test both arms.
 

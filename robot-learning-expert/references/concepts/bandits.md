@@ -50,7 +50,7 @@ Unlike the CLT, these are finite-sample statements, which is what lets you compu
 ## Non-stationary and adversarial bandits (task sampling)
 
 Everything above assumes stationary arms. Choosing which task, level or terrain to train on is a bandit whose arms drift, because a learning-progress reward changes as the student learns, so the stochastic-bandit regret results in this file do not apply to it [inference]. Variants used in curriculum papers, all simulation-only and small-scale:
-- Exp3.S (adversarial bandit with mixing): Graves et al. use it to pick curriculum items, with η = 1e-3, β = 0, ε = 0.05, and rescale rewards using the 20th and 80th percentiles of recent rewards [1704.03003 lines 111, 150, 364].
+- Exp3.S (adversarial bandit with mixing): Graves et al. use it to pick curriculum items, with η = 1e-3, β = 0, ε = 0.05, and rescale rewards using the 20th and 80th percentiles of the full reward history [1704.03003 lines 111, 150, 364].
 - Sliding window and Thompson-style rules: TSCL's "Window" keeps a FIFO buffer of the last K scores per task and its "Sampling" variant samples a recent reward from the last K per task to choose the next task; K = 10 and learning rate 0.1 in all experiments [1707.00183 lines 219-231, 664].
 - EXP4 over mixture components: ALP-GMM fits a GMM over task parameters weighted by absolute learning progress and picks a Gaussian by an EXP4 scheme, each Gaussian an arm [1910.07224 lines 186-192]. TeachMyAgent's verdict on which teacher to default to is in `papers/acl-teachers.md`.
 - Clock caveat [inference]: rules defined as "last K episodes" fill within one iteration at thousands of envs; define the window in optimizer iterations.
