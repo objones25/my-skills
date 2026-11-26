@@ -19,6 +19,7 @@
     "pytorch",
     "robot-learning-expert",
     "scientific-computing",
+    "setup",
     "skill-builder",
     "transformer-architecture"
   ],
@@ -29,11 +30,12 @@
   ],
   "ignore": [
     "async-expert/assets/examples/bad_example.py",
-    "async-expert/evals/files/unawaited/test_notify.py",
     "async-expert/evals/files/hang/service.py",
+    "async-expert/evals/files/unawaited/test_notify.py",
     "documentation-expert/evals/files",
     "negative-space-programming/assets/examples/typing_before.py",
-    "scientific-computing/evals/files/neumann_eigs/laplacian.py"
+    "scientific-computing/evals/files/neumann_eigs/laplacian.py",
+    "setup/evals/files"
   ],
   "venvPath": ".",
   "venv": ".venv",
@@ -139,6 +141,13 @@
     {
       "root": "scientific-computing",
       "extraPaths": []
+    },
+    {
+      "root": "setup",
+      "extraPaths": [
+        "setup/scripts",
+        "setup/tests"
+      ]
     },
     {
       "root": "skill-builder",

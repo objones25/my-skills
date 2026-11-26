@@ -25,6 +25,7 @@ The patterns these skills share, a proposed standard, and what each skill still 
 | [dockerfile-expert](dockerfile-expert/) | Writes and reviews Dockerfiles and `.dockerignore` files, with Python, Node and Go templates, a linter and an image verifier. |
 | [hook-writer](hook-writer/) | Designs, writes and debugs Claude Code hooks, starting from the live hooks reference, with a linter, a dry-run tool and handler templates. |
 | [kubernetes-expert](kubernetes-expert/) | Writes and reviews Kubernetes manifests, with a kustomize base, a Job template and a policy checker tested against recorded API-server verdicts. |
+| [setup](setup/) | Sets up a project for agentic coding with Claude Code: interviews the user, writes a lean CLAUDE.md, rules, permissions, subagents, project skills and `.mcp.json`, and switches off what the project does not need, with a config linter and a per-project context inventory. |
 
 ### Machine learning and scientific computing
 
