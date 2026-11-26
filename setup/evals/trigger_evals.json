@@ -1,0 +1,22 @@
+[
+  {"query": "I'm starting a new FastAPI + Postgres project in this empty folder. Before we write any code, set up everything Claude needs: CLAUDE.md, rules, permissions, hooks, the works.", "should_trigger": true},
+  {"query": "/setup", "should_trigger": true},
+  {"query": "set this repo up for agentic coding. ask me whatever you need to know first", "should_trigger": true},
+  {"query": "I just cloned this monorepo and want to configure claude code for it properly - which plugins and MCP servers should be off here, what project skills and subagents would help?", "should_trigger": true},
+  {"query": "my context is 40k tokens before I even type anything in this project. figure out what's loaded that this project doesn't need and turn it off just for this repo", "should_trigger": true},
+  {"query": "bootstrap the .claude folder for this rust CLI: settings.json with sensible permissions, a test hook, a reviewer subagent", "should_trigger": true},
+  {"query": "Interview me about this project and then write the CLAUDE.md, .claude/rules and memory so future sessions know how we work", "should_trigger": true},
+  {"query": "new project kickoff: what decisions should we lock in before you start building? then encode them as project config", "should_trigger": true},
+  {"query": "re-run project setup on this repo, the CLAUDE.md is stale and half the settings are wrong now that we moved from npm to pnpm", "should_trigger": true},
+  {"query": "can you sanity-check how claude code is configured in this repo before I start a big refactor? CLAUDE.md, permissions, the agents folder", "should_trigger": true},
+  {"query": "/init", "should_trigger": false},
+  {"query": "add a PostToolUse hook that runs ruff format after every edit to a .py file", "should_trigger": false},
+  {"query": "write me a skill that generates release notes from git log", "should_trigger": false},
+  {"query": "allow npm run test without asking me every time", "should_trigger": false},
+  {"query": "set up a python virtual environment with uv and install requests", "should_trigger": false},
+  {"query": "set up GitHub Actions CI for this repo to run pytest on every PR", "should_trigger": false},
+  {"query": "the README is out of date, rewrite the setup instructions section", "should_trigger": false},
+  {"query": "how do subagents differ from skills in claude code?", "should_trigger": false},
+  {"query": "set up my statusline to show the git branch and context percentage", "should_trigger": false},
+  {"query": "reduce permission prompts based on what I've been approving lately", "should_trigger": false}
+]

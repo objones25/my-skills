@@ -1,0 +1,266 @@
+# shop-web
+
+IMPORTANT: ALWAYS follow these rules!!!
+
+## Architecture
+- `src/components/Widget0.tsx` renders widget 0.
+- `src/components/Widget1.tsx` renders widget 1.
+- `src/components/Widget2.tsx` renders widget 2.
+- `src/components/Widget3.tsx` renders widget 3.
+- `src/components/Widget4.tsx` renders widget 4.
+- `src/components/Widget5.tsx` renders widget 5.
+- `src/components/Widget6.tsx` renders widget 6.
+- `src/components/Widget7.tsx` renders widget 7.
+- `src/components/Widget8.tsx` renders widget 8.
+- `src/components/Widget9.tsx` renders widget 9.
+- `src/components/Widget10.tsx` renders widget 10.
+- `src/components/Widget11.tsx` renders widget 11.
+- `src/components/Widget12.tsx` renders widget 12.
+- `src/components/Widget13.tsx` renders widget 13.
+- `src/components/Widget14.tsx` renders widget 14.
+- `src/components/Widget15.tsx` renders widget 15.
+- `src/components/Widget16.tsx` renders widget 16.
+- `src/components/Widget17.tsx` renders widget 17.
+- `src/components/Widget18.tsx` renders widget 18.
+- `src/components/Widget19.tsx` renders widget 19.
+- `src/components/Widget20.tsx` renders widget 20.
+- `src/components/Widget21.tsx` renders widget 21.
+- `src/components/Widget22.tsx` renders widget 22.
+- `src/components/Widget23.tsx` renders widget 23.
+- `src/components/Widget24.tsx` renders widget 24.
+- `src/components/Widget25.tsx` renders widget 25.
+- `src/components/Widget26.tsx` renders widget 26.
+- `src/components/Widget27.tsx` renders widget 27.
+- `src/components/Widget28.tsx` renders widget 28.
+- `src/components/Widget29.tsx` renders widget 29.
+- `src/components/Widget30.tsx` renders widget 30.
+- `src/components/Widget31.tsx` renders widget 31.
+- `src/components/Widget32.tsx` renders widget 32.
+- `src/components/Widget33.tsx` renders widget 33.
+- `src/components/Widget34.tsx` renders widget 34.
+- `src/components/Widget35.tsx` renders widget 35.
+- `src/components/Widget36.tsx` renders widget 36.
+- `src/components/Widget37.tsx` renders widget 37.
+- `src/components/Widget38.tsx` renders widget 38.
+- `src/components/Widget39.tsx` renders widget 39.
+- `src/components/Widget40.tsx` renders widget 40.
+- `src/components/Widget41.tsx` renders widget 41.
+- `src/components/Widget42.tsx` renders widget 42.
+- `src/components/Widget43.tsx` renders widget 43.
+- `src/components/Widget44.tsx` renders widget 44.
+- `src/components/Widget45.tsx` renders widget 45.
+- `src/components/Widget46.tsx` renders widget 46.
+- `src/components/Widget47.tsx` renders widget 47.
+- `src/components/Widget48.tsx` renders widget 48.
+- `src/components/Widget49.tsx` renders widget 49.
+- `src/components/Widget50.tsx` renders widget 50.
+- `src/components/Widget51.tsx` renders widget 51.
+- `src/components/Widget52.tsx` renders widget 52.
+- `src/components/Widget53.tsx` renders widget 53.
+- `src/components/Widget54.tsx` renders widget 54.
+- `src/components/Widget55.tsx` renders widget 55.
+- `src/components/Widget56.tsx` renders widget 56.
+- `src/components/Widget57.tsx` renders widget 57.
+- `src/components/Widget58.tsx` renders widget 58.
+- `src/components/Widget59.tsx` renders widget 59.
+- `src/components/Widget60.tsx` renders widget 60.
+- `src/components/Widget61.tsx` renders widget 61.
+- `src/components/Widget62.tsx` renders widget 62.
+- `src/components/Widget63.tsx` renders widget 63.
+- `src/components/Widget64.tsx` renders widget 64.
+- `src/components/Widget65.tsx` renders widget 65.
+- `src/components/Widget66.tsx` renders widget 66.
+- `src/components/Widget67.tsx` renders widget 67.
+- `src/components/Widget68.tsx` renders widget 68.
+- `src/components/Widget69.tsx` renders widget 69.
+- `src/components/Widget70.tsx` renders widget 70.
+- `src/components/Widget71.tsx` renders widget 71.
+- `src/components/Widget72.tsx` renders widget 72.
+- `src/components/Widget73.tsx` renders widget 73.
+- `src/components/Widget74.tsx` renders widget 74.
+- `src/components/Widget75.tsx` renders widget 75.
+- `src/components/Widget76.tsx` renders widget 76.
+- `src/components/Widget77.tsx` renders widget 77.
+- `src/components/Widget78.tsx` renders widget 78.
+- `src/components/Widget79.tsx` renders widget 79.
+- `src/components/Widget80.tsx` renders widget 80.
+- `src/components/Widget81.tsx` renders widget 81.
+- `src/components/Widget82.tsx` renders widget 82.
+- `src/components/Widget83.tsx` renders widget 83.
+- `src/components/Widget84.tsx` renders widget 84.
+- `src/components/Widget85.tsx` renders widget 85.
+- `src/components/Widget86.tsx` renders widget 86.
+- `src/components/Widget87.tsx` renders widget 87.
+- `src/components/Widget88.tsx` renders widget 88.
+- `src/components/Widget89.tsx` renders widget 89.
+- `src/components/Widget90.tsx` renders widget 90.
+- `src/components/Widget91.tsx` renders widget 91.
+- `src/components/Widget92.tsx` renders widget 92.
+- `src/components/Widget93.tsx` renders widget 93.
+- `src/components/Widget94.tsx` renders widget 94.
+- `src/components/Widget95.tsx` renders widget 95.
+- `src/components/Widget96.tsx` renders widget 96.
+- `src/components/Widget97.tsx` renders widget 97.
+- `src/components/Widget98.tsx` renders widget 98.
+- `src/components/Widget99.tsx` renders widget 99.
+- `src/components/Widget100.tsx` renders widget 100.
+- `src/components/Widget101.tsx` renders widget 101.
+- `src/components/Widget102.tsx` renders widget 102.
+- `src/components/Widget103.tsx` renders widget 103.
+- `src/components/Widget104.tsx` renders widget 104.
+- `src/components/Widget105.tsx` renders widget 105.
+- `src/components/Widget106.tsx` renders widget 106.
+- `src/components/Widget107.tsx` renders widget 107.
+- `src/components/Widget108.tsx` renders widget 108.
+- `src/components/Widget109.tsx` renders widget 109.
+- `src/components/Widget110.tsx` renders widget 110.
+- `src/components/Widget111.tsx` renders widget 111.
+- `src/components/Widget112.tsx` renders widget 112.
+- `src/components/Widget113.tsx` renders widget 113.
+- `src/components/Widget114.tsx` renders widget 114.
+- `src/components/Widget115.tsx` renders widget 115.
+- `src/components/Widget116.tsx` renders widget 116.
+- `src/components/Widget117.tsx` renders widget 117.
+- `src/components/Widget118.tsx` renders widget 118.
+- `src/components/Widget119.tsx` renders widget 119.
+
+## Style
+- Use semicolons and 2-space indentation (rule 0).
+- Use semicolons and 2-space indentation (rule 1).
+- Use semicolons and 2-space indentation (rule 2).
+- Use semicolons and 2-space indentation (rule 3).
+- Use semicolons and 2-space indentation (rule 4).
+- Use semicolons and 2-space indentation (rule 5).
+- Use semicolons and 2-space indentation (rule 6).
+- Use semicolons and 2-space indentation (rule 7).
+- Use semicolons and 2-space indentation (rule 8).
+- Use semicolons and 2-space indentation (rule 9).
+- Use semicolons and 2-space indentation (rule 10).
+- Use semicolons and 2-space indentation (rule 11).
+- Use semicolons and 2-space indentation (rule 12).
+- Use semicolons and 2-space indentation (rule 13).
+- Use semicolons and 2-space indentation (rule 14).
+- Use semicolons and 2-space indentation (rule 15).
+- Use semicolons and 2-space indentation (rule 16).
+- Use semicolons and 2-space indentation (rule 17).
+- Use semicolons and 2-space indentation (rule 18).
+- Use semicolons and 2-space indentation (rule 19).
+- Use semicolons and 2-space indentation (rule 20).
+- Use semicolons and 2-space indentation (rule 21).
+- Use semicolons and 2-space indentation (rule 22).
+- Use semicolons and 2-space indentation (rule 23).
+- Use semicolons and 2-space indentation (rule 24).
+- Use semicolons and 2-space indentation (rule 25).
+- Use semicolons and 2-space indentation (rule 26).
+- Use semicolons and 2-space indentation (rule 27).
+- Use semicolons and 2-space indentation (rule 28).
+- Use semicolons and 2-space indentation (rule 29).
+- Use semicolons and 2-space indentation (rule 30).
+- Use semicolons and 2-space indentation (rule 31).
+- Use semicolons and 2-space indentation (rule 32).
+- Use semicolons and 2-space indentation (rule 33).
+- Use semicolons and 2-space indentation (rule 34).
+- Use semicolons and 2-space indentation (rule 35).
+- Use semicolons and 2-space indentation (rule 36).
+- Use semicolons and 2-space indentation (rule 37).
+- Use semicolons and 2-space indentation (rule 38).
+- Use semicolons and 2-space indentation (rule 39).
+- Use semicolons and 2-space indentation (rule 40).
+- Use semicolons and 2-space indentation (rule 41).
+- Use semicolons and 2-space indentation (rule 42).
+- Use semicolons and 2-space indentation (rule 43).
+- Use semicolons and 2-space indentation (rule 44).
+- Use semicolons and 2-space indentation (rule 45).
+- Use semicolons and 2-space indentation (rule 46).
+- Use semicolons and 2-space indentation (rule 47).
+- Use semicolons and 2-space indentation (rule 48).
+- Use semicolons and 2-space indentation (rule 49).
+- Use semicolons and 2-space indentation (rule 50).
+- Use semicolons and 2-space indentation (rule 51).
+- Use semicolons and 2-space indentation (rule 52).
+- Use semicolons and 2-space indentation (rule 53).
+- Use semicolons and 2-space indentation (rule 54).
+- Use semicolons and 2-space indentation (rule 55).
+- Use semicolons and 2-space indentation (rule 56).
+- Use semicolons and 2-space indentation (rule 57).
+- Use semicolons and 2-space indentation (rule 58).
+- Use semicolons and 2-space indentation (rule 59).
+
+## Testing
+- Run `pnpm test`.
+- The checkout flow in `src/checkout/` must never call the payments API in tests.
+
+## Never
+- NEVER push to main. NEVER. This is CRITICAL.
+
+## Commands
+- `pnpm run task0`
+- `pnpm run task1`
+- `pnpm run task2`
+- `pnpm run task3`
+- `pnpm run task4`
+- `pnpm run task5`
+- `pnpm run task6`
+- `pnpm run task7`
+- `pnpm run task8`
+- `pnpm run task9`
+- `pnpm run task10`
+- `pnpm run task11`
+- `pnpm run task12`
+- `pnpm run task13`
+- `pnpm run task14`
+- `pnpm run task15`
+- `pnpm run task16`
+- `pnpm run task17`
+- `pnpm run task18`
+- `pnpm run task19`
+- `pnpm run task20`
+- `pnpm run task21`
+- `pnpm run task22`
+- `pnpm run task23`
+- `pnpm run task24`
+- `pnpm run task25`
+- `pnpm run task26`
+- `pnpm run task27`
+- `pnpm run task28`
+- `pnpm run task29`
+- `pnpm run task30`
+- `pnpm run task31`
+- `pnpm run task32`
+- `pnpm run task33`
+- `pnpm run task34`
+- `pnpm run task35`
+- `pnpm run task36`
+- `pnpm run task37`
+- `pnpm run task38`
+- `pnpm run task39`
+- `pnpm run task40`
+- `pnpm run task41`
+- `pnpm run task42`
+- `pnpm run task43`
+- `pnpm run task44`
+- `pnpm run task45`
+- `pnpm run task46`
+- `pnpm run task47`
+- `pnpm run task48`
+- `pnpm run task49`
+- `pnpm run task50`
+- `pnpm run task51`
+- `pnpm run task52`
+- `pnpm run task53`
+- `pnpm run task54`
+- `pnpm run task55`
+- `pnpm run task56`
+- `pnpm run task57`
+- `pnpm run task58`
+- `pnpm run task59`
+- `pnpm run task60`
+- `pnpm run task61`
+- `pnpm run task62`
+- `pnpm run task63`
+- `pnpm run task64`
+- `pnpm run task65`
+- `pnpm run task66`
+- `pnpm run task67`
+- `pnpm run task68`
+- `pnpm run task69`

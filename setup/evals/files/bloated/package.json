@@ -1,0 +1,1 @@
+{"name":"shop-web","packageManager":"pnpm@9.12.0","scripts":{"test":"vitest run","lint":"eslint ."}}
