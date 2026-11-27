@@ -14,6 +14,7 @@ or decide whether a specific case earns an exception.
 - [Markers and skips](#markers-and-skips): rules 23–25
 - [Coverage](#coverage): rules 26–27
 - [Rules added in the October 2026 audit](#rules-added-in-the-october-2026-audit) (rules 28 to 31)
+- [Rules added in the November 2026 audit](#rules-added-in-the-november-2026-audit) (rules 32 to 35)
 - [Audit code index](#audit-code-index)
 - [Diff guard code index](#diff-guard-code-index-rule-34)
 - [When to break a rule](#when-to-break-a-rule)
@@ -29,6 +30,7 @@ a week.
 | **Config** | pytest `strict = true`, `filterwarnings = ["error"]` | Unregistered markers, bad config keys, duplicate parametrize IDs, xfail that passes, deprecation warnings |
 | **Lint** | `ruff` PT001–PT031 | Fixture and parametrize misuse, over-broad `raises`/`warns`, unittest assertions in pytest code |
 | **Audit** | `scripts/audit_tests.py` | The semantic traps lint does not model: assertion-free tests, fake mock assertions, unseeded randomness, network, sleep, module-state leaks |
+| **Runtime** | the duration budget in `assets/conftest.py` | Unmarked tests or fixtures over 2 s: expensive work in a test that is not about it (rule 35) |
 | **Mutation** | `scripts/mutate_check.py`, mutmut | Tests that run, assert, and still cannot fail when the code is wrong |
 
 Run all of them. They do not overlap as much as they look like they do. In the
@@ -661,6 +663,20 @@ A suite turned green by deleting a test, dropping assertions, adding a skip, or
 deselecting in config proves nothing. `scripts/diff_guard.py` compares the test
 tree with a git base and reports those edits; the Stop hook runs it. See
 `llm-written-tests.md` for the codes and when an edit is legitimate.
+
+### Rule 35: A test runs only the computation it is testing
+
+Enforced at run time by `assets/conftest.py`: a setup, call or teardown phase over 2 s fails
+unless the test is marked `slow` (or `integration`, `e2e`, `gpu`, `symbolic`). xfail tests and
+the call phase of Hypothesis tests are exempt; the dev profile's per-example `deadline` checks
+the latter locally. A test of a plot, report or serializer that
+first trains a model or runs a simulation to get its input pays minutes for work it does
+not check, and enough of them push the suite past the point where anyone runs it. Build
+the input directly, shrink the problem, or use a fake; keep the expensive path in its own
+small or `slow` tests. Meszaros calls the symptom *Slow Tests*: "The tests take long
+enough to run that developers don't run them every time they make a change to the system
+under test (SUT)." Techniques, the budget's settings and when to turn it off:
+`test-speed.md`.
 
 ## Audit code index
 

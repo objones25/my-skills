@@ -40,9 +40,8 @@ was run; research claims cite a digest in `references/papers/`.
 
 Each step ends on a check you can run. Do not move on until it passes.
 
-**1. Read the code before writing tests.** Find entry points, pure functions, and I/O
-boundaries, and look at the existing layout (`tests/`, `conftest.py`,
-`pyproject.toml`). Never invent an API; when behavior is ambiguous, read the callers.
+**1. Read the code before writing tests.** Find entry points, pure functions, and I/O boundaries,
+and the layout (`tests/`, `conftest.py`, `pyproject.toml`). Never invent an API; read the callers.
 *Done when* you can list the functions to test and the boundary each one crosses.
 
 **2. Install the gates.** Merge `assets/pytest-config.toml` into `pyproject.toml`,
@@ -51,9 +50,10 @@ PyTorch), and adopt `assets/ruff-pytest.toml`. Copy `scripts/audit_tests.py` and
 `scripts/diff_guard.py` into the project's `scripts/`. *Done when*
 `pytest --collect-only -q` succeeds under strict config.
 
-**3. Write tests at the right layer.** Use the ladder below and the hard gates, threading
-one realistic example through related tests. *Done when* every behavior you were asked
-to cover has a test and `python scripts/audit_tests.py tests/` prints `clean: no findings`.
+**3. Write tests at the right layer.** Use the ladder below and the hard gates, threading one
+realistic example through related tests. Never run an expensive function (training, simulation, a
+large solve) in a test that is not about it: build its output or shrink the input (`references/test-speed.md`).
+*Done when* each behavior asked for has a test and `python scripts/audit_tests.py tests/` prints `clean: no findings`.
 
 **4. Run the gates.**
 
@@ -95,11 +95,10 @@ and the Claude Code hooks per `references/hooks.md`. *Done when* `actionlint` an
 
 ## When the tests and the code disagree
 
-Never edit, skip, or delete a failing test to make it pass, and never special-case the
-code for a test's inputs. If the test is wrong (it contradicts the spec), say so: with
-the hooks installed, write `.claude/pytest-expert-escalation.md` (Issue type, Test,
-Problem, Tried, Recommendation) and stop. Evidence and details:
-`references/llm-written-tests.md`.
+Never edit, skip, or delete a failing test to make it pass, and never special-case the code
+for a test's inputs. If the test is wrong (it contradicts the spec), say so: with the hooks
+installed, write `.claude/pytest-expert-escalation.md` (Issue type, Test, Problem, Tried,
+Recommendation) and stop. Evidence and details: `references/llm-written-tests.md`.
 
 ## The testing ladder
 
@@ -117,14 +116,13 @@ Problem, Tried, Recommendation) and stop. Evidence and details:
 | Tests an AI agent wrote or changed | spec-derived expected values, diff guard, mutation check | `llm-written-tests.md` |
 | The suite as a whole | mutmut nightly, flake hunt nightly | `mutation-testing.md`, `flaky-tests.md` |
 
-Measured on the worked example: random draws over any ten-digit account missed a
-checksum-gated bug in 14 of 15 runs (1,000 examples); a property that builds valid
-accounts and the solver backend (about 0.4 s, CrossHair 0.0.112) both found it. Use both.
+Measured on the worked example: random draws over any ten-digit account missed a checksum-gated bug in
+14 of 15 runs (1,000 examples); valid-account properties and the solver (0.4 s, CrossHair 0.0.112) found it.
 
 ## The hard gates
 
-Enforced by `scripts/audit_tests.py`, ruff, or pytest strict mode. Codes in parentheses
-are audit codes; `references/rules.md` explains each rule with its source.
+Enforced by `scripts/audit_tests.py`, ruff, pytest strict mode, or `assets/conftest.py`.
+Codes in parentheses are audit codes; `references/rules.md` explains each rule with its source.
 
 **Structure**
 1. One behavior per test. If the name needs "and", it is two tests.
@@ -154,6 +152,7 @@ are audit codes; `references/rules.md` explains each rule with its source.
 16. File writes go to `tmp_path`.
 17. Environment changes go through `monkeypatch` (`ENV_MUTATION`).
 18. No `sys.path` manipulation (`SYS_PATH`). Fix the packaging.
+35. A test runs only the computation it tests. The conftest fails unmarked tests over 2 s.
 
 **Test doubles**
 19. `mock.patch` and `patch.object` pass `autospec=True` (`PATCH_NO_SPEC`).
@@ -200,6 +199,7 @@ Not worth testing: getters, third-party behavior, `__repr__`, pure configuration
 | `references/integration-testing.md` | fakes vs real dependencies, testcontainers, API contract tests |
 | `references/flaky-tests.md` | order dependence, nondeterminism, `flake_hunt.py`, fixing without retries |
 | `references/ci-cd.md` | workflow hardening, coverage, speed, supply chain, debugging flags |
+| `references/test-speed.md` | a slow suite or test, expensive setup, the 2 s duration budget, `--durations` |
 | `references/hooks.md` | pre-commit stages, Claude Code PostToolUse and Stop hooks |
 | `references/ml-testing.md` | models, tensors, data pipelines, training loops, GPU markers |
 | `references/async-testing.md` | pytest-asyncio 1.x config and loop scope, anyio, hangs, cancellation, injected time |
@@ -212,7 +212,7 @@ Not worth testing: getters, third-party behavior, `__repr__`, pure configuration
 | File | Use |
 |---|---|
 | `assets/pytest-config.toml` | strict pytest, coverage, and mutmut config for `pyproject.toml` |
-| `assets/conftest.py` | seeding, network guard, cwd and env isolation, Hypothesis profiles, directory markers |
+| `assets/conftest.py` | seeding, network guard, cwd and env isolation, Hypothesis profiles, directory markers, 2 s budget |
 | `assets/conftest_ml.py` | torch determinism, device fixtures, tiny model and batch |
 | `assets/conftest_integration.py` | session PostgreSQL container with per-test rollback |
 | `assets/ruff-pytest.toml` | PT, bandit (S), bugbear, and friends |

@@ -1,5 +1,32 @@
 # Changelog
 
+## 2026-11-27: keep expensive work out of tests (rule 35, a 2 s duration budget)
+
+The problem: tests that run an expensive function (training, a simulation, a large solve) only to get input for the thing they check, so a full run took 30+ minutes. The skill had a `slow` marker and `--durations`, but nothing told an agent not to do this, and nothing failed when it did.
+
+| Change | Where |
+|---|---|
+| Rule 35, "A test runs only the computation it is testing", in the hard gates and in `rules.md` (34 to 35 gates) | `SKILL.md`, `references/rules.md`, `INSTALL.md` |
+| Workflow step 3 now says never to run an expensive function in a test that is not about it | `SKILL.md` |
+| A duration budget: a passing setup, call or teardown phase over 2 s fails unless the test is marked `slow`, `integration`, `e2e`, `gpu` or `symbolic`; the message names the test and the phase. `PYTEST_EXPERT_BUDGET_S` changes it, `0` turns it off, empty means the default, and anything not a finite number >= 0 stops the run with a usage error. xfail tests are exempt, and so is the call phase of Hypothesis tests (detected with `hypothesis.is_hypothesis_test`), because its total scales with `max_examples`; the dev profile's per-example `deadline` checks those locally, and nothing does under the `ci` profile (documented) | `assets/conftest.py`, copied to `examples/wallet/tests/conftest.py` |
+| New reference: techniques cheapest first, scope as a cache (and its xdist and parametrize pitfalls), Hypothesis cost, tiny models, finding slow tests, the budget, the dev loop, what not to do, with sources | `references/test-speed.md` |
+| The budget is off for nightly jobs and mutmut, where instrumentation slows every test | `assets/github/workflows/nightly.yml`, `references/mutation-testing.md` |
+| Speed table updated | `references/ci-cd.md` |
+| One eval and one trigger case for a slow suite | `evals/` |
+
+Design decisions, from three research passes (pytest, pytest-xdist, Hypothesis, pytest-timeout, pytest-fail-slow and pytest-testmon docs; Meszaros *Slow Tests*; Software Engineering at Google ch. 11; the Hugging Face transformers testing guide; sources in `references/test-speed.md`):
+
+- **A runtime budget, not a static check.** A static check for calls named `train`, `fit` or `solve` was rejected: `fit` is standard scikit-learn API and cheap on small data, and a name says nothing about input size. The budget measures what actually ran.
+- **2 s, not 1 s.** The first version used 1 s and failed the wallet's stateful Hypothesis test (1.05 s on this machine; the reviewer measured 0.54 s on another run), with a security property at 0.85 s close behind. Both are Hypothesis tests, which led to the exemption. 2 s leaves room for a loaded CI runner, so a 0.9 s test does not become flaky.
+- **Setup and teardown are checked too.** An expensive fixture is the usual way a cheap test ends up running expensive code. A module or session fixture is charged to whichever test sets it up or tears it down, which varies under pytest-randomly and xdist (documented).
+- **Inline hook, not pytest-fail-slow.** The plugin's last release was 2024-06-01, and it uses its own `fail_slow` marker instead of `slow`. The hook is about 20 lines and adds no dependency.
+
+Independent review (a fresh agent given the diff and the sources): every quote and version was confirmed against its source. It found these bugs, now fixed test-first: a non-numeric, `nan`, `inf` or negative budget crashed collection or failed every test; teardown was not checked; a slow non-strict xfail that passed was rewritten to FAILED in the terminal but stayed "skipped" in JUnit XML. It also found claims, now corrected: the Hypothesis exemption is unchecked under `deadline=None` profiles; the shared-fixture charge is arbitrary; coverage and xdist inflate the times; "no false positives" was overstated; the mutmut slowdown was asserted without a measurement; the `timeout` example contradicted `pytest-config.toml`. Added at its suggestion: a path for adopting the budget in an existing slow suite. Not done: `diff_guard.py` does not flag an added `slow` marker or a raised budget; `test-speed.md` says so.
+
+Tests: `selftest/test_conftest_budget.py`, 20 tests that run the asset conftest in a subprocess. The two core tests (an unmarked slow test fails, a slow fixture is charged to setup), the Hypothesis call-phase test and the 7 tests for the review's bugs were seen failing before their code existed. `mutate_check.py` after the review fixes: `pytest_runtest_makereport` 13 of 14 killed, `_parse_budget_s` 9 of 9. The survivor is `<=` to `<` on the duration comparison, which differs only when a duration equals the budget exactly and cannot be tested deterministically (equivalent in practice). Wallet example under the budget: 135 passed, 1 skipped, 2 deselected with the `dev` profile and again with `HYPOTHESIS_PROFILE=ci` (unchanged counts). `selftest`: 1485 passed, on 2026-11-27, macOS arm64, Python 3.13.2, pytest 9.2.0, run with the skill's `test-command`. ruff 0.17.3 is clean on the changed Python files, both with `assets/ruff-pytest.toml` and with `--isolated`.
+
+Not done: evals were not run with or without the skill. The budget was not tried under pytest-xdist in this repo; a research prototype of the same hook gave the same outcomes serially and with `-n 2`, on pytest 9.2.0 with xdist 3.8.0. pytest-testmon's compatibility with xdist and coverage was not checked.
+
 ## 2026-11-24: mutate_check.py about 4x faster
 
 Profiled with cProfile on audit-skill's `quote_match.py` (57 mutants): 98% of the time was spent waiting on test runs, and under 1 s in the script itself.

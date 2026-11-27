@@ -9,6 +9,7 @@
   {"query": "review tests/test_models.py, a lot of these look like they assert nothing", "should_trigger": true},
   {"query": "how should I unit test my pytorch training loop without a GPU", "should_trigger": true},
   {"query": "set up mutmut on this package and tell me which survivors matter", "should_trigger": true},
+  {"query": "my pytest suite takes 35 minutes, half the tests train a model just to get input for the function they check. how do I speed it up", "should_trigger": true},
   {"query": "make these 200 API calls run concurrently with asyncio instead of one at a time", "should_trigger": false},
   {"query": "add assertions and loop bounds to this data pipeline so bad input crashes instead of producing garbage", "should_trigger": false},
   {"query": "write bats tests for my deploy.sh script", "should_trigger": false},

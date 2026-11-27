@@ -128,7 +128,7 @@ In the wallet, `pytest` needs `pip install -e ".[test,symbolic]"` from `examples
 
 ```
 pytest-expert/
-├── SKILL.md                         workflow, testing ladder, 34 hard gates
+├── SKILL.md                         workflow, testing ladder, 35 hard gates
 ├── INSTALL.md                       this file
 ├── CHANGELOG.md                     what changed in each audit
 ├── AUDIT.md                         the November 2026 audit: gaps, corrections, how sources were checked

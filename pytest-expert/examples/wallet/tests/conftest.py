@@ -10,6 +10,8 @@ What it buys you:
   * hygiene      : cwd and app environment variables cannot leak between tests
   * hypothesis   : dev / ci / nightly / crosshair profiles, selected with --hypothesis-profile
   * markers      : tests under integration/, e2e/, symbolic/ are marked by directory
+  * speed        : an unmarked test whose setup, call or teardown takes over 2 s fails,
+                   naming the test and the phase (PYTEST_EXPERT_BUDGET_S changes it; 0 turns it off)
 
 Verified against pytest 9.2.0 and Hypothesis 6.170 (October 2026).
 """
@@ -18,6 +20,7 @@ from __future__ import annotations
 
 import importlib.util
 import ipaddress
+import math
 import os
 import random
 import socket
@@ -43,6 +46,31 @@ MARKERS = (
 )
 
 DIRECTORY_MARKERS = ("integration", "e2e", "symbolic")
+
+# The default selection must stay fast enough to run on every change. A test that needs
+# more than this is either doing work it is not testing (shrink the input, build the
+# intermediate result directly, use a fake) or belongs behind a deselected marker.
+# Aim for the "slow" marker's ~1 s; the hard limit is 2 s so a loaded CI runner does
+# not turn a 0.9 s test into a flaky one. See references/test-speed.md.
+BUDGET_S_DEFAULT = 2.0
+BUDGET_EXEMPT_MARKERS = ("slow", "integration", "e2e", "gpu", "symbolic")
+HAVE_HYPOTHESIS = importlib.util.find_spec("hypothesis") is not None
+
+
+def _parse_budget_s(raw: str | None) -> float:
+    """Unset or empty means the default (CI expands an unset variable to ""); bad values stop the run."""
+    if raw is None or not raw.strip():
+        return BUDGET_S_DEFAULT
+    try:
+        value = float(raw)
+    except ValueError:
+        value = math.nan
+    if not math.isfinite(value) or value < 0:
+        raise pytest.UsageError(f"PYTEST_EXPERT_BUDGET_S must be a finite number of seconds >= 0, got {raw!r} (0 turns the budget off)")
+    return value
+
+
+BUDGET_S = _parse_budget_s(os.environ.get("PYTEST_EXPERT_BUDGET_S"))
 
 
 # --------------------------------------------------------------------------
@@ -220,6 +248,44 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
         for name in DIRECTORY_MARKERS:
             if name in parts:
                 item.add_marker(getattr(pytest.mark, name))
+
+
+def _is_hypothesis_test(item: pytest.Item) -> bool:
+    if not HAVE_HYPOTHESIS:
+        return False
+    from hypothesis import is_hypothesis_test
+
+    return is_hypothesis_test(getattr(item, "obj", None))
+
+
+@pytest.hookimpl(wrapper=True)
+def pytest_runtest_makereport(item: pytest.Item, call: pytest.CallInfo[None]) -> Any:
+    """Fail a passing setup, call or teardown phase that exceeds BUDGET_S, unless the test is marked.
+
+    Fixture phases are checked as well as the call, because an expensive fixture is the
+    usual way a test of something cheap ends up running something expensive. A module- or
+    session-scoped fixture is charged to whichever test sets it up or tears it down.
+
+    A Hypothesis test's call phase is exempt: it runs max_examples examples, so its total
+    scales with the profile. The per-example `deadline` of the dev profile checks it
+    locally; the ci and nightly profiles set deadline=None, so nothing checks it there.
+    xfail tests are left alone: rewriting an XPASS confuses the JUnit report.
+    """
+    report = yield
+    if BUDGET_S <= 0 or not report.passed or hasattr(report, "wasxfail"):
+        return report
+    if report.when == "call" and _is_hypothesis_test(item):
+        return report
+    if report.duration <= BUDGET_S or any(item.get_closest_marker(m) for m in BUDGET_EXEMPT_MARKERS):
+        return report
+    report.outcome = "failed"
+    report.longrepr = (
+        f"{item.nodeid} {report.when} took {report.duration:.2f}s (budget {BUDGET_S:g}s). "
+        "If the test is not about that computation, shrink its inputs, build the intermediate "
+        "result directly, or use a fake; otherwise mark it @pytest.mark.slow. "
+        "See pytest --durations=10 and references/test-speed.md in pytest-expert."
+    )
+    return report
 
 
 def pytest_report_header(config: pytest.Config) -> list[str]:

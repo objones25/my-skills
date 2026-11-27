@@ -198,6 +198,19 @@
         "Suggests mutation-testing the function covered by the properties to see whether the generator reaches each branch"
       ],
       "files": []
+    },
+    {
+      "id": "slow-suite-expensive-setup",
+      "type": "audit",
+      "prompt": "Running the whole test suite takes 30+ minutes. A lot of tests in tests/test_reports.py call run_simulation(steps=100_000) to get data, then check the report formatting. Fix it.",
+      "expectations": [
+        "Runs or tells the user to run pytest --durations (noting that a slow fixture is reported as setup) to find the slow tests before changing anything",
+        "Rewrites the report tests to build a small simulation result directly (or with a tiny steps value) instead of calling run_simulation(steps=100_000), and keeps the assertions on formatting unchanged",
+        "Keeps or adds a separate test of run_simulation itself, small or marked slow, rather than deleting coverage of it",
+        "Does not just mark the report tests slow, raise a timeout, or deselect them to make the suite faster",
+        "Mentions the duration budget in assets/conftest.py (2 s, PYTEST_EXPERT_BUDGET_S) so the problem fails loudly next time"
+      ],
+      "files": []
     }
   ]
 }
