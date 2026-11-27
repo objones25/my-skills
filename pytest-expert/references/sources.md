@@ -2,6 +2,8 @@
 
 Research behind the skill, checked 2026-11-02. Digests with located claims are in `references/papers/`. Tool documentation sources are listed at the end of each reference file, and per-rule sources in `rules.md`.
 
+Sources for test speed (the duration budget, fixture caching, Hypothesis cost, tiny models, Meszaros *Slow Tests*, Software Engineering at Google ch. 11) are listed in `test-speed.md`, checked 2026-11-27.
+
 Every paper used in the digests. "Full" means the main text was read; "partial" names what was read.
 
 | Source | Venue/date | How checked | Supports |

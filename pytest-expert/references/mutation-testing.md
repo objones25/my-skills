@@ -85,7 +85,9 @@ version of the script and the same kinds.
 python scripts/mutate_check.py src/wallet/money.py --function transfer_fee_cents -- python -m pytest -x -q -p no:randomly --no-cov tests/unit
 ```
 
-Everything after `--` is your test command. The file is edited in place and
+Everything after `--` is your test command. With `assets/conftest.py` installed, prefix it
+with `PYTEST_EXPERT_BUDGET_S=0` (or `env PYTEST_EXPERT_BUDGET_S=0` after `--`) when a test is
+near the 2 s budget, or a mutant that only slows the code counts as killed. The file is edited in place and
 restored on exit, Ctrl-C, or SIGTERM (exit 130). Test runs get `PYTHONDONTWRITEBYTECODE=1`,
 so no mutant is ever cached as a `.pyc` that could mask a later same-size mutant and make
 it look like it survived. The existing cache for pytest and the stdlib is still read,
@@ -182,7 +184,7 @@ failed with `test_corpus_is_not_empty` for exactly that reason. Add `mutants/` t
 
 | Command | Does |
 |---|---|
-| `mutmut run --max-children 4` | run every mutant, 4 workers |
+| `PYTEST_EXPERT_BUDGET_S=0 mutmut run --max-children 4` | run every mutant, 4 workers; the budget is off so a test that is only slower under mutmut cannot fail on time |
 | `mutmut results` | list survivors |
 | `mutmut show <name>` | diff of one mutant |
 

@@ -16,6 +16,9 @@ concurrency:
 
 env:
   PYTHONHASHSEED: "0"
+  # The 2 s duration budget in tests/conftest.py guards the per-push suite. Nightly jobs run
+  # under mutation, fuzzing or long Hypothesis profiles, so it is off here.
+  PYTEST_EXPERT_BUDGET_S: "0"
   MUTATION_MAX_SURVIVORS: "25"
 
 jobs:

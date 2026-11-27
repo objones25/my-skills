@@ -13,7 +13,7 @@ tiny so each layer's purpose is visible.
 
 ```
 tests/
-├── conftest.py      copy of assets/conftest.py (seeding, network guard, profiles, markers); the only
+├── conftest.py      copy of assets/conftest.py (seeding, network guard, profiles, markers, 2 s budget); the only
 │                    difference is APP_ENV_PREFIXES, which is ("WALLET_",) here
 ├── unit/            example tests, parametrized; test_conftest_safety_net.py proves the guards act
 ├── property/        Hypothesis properties and a stateful model

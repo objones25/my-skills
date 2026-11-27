@@ -100,8 +100,11 @@ Config is in `assets/pytest-config.toml`.
 |---|---|
 | Deselect expensive layers by default | `-m "not slow and not integration and not e2e and not gpu and not symbolic"` in `addopts` |
 | Parallelism | `pytest -n auto`; `--dist loadfile` keeps a file's tests on one worker |
-| Find the slow tests | `pytest --durations=10` |
+| Find the slow tests | `pytest --durations=10 --durations-min=1.0` (a slow fixture shows as `setup`) |
+| Fail unmarked tests over 2 s | the duration budget in `assets/conftest.py`; `PYTEST_EXPERT_BUDGET_S` sets it, `0` turns it off |
 | Hang detection | built-in `faulthandler_timeout = 120`; with pytest-timeout, `timeout = 120` |
+
+Keeping expensive work out of tests in the first place, and the budget's details: `test-speed.md`.
 
 Iteration flags: `-x` stop on first failure, `--lf` last failures only, `--ff`
 failures first, `--sw` stepwise (resume from the last failure), `-k expr` select by
